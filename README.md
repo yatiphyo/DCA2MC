@@ -1,4 +1,4 @@
-# L+1 Layers Divide & Conquer Approach to Leads-To Model Checking
+# L+1 Layers Divide and Conquer Approach to Leads-To Model Checking
 
 The tool is developed in **Full Maude** supported by **Maude 2.7.1** version.
 
