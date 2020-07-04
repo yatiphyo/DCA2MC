@@ -1,0 +1,233 @@
+fmod SOLVER-COMMAND-PROCESSING is
+    pr COMMAND-PROCESSING .
+    pr REVISE-MODULE .
+    pr CHECKER .
+
+    inc (3TUPLE * (op `(_`,_`,_`) to <<_;_;_>>,
+                 op p1_ to getDatabase,
+                 op p2_ to getQidList,
+                 op p3_ to getDatabaseExt)) {Database, QidList, DatabaseExt} .
+
+    vars T T' T'' : Term .
+    vars T1 T2 T3 T4 T5 : Term .
+    vars T1' T2' T3' T4' T5' : [Term] .
+    vars T1'' : [Term] .
+    vars S S' S1 S2 : Sort .
+    vars S1' S2' : [Sort] .
+    vars ME ME' ME'' : ModuleExpression .
+    vars DB DB' DB'' DB1 DB2 DB3 DB4 : Database .
+    vars M M' : Module .
+    vars VDS : OpDeclSet .
+    vars DB-EXT DB-EXT' DB-EXT'' : DatabaseExt .
+    vars NL : NatList .
+    vars OCs OCs' : OCompExtSet .
+    vars Cs Cs' : ConfigExtSet .
+    vars NS NS' : NodeSet .
+    vars R4C : Result4Checking? .
+
+    op extractEventuallyPropTerm : EquationSet Term -> Term .
+    ceq extractEventuallyPropTerm(((eq T1 = '<>_[T2] [ A:AttrSet ] .) EQS:EquationSet), T) = T2 if T1 == T .
+    eq extractEventuallyPropTerm(EQS:EquationSet, T) = 'nil [owise] .
+
+    op solveBubbleAndToken : Term -> Term .
+    eq solveBubbleAndToken('token[T]) = T [print "Token = " T] .
+    eq solveBubbleAndToken('bubble[T]) = T [print "Bubble = " T] .
+
+    *** initialize command
+    op procInitializeCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
+    ceq procInitializeCommand('initialize`[_`,_`,_`,_`,_`,_`][T, T1, T2, T3, T4, T5], ME, DB, DB-EXT)
+        = if T1' :: Term
+        and T2' :: Term
+        and T3' :: Term
+        and S1' :: Sort
+        and S2' :: Sort
+            then << DB3 ;
+                ('\b 'Initialization: '\s ': '\o 'success '\s '\n
+                '\o '\s 'originModule: ME' '\n
+                '\o '\s 'reviseModule: header2Qid(ME'') '\n
+                '\o '\s 'initialState: downQidList(T1') '\n
+                '\o '\s 'leadsToFormula: downQidList(T2') '\n
+                '\o '\s 'eventuallyFormula: downQidList(T3') '\n
+                '\o '\s 'eleSort: S1' '\n
+                '\o '\s 'soupSort: S2' '\n
+                ) ; initializeDatabaseExt(ME', ME'', T1', T2', T3', S1', S2', DB3, DB-EXT) >>
+            else << DB ; ('\r 'Error: '\o 'Incorrect 'input. '\n) ; DB-EXT >>
+            fi
+        if DB1 := database(evalModExp(ME, DB))
+            /\ < DB2 ; ME' > := evalModExp(parseModExp(T), DB1)
+            /\ M := getFlatModule(ME', DB2)
+            /\ T1' := solveBubbleAndToken(T1)
+            /\ T2' := solveBubbleAndToken(T2)
+            /\ T3' := solveBubbleAndToken(T3)
+            /\ S1' := parseSort(T4)
+            /\ S2' := parseSort(T5)
+            /\ ME'' := (addsufix '-REVISE To ME')
+            /\ DB3 := if unitInDb(ME'', DB2)
+                then DB2
+                else
+                    evalModule(setName(
+                    revise-module(M, S1', S2'),
+                    ME''),
+                    none, DB2)
+                fi [print ME' " " T1' " " T2' " " T3' " " S1' " " S2'] .
+
+    op initializeDatabaseExt : ModuleExpression ModuleExpression Term Term Term Sort Sort Database DatabaseExt -> DatabaseExt .
+    ceq initializeDatabaseExt(ME, ME', T1, T2, T3, S, S', DB, DB-EXT) =
+        if T1' :: Term and T1'' :: Term and T2' :: Term and T3' :: Term and T4' :: Term
+        then
+            {
+                (originModule: ME),
+                (reviseModule: ME'),
+                (initState: T1''),
+                (leadsToFormula: T2'),
+                (eventuallyFormula: T3'),
+                (eventuallyProp: T4'),
+                (eleSort: S),
+                (soupSort: S')
+            ; buildInitialOCompExtSet(T1'') }
+        else
+            DB-EXT
+        fi
+        if T1' := getTerm(metaParse(upModule(ME, false), downQid(T1), anyType))
+        /\ T1'' := getTerm(metaReduce(upModule(ME, true), T1'))
+        /\ T2' := getTerm(metaParse(upModule(ME, false), downQid(T2), anyType))
+        /\ T3' := getTerm(metaParse(upModule(ME, false), downQid(T3), anyType))
+        /\ T4' := extractEventuallyPropTerm(getEqs(upModule(ME, false)), T3')
+        [print ME " " T1 " " T2 " " T3 " " T1' " " T2' " " T3' " " T1''] .
+
+    *** layerCheck command
+    op procLayerCheckCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
+    ceq procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT)
+        = if T' :: Term
+            then << DB' ;
+                (procAnalyzeCommand('analyze.@Command@, ME, DB', DB-EXT') '\n
+                '\b 'LayerCheck: '\s '\o 'success '\n) ;
+                DB-EXT' >>
+            else << DB ; ('\r 'Error: '\o 'Incorrect 'input. '\n) ; DB-EXT >>
+            fi
+        if not isEmptyDatabaseExt(DB-EXT)
+        /\ DB' := database(evalModExp(ME, DB))
+        /\ M := getFlatModule(ME, DB')
+        /\ Cs := getConfigExtSet(DB-EXT)
+        /\ OCs := getOCompExtSet(DB-EXT)
+        /\ M' := getFlatModule(reviseModule(Cs), DB')
+        /\ T' := getTerm(
+                metaParse(
+                    upModule('NAT-LIST, false),
+                    downQidList(solveBubbleAndToken(T)),
+                    'NatList
+                )
+            )
+        /\ NL := downTerm(T', nil)
+        /\ NS := collect(M', nodeSet(OCs), NL, currentDepth(OCs), Cs)
+        /\ DB-EXT' := evalOCompExtSet(
+            DB-EXT,
+            ((currentDepth: (currentDepth(OCs) + sum(NL))),
+            (depthList: (append(depthList(OCs), NL))),
+            (nodeSet: NS),
+            (result: nil))
+        )
+        [print T " " T' " " NL] .
+
+    eq procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT) =
+        << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+
+    *** analyze command
+    op procAnalyzeCommand : Term ModuleExpression Database DatabaseExt -> QidList .
+    ceq procAnalyzeCommand('analyze.@Command@, ME, DB, DB-EXT)
+        = ('\b 'Analyzer: '\n
+            '\t '\o 'currentDepth: qid(currentDepth(OCs)) '\n
+            '\t '\o 'depthList: downQidList(depthList(OCs)) '\n
+            '\t '\o 'numberOfNodeSet: qid(| nodeSet(OCs) |) '\n
+            '\t '\o 'numberOfStates: qid(getNumberOfStates(nodeSet(OCs))) '\n
+            '\t '\o 'numberOfCxStates: qid(getNumberOfCxStates(nodeSet(OCs))) '\n
+        )
+        if not isEmptyDatabaseExt(DB-EXT)
+        /\ Cs := getConfigExtSet(DB-EXT)
+        /\ OCs := getOCompExtSet(DB-EXT) .
+
+    eq procAnalyzeCommand('analyze.@Command@, ME, DB, DB-EXT) =
+        ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) [owise] .
+
+    *** lastCheck command
+    op procLastCheckCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
+    ceq procLastCheckCommand('lastCheck.@Command@, ME, DB, DB-EXT)
+        = if R4C :: Result4Checking
+            then << DB ;
+                ('\b 'LastCheck: '\s '\o 'success '\n) ;
+                DB-EXT' >>
+            else << DB ;
+                ('\r 'LastCheck: '\s '\o 'failure '\n) ;
+                DB-EXT' >>
+            fi
+        if not isEmptyDatabaseExt(DB-EXT)
+        /\ Cs := getConfigExtSet(DB-EXT)
+        /\ OCs := getOCompExtSet(DB-EXT)
+        /\ M := getFlatModule(originModule(Cs), DB)
+        /\ R4C := lastLayerCheck(M, nodeSet(OCs), Cs)
+        /\ DB-EXT' := evalOCompExtSet(DB-EXT, ((result: R4C)))
+        [print R4C] .
+
+    eq procLastCheckCommand('lastCheck.@Command@, ME, DB, DB-EXT) =
+        << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+
+    *** check command
+    op procCheckCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
+    ceq procCheckCommand('check_[T], ME, DB, DB-EXT)
+        = if R4C :: Result4Checking
+            then << DB ;
+                (procAnalyzeCommand('analyze.@Command@, ME, DB', DB-EXT'') '\n
+                '\b 'Check: '\s '\o 'success '\n) ;
+                DB-EXT'' >>
+            else << DB ;
+                (procAnalyzeCommand('analyze.@Command@, ME, DB', DB-EXT'') '\n
+                '\r 'Check: '\s '\o 'failure '\n) ;
+                DB-EXT'' >>
+            fi
+        if not isEmptyDatabaseExt(DB-EXT)
+        --- layerCheck
+        /\ DB' := database(evalModExp(ME, DB))
+        /\ M := getFlatModule(ME, DB')
+        /\ Cs := getConfigExtSet(DB-EXT)
+        /\ OCs := getOCompExtSet(DB-EXT)
+        /\ M' := getFlatModule(reviseModule(Cs), DB')
+        /\ T' := getTerm(
+                metaParse(
+                    upModule('NAT-LIST, false),
+                    downQidList(solveBubbleAndToken(T)),
+                    'NatList
+                )
+            )
+        /\ NL := downTerm(T', nil)
+        /\ NS := collect(M', nodeSet(OCs), NL, currentDepth(OCs), Cs)
+        /\ DB-EXT' := evalOCompExtSet(
+            DB-EXT,
+            ((currentDepth: (currentDepth(OCs) + sum(NL))),
+            (depthList: (append(depthList(OCs), NL))),
+            (nodeSet: NS),
+            (result: nil))
+        )
+        --- lastCheck
+        /\ Cs' := getConfigExtSet(DB-EXT')
+        /\ OCs' := getOCompExtSet(DB-EXT')
+        /\ M := getFlatModule(originModule(Cs'), DB')
+        /\ R4C := lastLayerCheck(M, nodeSet(OCs'), Cs')
+        /\ DB-EXT'' := evalOCompExtSet(DB-EXT', ((result: R4C)))
+        [print T " " T' " " NL " " R4C] .
+
+    eq procCheckCommand('check_[T], ME, DB, DB-EXT) =
+        << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+
+    *** clear command
+    op procClearCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
+    ceq procClearCommand('clear.@Command@, ME, DB, DB-EXT)
+        = << DB ;
+            (procAnalyzeCommand('analyze.@Command@, ME, DB, DB-EXT') '\n
+            '\b 'Clear: '\s '\o 'success '\n) ;
+            DB-EXT' >>
+        if not isEmptyDatabaseExt(DB-EXT)
+        /\ DB-EXT' := clearDatabase(DB-EXT) .
+
+    eq procClearCommand('clear.@Command@, ME, DB, DB-EXT) =
+        << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+endfm

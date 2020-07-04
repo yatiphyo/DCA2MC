@@ -1,0 +1,21 @@
+*** Step 1: Define commands
+fmod SOLVER-SIGN is
+    ex FULL-MAUDE-SIGN .
+    op layerCheck_ : @Bubble@ -> @Command@ .
+    op solver-help : -> @Command@ .
+    op analyze : -> @Command@ .
+    op lastCheck : -> @Command@ .
+    op check_ : @Bubble@ -> @Command@ .
+    op clear : -> @Command@ .
+    op initialize`[_`,_`,_`,_`,_`,_`] : @ModExp@ @Token@ @Token@ @Token@ @Sort@ @Sort@ -> @Command@ .
+endfm
+
+*** Step 2: Include into grammar
+fmod SOLVER-META-SIGN is
+    pr META-LEVEL .
+    pr META-FULL-MAUDE-SIGN .
+    pr UNIT .
+
+    op SOLVER-GRAMMAR : -> FModule .
+    eq SOLVER-GRAMMAR = addImports((including 'SOLVER-SIGN .), GRAMMAR) .
+endfm

@@ -1,0 +1,362 @@
+view Sort from TRIV to META-TERM is
+  sort Elt to Sort .
+endv
+
+fmod TRACE is
+    pr 2TUPLE{Term,Nat} * (
+        op `(_`,_`) to <_:_>,
+        op p1_ to getState,
+        op p2_ to getDepth,
+        sort Tuple{Term,Nat} to Log) .
+endfm
+
+view Log from TRIV to TRACE is
+    sort Elt to Log .
+endv
+
+fmod TRACE-LIST is
+    pr LIST{Log} * (sort NeList{Log} to NeLogList, sort List{Log} to LogList) .
+endfm
+
+fmod STATES-&-CXSTATES is
+    pr 2TUPLE{TermSet,TermSet} * (
+        op `(_`,_`) to <_:_>,
+        op p1_ to states,
+        op p2_ to cxStates,
+        sort Tuple{TermSet,TermSet} to States&CxStates) .
+endfm
+
+view States&CxStates from TRIV to STATES-&-CXSTATES is
+    sort Elt to States&CxStates .
+endv
+
+view LogList from TRIV to TRACE-LIST is
+    sort Elt to LogList .
+endv
+
+fmod NODE is
+    pr 2TUPLE{States&CxStates,LogList} * (
+        op `(_`,_`) to <_:_>,
+        op p1_ to states&CxStates,
+        op p2_ to logList,
+        sort Tuple{States&CxStates,LogList} to Node) .
+endfm
+
+view Node from TRIV to NODE is
+    sort Elt to Node .
+endv
+
+fmod DATABASE-EXT-DECL is
+    pr SET{Node} * (sort NeSet{Node} to NeNodeSet, sort Set{Node} to NodeSet) .
+    sorts ConfigExt OCompExt .
+    --- Prepare the sort of the result that be retured by checking
+    sorts Result4Checking Result4Checking? .
+    subsort Result4Checking < Result4Checking? .
+
+    --- Define structure of message error as well as success
+    op nil : -> Result4Checking [ctor] .
+    op success : -> Result4Checking [ctor] .
+    op {msg:_,formula:_, term:_, trace:_} : String String Term LogList -> Result4Checking? [ctor] .
+
+    op (originModule:_) : ModuleExpression -> ConfigExt .
+    op (reviseModule:_) : ModuleExpression -> ConfigExt .
+    op (initState:_) : Term -> ConfigExt .
+    op (leadsToFormula:_) : Term -> ConfigExt .
+    op (eventuallyFormula:_) : Term -> ConfigExt .
+    op (eleSort:_) : Sort -> ConfigExt .
+    op (soupSort:_) : Sort -> ConfigExt .
+    op (eventuallyProp:_) : Term -> ConfigExt .
+
+    op (depthList:_) : NatList -> OCompExt .
+    op (currentDepth:_) : Nat -> OCompExt .
+    op (nodeSet:_) : NodeSet -> OCompExt .
+    op (nodeDict:_) : TermSet -> OCompExt .
+    op (result:_) : Result4Checking? -> OCompExt .
+endfm
+
+view ConfigExt from TRIV to DATABASE-EXT-DECL is
+    sort Elt to ConfigExt .
+endv
+
+view OCompExt from TRIV to DATABASE-EXT-DECL is
+    sort Elt to OCompExt .
+endv
+
+fmod CONFIG-EXT&STATE-EXT is
+    pr SET{ConfigExt} * (sort NeSet{ConfigExt} to NeConfigExtSet, sort Set{ConfigExt} to ConfigExtSet, op empty : -> Set{ConfigExt} to emptyConfigExt) .
+    pr SET{OCompExt} * (sort NeSet{OCompExt} to NeOCompExtSet, sort Set{OCompExt} to OCompExtSet, op empty : -> Set{OCompExt} to emptyOCompExt) .
+endfm
+
+view ConfigExtSet from TRIV to CONFIG-EXT&STATE-EXT is
+    sort Elt to ConfigExtSet .
+endv
+
+view OCompExtSet from TRIV to CONFIG-EXT&STATE-EXT is
+    sort Elt to OCompExtSet .
+endv
+
+fmod DATABASE-EXT is
+    pr META-UTILS .
+    pr 2TUPLE{ConfigExtSet,OCompExtSet} * (op `(_`,_`) to `{_;_`},
+        op p1_ to getConfig,
+        op p2_ to getState,
+        sort Tuple{ConfigExtSet,OCompExtSet} to DatabaseExt) .
+
+    vars C : ConfigExt .
+    vars Cs : ConfigExtSet .
+    var Oc : OCompExt .
+    vars OCs OCs' : OCompExtSet .
+    vars DB-EXT : DatabaseExt .
+    vars ME : ModuleExpression .
+    vars T : Term .
+    vars S : Sort .
+    vars NL NL' : NatList .
+    vars N N' : Nat .
+    vars NS NS' : NodeSet .
+    vars ND : Node .
+    vars R4C R4C' : Result4Checking? .
+
+    op sum : NatList -> Nat .
+    eq sum(N NL) = N + sum(NL) .
+    eq sum(nil) = 0 .
+
+    op emptyDatabaseExt : -> DatabaseExt [ctor] .
+    op isEmptyDatabaseExt : DatabaseExt -> Bool .
+    ceq isEmptyDatabaseExt(DB-EXT) = true if DB-EXT == emptyDatabaseExt .
+    eq isEmptyDatabaseExt(DB-EXT) = false [owise] .
+
+    op getConfigExtSet : DatabaseExt -> ConfigExtSet .
+    eq getConfigExtSet({ Cs ; OCs }) = Cs .
+    op getOCompExtSet : DatabaseExt -> OCompExtSet .
+    eq getOCompExtSet({ Cs ; OCs }) = OCs .
+
+    op originModule : ConfigExtSet -> ModuleExpression .
+    op reviseModule : ConfigExtSet -> ModuleExpression .
+    op initState : ConfigExtSet -> Term .
+    op leadsToFormula : ConfigExtSet -> Term .
+    op eventuallyFormula : ConfigExtSet -> Term .
+    op eventuallyProp : ConfigExtSet -> Term .
+    op eleSort : ConfigExtSet -> Sort .
+    op soupSort : ConfigExtSet -> Sort .
+
+    eq originModule(((originModule: ME), Cs)) = ME .
+    eq reviseModule(((reviseModule: ME), Cs)) = ME .
+    eq initState(((initState: T), Cs)) = T .
+    eq leadsToFormula(((leadsToFormula: T) , Cs)) = T .
+    eq eventuallyFormula(((eventuallyFormula: T) , Cs)) = T .
+    eq eventuallyProp(((eventuallyProp: T) , Cs)) = T .
+    eq eleSort(((eleSort: S) , Cs)) = S .
+    eq soupSort(((soupSort: S) , Cs)) = S .
+
+    op depthList : OCompExtSet -> NatList .
+    op currentDepth : OCompExtSet -> Nat .
+    op nodeSet : OCompExtSet -> NodeSet .
+    eq depthList(((depthList: NL), OCs)) = NL .
+    eq currentDepth(((currentDepth: N), OCs)) = N .
+    eq nodeSet(((nodeSet: NS), OCs)) = NS .
+
+    op clearDatabase : DatabaseExt -> DatabaseExt .
+    eq clearDatabase({ Cs ; OCs }) = { Cs ; buildInitialOCompExtSet(initState(Cs)) } .
+
+    op evalOCompExtSet : DatabaseExt OCompExtSet -> DatabaseExt .
+
+    eq evalOCompExtSet({ Cs ; OCs }, (Oc , OCs'))
+    = evalOCompExtSet($evalOCompExtSet({ Cs ; OCs }, Oc), OCs') .
+    eq evalOCompExtSet({ Cs ; OCs }, emptyOCompExt) = { Cs ; OCs } .
+
+    op $evalOCompExtSet : DatabaseExt OCompExt -> DatabaseExt .
+    eq $evalOCompExtSet({ Cs ; ((depthList: NL), OCs) }, (depthList: NL'))
+    = { Cs ; (depthList: NL'), OCs } .
+    eq $evalOCompExtSet({ Cs ; ((currentDepth: N), OCs) }, (currentDepth: N'))
+    = { Cs ; (currentDepth: N'), OCs } .
+    eq $evalOCompExtSet({ Cs ; ((nodeSet: NS), OCs) }, (nodeSet: NS'))
+    = { Cs ; ((nodeSet: NS'), OCs) } .
+    eq $evalOCompExtSet({ Cs ; ((result: R4C), OCs) }, (result: R4C'))
+    = { Cs ; ((result: R4C'), OCs) } .
+
+    op buildInitialOCompExtSet : Term -> OCompExtSet .
+    eq buildInitialOCompExtSet(T)
+        = (depthList: nil), (currentDepth: 0), (nodeDict: emptyTermSet),
+        ( nodeSet: < < addDepthToTerm(T) : emptyTermSet > : nil > ), (result: nil) .
+
+    op getNumberOfStates : NodeSet -> Nat .
+    op getNumberOfCxStates : NodeSet -> Nat .
+    eq getNumberOfStates((ND , NS)) = | states(states&CxStates(ND)) | + getNumberOfStates(NS) .
+    eq getNumberOfStates(empty) = 0 .
+    eq getNumberOfCxStates((ND , NS)) = | cxStates(states&CxStates(ND)) | + getNumberOfCxStates(NS) .
+    eq getNumberOfCxStates(empty) = 0 .
+endfm
+
+view DatabaseExt from TRIV to DATABASE-EXT is
+    sort Elt to DatabaseExt .
+endv
+
+fmod CHECKER is
+    pr DATABASE-EXT .
+
+    vars M : Module .
+    vars NS NS1 NS2 : NodeSet .
+    vars ND : Node .
+    vars N D : Nat .
+    vars L : NatList .
+    vars LL : LogList .
+    vars DB-EXT : DatabaseExt .
+    vars Cs : ConfigExtSet .
+    vars OCs : OCompExtSet .
+    vars T T' F P Cx : Term .
+    vars RT : ResultTriple .
+    vars TS1 TS2 : TermSet .
+    vars R4C : Result4Checking? .
+
+    op collect : Module NodeSet NatList Nat ConfigExtSet -> NodeSet .
+    eq collect(M, NS, L, D, Cs) = $collect(M, NS, L, D, Cs) .
+    --- eq collect(M, NS, L, D, Cs) = NS [print "NS = " NS "\nL = " L "\nD = " D "\nC = " Cs] .
+
+    --- update depth in module by stack up depth at each layer before execution
+    op $collect : Module NodeSet NatList Nat ConfigExtSet -> NodeSet .
+    eq $collect(M, NS, N L, D, Cs) = $collect(M, layerCheck(changeDepth(M, D + N), NS, D + N, Cs), L, D + N, Cs) [print "Depth = " D ", N = " N] .
+    eq $collect(M, NS, nil, D, Cs) = NS [print "Depth = " D ", N = nil"] .
+
+    --- Node : < < ALLStates : ALLCxStates > : < Term : Depth > | nil > >
+    --- ALLStates :: TermSet : T1 | T2 | emptyTermSet
+    --- NodeSet : [Node]+ , empty .
+    op layerCheck : Module NodeSet Nat ConfigExtSet -> NodeSet .
+    eq layerCheck(M, NS, N, Cs) = $layerCheck(M, NS, N, empty, Cs) .
+
+    op $layerCheck : Module NodeSet Nat NodeSet ConfigExtSet -> NodeSet .
+    eq $layerCheck(M, empty, N, NS, Cs) = NS .
+    eq $layerCheck(M, (ND , NS1), N, NS2, Cs) = $layerCheck(
+                                                M,
+                                                NS1,
+                                                N,
+                                                union(NS2, $$layerCheck(M, ND, N, empty, Cs)),
+                                                Cs
+                                            ) .
+
+    op $$layerCheck : Module Node Nat NodeSet ConfigExtSet -> NodeSet .
+    eq $$layerCheck(M, < < emptyTermSet : emptyTermSet > : LL >, N, NS, Cs) = NS .
+    eq $$layerCheck(M, < < T | TS1 : TS2 > : LL >, N, NS, Cs) = $$layerCheck(
+                                                                M,
+                                                                < < TS1 : TS2 > : LL >,
+                                                                N,
+                                                                union(
+                                                                    NS,
+                                                                    filterValidNode(
+                                                                        < < genTermSet(M, T, N, Cs) : allCounterExample(M, T, leadsToFormula(Cs), eventuallyProp(Cs)) > : (< T : N >  LL) >
+                                                                    )
+                                                                ),
+                                                                Cs
+                                                            ) .
+
+    eq $$layerCheck(M, < < emptyTermSet : T | TS2 > : LL >, N, NS, Cs) = $$layerCheck(
+                                                                M,
+                                                                < < emptyTermSet : TS2 > : LL >,
+                                                                N,
+                                                                union(NS,
+                                                                    filterValidNode(
+                                                                        < < emptyTermSet : allCounterExample(M, T, eventuallyFormula(Cs), eventuallyProp(Cs)) > : (< T : N > LL) >
+                                                                    )
+                                                                ),
+                                                                Cs
+                                                            ) .
+
+    --- Accept only either ALLStates or ALLCxStates are not empty
+    op filterValidNode : NodeSet -> NodeSet .
+    eq filterValidNode(empty) = empty .
+    eq filterValidNode((< < TS1 : TS2 > : LL > , NS)) = if (size(TS1) == 0 and size(TS2) == 0)
+                                                    then
+                                                        filterValidNode(NS)
+                                                    else
+                                                        (< < TS1 : TS2 > : LL > , filterValidNode(NS))
+                                                    fi .
+
+
+    ************ GET ALL STATES AT A DEPTH ************
+    op genTermSet : Module Term Nat ConfigExtSet -> TermSet .
+    eq genTermSet(M, empty, D, Cs) = emptyTermSet .
+    eq genTermSet(M, T, 0, Cs) = emptyTermSet .
+    eq genTermSet(M, T, D, Cs) = $genTermSet(
+        metaSearch(M, T, '`{_`}['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, 0),
+        M,
+        T,
+        D,
+        0,
+        Cs
+    ) .
+
+    op $genTermSet : ResultTriple? Module Term Nat Nat ConfigExtSet -> TermSet .
+    eq $genTermSet(failure, M, T, D, N, Cs) = emptyTermSet .
+    eq $genTermSet(RT, M, T, D, N, Cs) = getTerm(RT) | $genTermSet(
+        metaSearch(M, T, '`{_`}['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, N + 1),
+        M,
+        T,
+        D,
+        N + 1,
+        Cs
+    ) .
+
+    ************ GET ALL COUNTEREXAMPLE STATES AT A DEPTH ************
+    --- Build Equations to add to Module to ignore in next finding counterexample
+    op buildEqs : Term Term -> EquationSet .
+    eq buildEqs(T, P) = (eq '_|=_[T, P] = 'true.Bool [none] .) .
+    --- eq buildEqs(T, P) = (eq '_|=_[T, 'inCs1.Prop] = 'true.Bool [none] .) .
+
+
+    op allCounterExample : Module Term Term Term -> TermSet .
+    eq allCounterExample(M, T, F, P) = $allCounterExample(M, T, F, P) .
+    op $allCounterExample : Module Term Term Term -> TermSet .
+    ceq $allCounterExample(M, T, F, P) = if (Cx :: Constant)
+                                    then emptyTermSet
+                                    else
+                                        getCounterExampleState(Cx) | $allCounterExample(addEqs(buildEqs(getCounterExampleState(Cx), P), M), T, F, P)
+                                    fi
+                                    if Cx := getCounterExample(M, 'modelCheck[T, F]) .
+    eq $allCounterExample(M, T, F, P) = emptyTermSet [owise] .
+
+    op getCounterExampleState : Term -> TermList .
+    eq getCounterExampleState(T) = topTL(extractTL(lastTL(extractTL(T)))) .
+
+    --- Logic checking at the last layer with unbounded
+    op lastLayerCheck : Module NodeSet ConfigExtSet -> Result4Checking? .
+    eq lastLayerCheck(M, empty, Cs) = success .
+    ceq lastLayerCheck(M, (ND , NS), Cs) = if R4C :: Result4Checking
+                                        then
+                                            lastLayerCheck(M, NS, Cs)
+                                        else
+                                            R4C
+                                        fi
+                                        if R4C := checkNode(M, ND, Cs) .
+
+    --- There exists a counterexample given by a initial state and a formula in a module ?
+    op isCounterExample : Module Term Term -> Bool .
+    ceq isCounterExample(M:Module, T:Term, F:Term) = if (T':Term :: Constant)
+                                    then false
+                                    else true
+                                    fi
+                                    if T':Term := getCounterExample(M:Module, 'modelCheck[T:Term, F:Term]) .
+    eq isCounterExample(M:Module, T:Term, F:Term) = false [owise] .
+
+    --- Check counterexample in ALLStates one by one
+    op check1 : Module TermSet LogList ConfigExtSet -> Result4Checking? .
+    eq check1(M:Module, emptyTermSet, LL, Cs) = success .
+    eq check1(M:Module, T:Term | TS:TermSet, LL, Cs) = if isCounterExample(M:Module, removeDepthFromTerm(T:Term), leadsToFormula(Cs))
+                                            then {msg: "Failure", formula: "lofree1 = inWs1 |-> inCs1", term: T:Term, trace: LL}
+                                            else check1(M:Module, TS:TermSet, LL, Cs)
+                                            fi .
+
+    --- Check counterexample in ALLCxStates one by one
+    op check2 : Module TermSet LogList ConfigExtSet -> Result4Checking? .
+    eq check2(M:Module, emptyTermSet, LL, Cs) = success .
+    eq check2(M:Module, T:Term | TS:TermSet, LL, Cs) = if isCounterExample(M:Module, removeDepthFromTerm(T:Term), eventuallyFormula(Cs))
+                                            then {msg: "Failure", formula: "lofree2 = <>inCs1", term: T:Term, trace: LL}
+                                            else check2(M:Module, TS:TermSet, LL, Cs)
+                                            fi .
+    --- Check counterexample in a Node one by one in order, including both ALLStates and ALLCxStates
+    op checkNode : Module Node ConfigExtSet -> Result4Checking? .
+    ceq checkNode(M, ND, Cs) = if (R4C :: Result4Checking)
+                    then check2(M, cxStates(states&CxStates(ND)), logList(ND), Cs)
+                    else R4C
+                    fi
+                    if R4C := check1(M, states(states&CxStates(ND)), logList(ND), Cs) .
+    eq checkNode(M, ND, Cs) = success [owise] .
+endfm

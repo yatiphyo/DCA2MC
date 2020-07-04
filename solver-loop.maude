@@ -1,0 +1,74 @@
+
+fmod SOLVER-BANNER is
+    pr STRING .
+    op solver-banner : -> String .
+    eq solver-banner = "L+1 Layers Divide & Conquer Approach to Leads-To Model Checking Available Now" .
+endfm
+
+mod FULL-MAUDE is
+    pr SOLVER-META-SIGN .
+    pr SOLVER-DATABASE-HANDLING .
+    inc LOOP-MODE .
+    pr BANNER .
+    pr SOLVER-BANNER .
+
+    subsort Object < State .
+
+    op o : -> Oid .
+    op init : -> System .
+
+    var  Atts : AttributeSet .
+    var  X@DatabaseClass : DatabaseClass .
+    var  O : Oid .
+    var  DB : Database .
+    var  ME : Header .
+    var  QI : Qid .
+    vars QIL QIL' QIL'' : QidList .
+    var  TL : TermList .
+    var  N : Nat .
+    vars RP RP' : ResultPair .
+
+    rl [init] :
+        init
+        => [nil,
+            < o : Database |
+                db : initialDatabase,
+                input : nilTermList, output : nil,
+                db-ext : emptyDatabaseExt,
+                default : 'CONVERSION >,
+            ('\n '\t '\s '\s '\s '\s string2qidList(solver-banner) '\n)] .
+
+    rl [in] :
+        [QI QIL,
+        < O : X@DatabaseClass |
+            db : DB, input : nilTermList, output : nil, default : ME, Atts >,
+        QIL']
+        => if metaParse(SOLVER-GRAMMAR, QI QIL, '@Input@) :: ResultPair
+        then [nil,
+                < O : X@DatabaseClass | db : DB,
+                    input : getTerm(metaParse(SOLVER-GRAMMAR, QI QIL, '@Input@)),
+                    output : nil, default : ME, Atts >,
+                QIL']
+        else [nil,
+                < O : X@DatabaseClass | db : DB, input : nilTermList,
+                    output : ('\r 'Warning:
+                            printSyntaxError(metaParse(SOLVER-GRAMMAR, QI QIL, '@Input@),
+                                QI QIL)
+                            '\n
+                            '\r 'Error: '\o 'No 'parse 'for 'input. '\n),
+                    default : ME, Atts >,
+                QIL']
+        fi .
+
+    rl [out] :
+        [QIL,
+        < O : X@DatabaseClass |
+            db : DB, input : TL, output : (QI QIL'), default : ME, Atts >,
+        QIL'']
+        => [QIL,
+            < O : X@DatabaseClass |
+                db : DB, input : TL, output : nil, default : ME, Atts >,
+            (QI QIL' QIL'')] .
+endm
+
+loop init .

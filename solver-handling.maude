@@ -1,0 +1,104 @@
+mod SOLVER-DATABASE-HANDLING is
+    inc DATABASE-HANDLING .
+    pr SOLVER-COMMAND-PROCESSING .
+    pr SOLVER-HELP .
+
+    op db-ext :_ : DatabaseExt -> Attribute .
+
+    vars T T' T'' : Term .
+    vars T1 T2 T3 T4 T5 : Term .
+    vars ME ME' : ModuleExpression .
+    vars DB DB' DB'' : Database .
+    var Atts : AttributeSet .
+    var X@DatabaseClass : DatabaseClass .
+    var O : Oid .
+    var DB-EXT : DatabaseExt .
+    var QIL : QidList .
+
+    rl [check] :
+        < O : X@DatabaseClass |
+            db : DB,
+            input : ('check_[T]),
+            output : nil,
+            db-ext : DB-EXT,
+            default : ME, Atts >
+        => < O : X@DatabaseClass |
+            db : getDatabase(procCheckCommand('check_[T], ME, DB, DB-EXT)),
+            input : nilTermList,
+            output : getQidList(procCheckCommand('check_[T], ME, DB, DB-EXT)),
+            db-ext : getDatabaseExt(procCheckCommand('check_[T], ME, DB, DB-EXT)),
+            default : ME, Atts > .
+
+    rl [clear] :
+        < O : X@DatabaseClass |
+        db : DB,
+        input : ('clear.@Command@),
+        output : nil,
+        db-ext : DB-EXT,
+        default : ME, Atts >
+        => < O : X@DatabaseClass |
+        db : DB,
+        input : nilTermList,
+        output : getQidList(procClearCommand('clear.@Command@, ME, DB, DB-EXT)),
+        db-ext : getDatabaseExt(procClearCommand('clear.@Command@, ME, DB, DB-EXT)),
+        default : ME, Atts > .
+
+    rl [layerCheck] :
+        < O : X@DatabaseClass |
+            db : DB,
+            input : ('layerCheck_[T]),
+            output : nil,
+            db-ext : DB-EXT,
+            default : ME, Atts >
+        => < O : X@DatabaseClass |
+            db : getDatabase(procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT)),
+            input : nilTermList,
+            output : getQidList(procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT)),
+            db-ext : getDatabaseExt(procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT)),
+            default : ME, Atts > .
+
+    rl [initialize] :
+        < O : X@DatabaseClass | db : DB,
+            input : ('initialize`[_`,_`,_`,_`,_`,_`][T, T1, T2, T3, T4, T5]),
+            output : nil,
+            db-ext : DB-EXT,
+            default : ME, Atts >
+     => < O : X@DatabaseClass |
+            db : getDatabase(procInitializeCommand('initialize`[_`,_`,_`,_`,_`,_`][T, T1, T2, T3, T4, T5], ME, DB, DB-EXT)),
+            input : nilTermList,
+            output : getQidList(procInitializeCommand('initialize`[_`,_`,_`,_`,_`,_`][T, T1, T2, T3, T4, T5], ME, DB, DB-EXT)),
+            db-ext : getDatabaseExt(procInitializeCommand('initialize`[_`,_`,_`,_`,_`,_`][T, T1, T2, T3, T4, T5], ME, DB, DB-EXT)),
+            default : parseHeader(T), Atts > .
+
+    rl [analyze] :
+        < O : X@DatabaseClass |
+        db : DB,
+        input : ('analyze.@Command@),
+        output : nil,
+        db-ext : DB-EXT,
+        default : ME, Atts >
+        => < O : X@DatabaseClass |
+        db : DB,
+        input : nilTermList,
+        output : procAnalyzeCommand('analyze.@Command@, ME, DB, DB-EXT),
+        db-ext : DB-EXT,
+        default : ME, Atts > .
+
+    rl [lastCheck] :
+        < O : X@DatabaseClass |
+        db : DB,
+        input : ('lastCheck.@Command@),
+        output : nil,
+        db-ext : DB-EXT,
+        default : ME, Atts >
+        => < O : X@DatabaseClass |
+        db : DB,
+        input : nilTermList,
+        output : getQidList(procLastCheckCommand('lastCheck.@Command@, ME, DB, DB-EXT)),
+        db-ext : getDatabaseExt(procLastCheckCommand('lastCheck.@Command@, ME, DB, DB-EXT)),
+        default : ME, Atts > .
+
+    rl [solver-help] :
+        < O : X@DatabaseClass | input : ('solver-help.@Command@), output : QIL, Atts >
+        => < O : X@DatabaseClass | input : nilTermList, output : solver-help, Atts > .
+endm

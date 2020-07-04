@@ -1,0 +1,128 @@
+fmod META-UTILS is
+    pr UNIT .
+    pr CONVERSION .
+
+    --- Check existing Equation in EqutionSet by Qid
+    op isExistEquationByQid : EquationSet Qid -> Bool .
+    eq isExistEquationByQid(none, Q:Qid) = false .
+    eq isExistEquationByQid(E:Equation ES:EquationSet, Q:Qid) = if (isEquationByQid(E:Equation, Q:Qid))
+                                                              then true
+                                                              else isExistEquationByQid(ES:EquationSet, Q:Qid)
+                                                              fi .
+    --- Check whether or not Equation is identified by Qid
+    op isEquationByQid : Equation Qid -> Bool .
+    ceq isEquationByQid((eq T1:Term = T2:Term [AS:AttrSet] .), Q:Qid) = if (getName(T1:Term) == Q:Qid)
+                                                                    then true
+                                                                    else false
+                                                                    fi
+                                                                    if T1:Term :: Constant .
+    eq isEquationByQid(E:Equation, Q:Qid) = false [owise] .
+
+    *** Get counterexample from red modelCheck(...) *******************************
+    op getCounterExample : Module Term -> Term .
+    eq getCounterExample(M:Module, T:Term) = getTerm(metaReduce(M:Module, T:Term)) .
+
+    --- Extract TermList from a Term
+    op extractTL : Term -> TermList .
+    eq extractTL(Q:Qid[TL:TermList]) = TL:TermList .
+
+    --- Get top TermList
+    op topTL : TermList -> TermList .
+    eq topTL((TL1:TermList, TL2:TermList)) = TL1:TermList .
+
+    --- Get last TermList
+    op lastTL : TermList -> TermList .
+    eq lastTL((TL1:TermList, TL2:TermList)) = TL2:TermList .
+
+    --- Change Depth information
+    op changeDepth : SModule Nat -> SModule .
+    eq changeDepth(mod Q:Qid is IL:ImportList sorts S:SortSet .
+        S:SubsortDeclSet O:OpDeclSet M:MembAxSet ES:EquationSet R:RuleSet endm, D:Nat)
+    = mod Q:Qid
+        is IL:ImportList sorts S:SortSet . S:SubsortDeclSet
+        O:OpDeclSet M:MembAxSet updateDepth(ES:EquationSet, D:Nat) R:RuleSet endm .
+
+    --- Update Depth with a special Qid that is "Bound" -> Make sure in your specification does not have this operator
+    op updateDepth : EquationSet Nat -> EquationSet .
+    eq updateDepth(none, D:Nat) = (eq 'Bound.Nat = upTerm(D:Nat) [none] .) .
+
+    eq updateDepth(ES:EquationSet, D:Nat) = if isExistEquationByQid(ES:EquationSet, qid("Bound"))
+                                            then $updateDepth(ES:EquationSet, D:Nat)
+                                            else (eq 'Bound.Nat = upTerm(D:Nat) [none] .) ES:EquationSet
+                                            fi .
+
+    op $updateDepth : EquationSet Nat -> EquationSet .
+    eq $updateDepth(E:Equation ES:EquationSet, D:Nat) = if isEquationByQid(E:Equation, qid("Bound"))
+                                                        then updateEquation(E:Equation, D:Nat) ES:EquationSet
+                                                        else E:Equation updateDepth(ES:EquationSet, D:Nat)
+                                                        fi .
+    --- update new depth
+    op updateEquation : Equation Nat -> Equation .
+    eq updateEquation((eq T1:Term = T2:Term [AS:AttrSet] .), D:Nat) = (eq T1:Term = upTerm(D:Nat) [AS:AttrSet] .) [print "Bound = " D:Nat ", T2 = " T2:Term] .
+
+    --- transformRules with depth
+    op transformRules : SModule Term -> SModule [memo] .
+    eq transformRules(mod Q:Qid is IL:ImportList sorts S:SortSet .
+        S:SubsortDeclSet O:OpDeclSet M:MembAxSet E:EquationSet R:RuleSet endm, T:Term)
+    = mod (Q:Qid) is IL:ImportList sorts S:SortSet . S:SubsortDeclSet
+        O:OpDeclSet M:MembAxSet E:EquationSet transform(R:RuleSet, T:Term) endm .
+
+    op transform : RuleSet Term -> RuleSet .
+    eq transform(none, T:Term) = (crl '`{_`}['__[T:Term,'depth:_['D:Nat]]] => '`{_`}['__[T:Term,'depth:_['D:Nat]]] if '_>=_['D:Nat,'Bound.Nat] = 'true.Bool [label('stutter)] .) .
+    eq transform(R:Rule RS:RuleSet, T:Term) = $transform(R:Rule) transform(RS:RuleSet, T:Term) .
+
+    op $transform : Rule -> Rule .
+    eq $transform(rl '`{_`}['__[TL1:TermList]] => '`{_`}['__[TL2:TermList]] [label(q:Qid)] .)
+        = (crl '`{_`}['__[TL1:TermList, 'depth:_['D:Nat]]] => '`{_`}['__[TL2:TermList,'depth:_['s_['D:Nat]]]] if '_<_['D:Nat,'Bound.Nat] = 'true.Bool [label(q:Qid)] .) .
+    eq $transform(crl '`{_`}['__[TL1:TermList]] => '`{_`}['__[TL2:TermList]] if C:Condition [label(q:Qid)] .)
+        = (crl '`{_`}['__[TL1:TermList, 'depth:_['D:Nat]]] => '`{_`}['__[TL2:TermList,'depth:_['s_['D:Nat]]]] if '_<_['D:Nat,'Bound.Nat] = 'true.Bool /\ C:Condition [label(q:Qid)] .) .
+
+    --- remove depth information from a Term
+    op getQidFromTerm : Term -> Qid .
+    eq getQidFromTerm(Q:Qid[TL:TermList]) = Q:Qid .
+
+    op removeDepthFromTerm : Term -> Term .
+    eq removeDepthFromTerm('`{_`}['__[TL:TermList]]) = '`{_`}['__[ $removeDepthFromTerm(TL:TermList) ]] .
+    op $removeDepthFromTerm : TermList -> TermList .
+    eq $removeDepthFromTerm((T:Term, TL:TermList)) = if (getQidFromTerm(T:Term) == 'depth:_)
+                                            then TL:TermList
+                                            else T:Term, $removeDepthFromTerm(TL:TermList)
+                                            fi .
+    eq $removeDepthFromTerm(empty) = empty .
+
+    --- add depth information to the a Term
+    op addDepthToTerm : Term -> Term .
+    eq addDepthToTerm('`{_`}['__[TL:TermList]]) = '`{_`}['__[$removeDepthFromTerm(TL:TermList), 'depth:_['0.Zero]]] .
+
+    op getVarTerm : Sort -> Term .
+    eq getVarTerm(S:Sort) = qid("VAR-" + string(S:Sort) + ":" + string(S:Sort)) .
+
+    op downQidList : NatList -> QidList .
+    eq downQidList((N:Nat L:NatList)) = qid(string(N:Nat, 10)) downQidList(L:NatList) .
+    eq downQidList(nil) = nil .
+endfm
+
+fmod REVISE-MODULE is
+    pr META-UTILS .
+    var M : Module .
+    var S S' : Sort .
+
+    op revise-module : Module Sort Sort -> Module .
+    eq revise-module(M, S, S') = transformRules(
+            addEqs(
+                preEquationSet,
+                addOps(
+                    preOpDeclSet(S), M
+                )
+            ),
+            getVarTerm(S')
+        ) .
+
+    op preOpDeclSet : Sort -> OpDeclSet .
+    eq preOpDeclSet(S) = (
+        (op 'depth:_ : 'Nat -> S [ctor] .) (op 'Bound : nil -> 'Nat [none] .)
+    ) .
+
+    op preEquationSet : -> EquationSet .
+    eq preEquationSet = (eq 'Bound.Nat = 's_['0.Zero] [none] .) .
+endfm
