@@ -2,7 +2,7 @@
 
 The tool is developed in **Full Maude** supported by **Maude 2.7.1** version.
 
-## How to use 
+## How to use
 We have 2 case studies **QLOCK** and **TAS** under the **specs** folder for demo.
 
 The following shows how to interact with the tool to do model checking with our approach.
@@ -89,12 +89,12 @@ For example: `(solver-help)`
 
 **Full running for QLOCK:**
 
-(initialize[QLOCK-CHECK, init, lofree1, lofree2, OComp, Soup{OComp}])
+(initialize[QLOCK-CHECK, init5, lofree1, lofree2, OComp, Soup{OComp}])
 
 (layerCheck 2 2)
 
 (lastCheck)
-
+-
 (clear)
 
 (check 2 2)
@@ -112,3 +112,29 @@ For example: `(solver-help)`
 (layerCheck 2)
 
 (lastCheck)
+
+## Problem
+
+We cannot print exactly the elapsed time of each command. However, we can use another tool to mitigate the problem.
+
+`dtruss -a -t write -p <PID>`
+
+In `RELATIVE` column, we get the value of a line which is executing your command and the value of the succeeding line.
+
+That is relative timestamps in microsecond. The latter value substracts the former value and then dividing to 10^6.
+
+You can get the elapsed time of your command.
+
+**Note that:** you need to enable **dtrace** beforehand as following with Mac OS
+
+```
+Reboot the mac
+
+Hold ⌘R during reboot
+
+From the Utilities menu, run Terminal
+
+Enter the following command
+
+csrutil enable --without dtrace
+```
