@@ -94,7 +94,7 @@ For example: `(solver-help)`
 (layerCheck 2 2)
 
 (lastCheck)
--
+
 (clear)
 
 (check 2 2)

@@ -1,3 +1,19 @@
+fmod TRANSITION-TERM is
+    pr 2TUPLE{Term,Qid} * (
+        op `(_`,_`) to <_`,_>,
+        op p1_ to getState,
+        op p2_ to getLabel,
+        sort Tuple{Term,Qid} to TransitionTerm) .
+endfm
+
+view TransitionTerm from TRIV to TRANSITION-TERM is
+    sort Elt to TransitionTerm .
+endv
+
+fmod TRANSITION-TERM-LIST is
+    pr LIST{TransitionTerm} * (sort NeList{TransitionTerm} to NeTransitionTermList, sort List{TransitionTerm} to TransitionTermList) .
+endfm
+
 fmod TRACE is
     pr 2TUPLE{Term,Nat} * (
         op `(_`,_`) to <_:_>,
@@ -61,7 +77,15 @@ fmod DATABASE-EXT-DECL is
     --- Define structure of message error as well as success
     op nil : -> Result4Checking [ctor] .
     op success : -> Result4Checking [ctor] .
-    op {msg:_,formula:_, term:_, trace:_} : String Term Term LogList -> Result4Checking? [ctor] .
+    op {formula:_, term:_, trace:_, cx:_} : Term Term LogList Term -> Result4Checking? [ctor] .
+    op getFormula : Result4Checking? -> Term .
+    op getTerm : Result4Checking? -> Term .
+    op getLogList : Result4Checking? -> LogList .
+    op getCx : Result4Checking? -> Term .
+    eq getFormula({formula: F:Term, term: T:Term, trace: L:LogList, cx: Cx:Term}) = F:Term .
+    eq getTerm({formula: F:Term, term: T:Term, trace: L:LogList, cx: Cx:Term}) = T:Term .
+    eq getLogList({formula: F:Term, term: T:Term, trace: L:LogList, cx: Cx:Term}) = L:LogList .
+    eq getCx({formula: F:Term, term: T:Term, trace: L:LogList, cx: Cx:Term}) = Cx:Term .
 
     op (originModule:_) : ModuleExpression -> ConfigExt .
     op (reviseModule:_) : ModuleExpression -> ConfigExt .
@@ -155,9 +179,12 @@ fmod DATABASE-EXT is
     op depthList : OCompExtSet -> NatList .
     op currentDepth : OCompExtSet -> Nat .
     op nodeSet : OCompExtSet -> NodeSet .
+    op result : OCompExtSet -> Result4Checking? .
+
     eq depthList(((depthList: NL), OCs)) = NL .
     eq currentDepth(((currentDepth: N), OCs)) = N .
     eq nodeSet(((nodeSet: NS), OCs)) = NS .
+    eq result(((result: R4C), OCs)) = R4C .
 
     op clearDatabase : DatabaseExt -> DatabaseExt .
     eq clearDatabase({ Cs ; OCs }) = { Cs ; buildInitialOCompExtSet(initState(Cs)) } .
@@ -204,22 +231,26 @@ fmod CHECKER is
         op p2_ to cache,
         sort Tuple{NodeSet,States&CxStates} to NodeSet&Cache) .
 
+    pr TRANSITION-TERM-LIST .
+
     vars M : Module .
     vars NS NS1 NS2 : NodeSet .
     vars ND : Node .
     vars N D : Nat .
     vars L : NatList .
     vars LL : LogList .
+    vars NeLL : NeLogList .
     vars DB-EXT : DatabaseExt .
     vars Cs : ConfigExtSet .
     vars OCs : OCompExtSet .
-    vars T T' F P Cx : Term .
+    vars T T' T1 T2 F P Cx : Term .
     vars RT : ResultTriple .
-    vars TS1 TS2 : TermSet .
+    vars TS TS1 TS2 : TermSet .
     vars STATES CxSTATES : TermSet .
     vars R4C : Result4Checking? .
     vars CACHE : States&CxStates .
     vars NS&CACHE : NodeSet&Cache .
+    vars Q : Qid .
 
     op collect : Module NodeSet NatList Nat ConfigExtSet -> NodeSet .
     eq collect(M, NS, L, D, Cs) = $collect(M, NS, L, D, Cs) .
@@ -255,7 +286,7 @@ fmod CHECKER is
                                                                 union(
                                                                     NS,
                                                                     filterValidNode(
-                                                                        < < (STATES except states(CACHE)) : (CxSTATES except cxStates(CACHE)) > : (< T : N >  LL) >
+                                                                        < < (STATES except states(CACHE)) : (CxSTATES except cxStates(CACHE)) > : (< T : N > LL) >
                                                                     )
                                                                 ),
                                                                 < (STATES | states(CACHE)) : (CxSTATES | cxStates(CACHE)) >,
@@ -353,26 +384,87 @@ fmod CHECKER is
     eq isCounterExample(M:Module, T:Term, F:Term) = false [owise] .
 
     --- Check counterexample in ALLStates one by one
-    op check1 : Module TermSet LogList ConfigExtSet -> Result4Checking? .
-    eq check1(M:Module, emptyTermSet, LL, Cs) = success .
-    eq check1(M:Module, T:Term | TS:TermSet, LL, Cs) = if isCounterExample(M:Module, removeDepthFromTerm(T:Term), leadsToFormula(Cs))
-                                            then {msg: "Failure", formula: leadsToFormula(Cs), term: T:Term, trace: LL}
-                                            else check1(M:Module, TS:TermSet, LL, Cs)
-                                            fi .
+    op checkStates : Module TermSet LogList ConfigExtSet -> Result4Checking? .
+    eq checkStates(M, emptyTermSet, LL, Cs) = success .
+    ceq checkStates(M, T | TS, LL, Cs) = if (Cx :: Constant)
+                                    then checkStates(M, TS, LL, Cs)
+                                    else
+                                        {formula: F, term: T', trace: (< T : 0 > LL), cx: Cx}
+                                    fi
+                                    if T' := removeDepthFromTerm(T)
+                                    /\ F := leadsToFormula(Cs)
+                                    /\ Cx := getCounterExample(M, 'modelCheck[T', F]) .
 
     --- Check counterexample in ALLCxStates one by one
-    op check2 : Module TermSet LogList ConfigExtSet -> Result4Checking? .
-    eq check2(M:Module, emptyTermSet, LL, Cs) = success .
-    eq check2(M:Module, T:Term | TS:TermSet, LL, Cs) = if isCounterExample(M:Module, removeDepthFromTerm(T:Term), eventuallyFormula(Cs))
-                                            then {msg: "Failure", formula: eventuallyFormula(Cs), term: T:Term, trace: LL}
-                                            else check2(M:Module, TS:TermSet, LL, Cs)
-                                            fi .
+    op checkCxStates : Module TermSet LogList ConfigExtSet -> Result4Checking? .
+    eq checkCxStates(M, emptyTermSet, LL, Cs) = success .
+    ceq checkCxStates(M, T | TS, LL, Cs) = if (Cx :: Constant)
+                                        then checkCxStates(M, TS, LL, Cs)
+                                        else {formula: F, term: T', trace: (< T : 0 > LL), cx: Cx}
+                                        fi
+                                        if T' := removeDepthFromTerm(T)
+                                        /\ F := eventuallyFormula(Cs)
+                                        /\ Cx := getCounterExample(M, 'modelCheck[T', F]) .
+
     --- Check counterexample in a Node one by one in order, including both ALLStates and ALLCxStates
     op checkNode : Module Node ConfigExtSet -> Result4Checking? .
     ceq checkNode(M, ND, Cs) = if (R4C :: Result4Checking)
-                    then check2(M, cxStates(states&CxStates(ND)), logList(ND), Cs)
+                    then checkCxStates(M, cxStates(states&CxStates(ND)), logList(ND), Cs)
                     else R4C
                     fi
-                    if R4C := check1(M, states(states&CxStates(ND)), logList(ND), Cs) .
+                    if R4C := checkStates(M, states(states&CxStates(ND)), logList(ND), Cs) .
     eq checkNode(M, ND, Cs) = success [owise] .
+
+    --- Building counterexample
+    vars TTL : TransitionTermList .
+    vars TT : TransitionTerm .
+
+    op traceStepTerm : TraceStep -> Term .
+    op traceStepRule : TraceStep -> Rule .
+    eq traceStepTerm({ T:Term, T:Type, R:Rule }) = T:Term .
+    eq traceStepRule({ T:Term, T:Type, R:Rule }) = R:Rule .
+
+    op ruleLabel : Rule -> Term .
+    eq ruleLabel(rl T1:Term => T2:Term [ label(Q:Qid) ].) = Q:Qid .
+    eq ruleLabel(crl T1:Term => T2:Term if C:Condition [ label(Q:Qid) ].) = Q:Qid .
+
+
+    op getQidTerm : Qid -> Term .
+    eq getQidTerm(Q) = getTerm(metaParse(upModule('QID, false), qid("'" + string(Q)), 'Qid)) .
+
+    op getTransitionList : Trace -> TransitionTermList .
+    eq getTransitionList(nil) = nil .
+    eq getTransitionList(TS:TraceStep T:Trace) = < traceStepTerm(TS:TraceStep), getQidTerm(ruleLabel(traceStepRule(TS:TraceStep))) > getTransitionList(T:Trace) .
+
+    op getTrace : Module Term Term Nat -> Trace .
+    ceq getTrace(M, T1, T2, N) = if T:Trace? == failure
+                            then nil
+                            else T:Trace?
+                            fi
+                            if T:Trace? := metaSearchPath(M, T1, T2, nil, '*, unbounded, 0) [print "\n Trace " T:Trace? ] .
+
+    op buildCounterExample : Module LogList -> TransitionTermList .
+    eq buildCounterExample(M, nil) = nil .
+    eq buildCounterExample(M, < T : N > LL) = $buildCounterExample(M, T, LL, nil, N) .
+
+    op $buildCounterExample : Module Term LogList TransitionTermList Nat -> TransitionTermList .
+    eq $buildCounterExample(M, T, nil, TTL, D) = TTL .
+    eq $buildCounterExample(M, T1, < T2 : N > LL, TTL, D) = $buildCounterExample(
+        M, T2, LL,
+        reverse(getTransitionList(getTrace(changeDepth(M, D), T1, T2, D))) TTL,
+        D + N
+    ) [print "\n T1 = " T1 "\n T2" T2 "\n D " D].
+
+    op transformTransitionTermList : TransitionTermList -> TermList .
+    eq transformTransitionTermList(nil) = empty .
+    eq transformTransitionTermList(TT TTL) = '`{_`,_`}[removeDepthFromTerm(getState(TT)), getLabel(TT)], transformTransitionTermList(TTL) [print "TT " TT] .
+
+    op combineCounterExample : TransitionTermList Term -> Term .
+    eq combineCounterExample(TTL, 'counterexample[TL1:TermList, TL2:TermList]) = if TL1:TermList :: Term
+                                                                                 then 'counterexample['__[transformTransitionTermList(TTL), TL1:TermList], TL2:TermList]
+                                                                                 else 'counterexample[prependTermList(transformTransitionTermList(TTL), TL1:TermList), TL2:TermList]
+                                                                                 fi .
+    op prependTermList : TermList Term -> Term .
+    eq prependTermList(TL1:TermList, Q:Qid[TL2:TermList]) = Q:Qid[TL1:TermList, TL2:TermList] .
+
 endfm

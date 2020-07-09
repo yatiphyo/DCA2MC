@@ -132,23 +132,6 @@ fmod SOLVER-COMMAND-PROCESSING is
     eq procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
 
-    *** analyze command
-    op procAnalyzeCommand : Term ModuleExpression Database DatabaseExt -> QidList .
-    ceq procAnalyzeCommand('analyze.@Command@, ME, DB, DB-EXT)
-        = ('\b 'Analyzer: '\n
-            '\t '\o 'currentDepth: qid(currentDepth(OCs)) '\n
-            '\t '\o 'depthList: downQidList(depthList(OCs)) '\n
-            '\t '\o 'numberOfNodeSet: qid(| nodeSet(OCs) |) '\n
-            '\t '\o 'numberOfStates: qid(getNumberOfStates(nodeSet(OCs))) '\n
-            '\t '\o 'numberOfCxStates: qid(getNumberOfCxStates(nodeSet(OCs))) '\n
-        )
-        if not isEmptyDatabaseExt(DB-EXT)
-        /\ Cs := getConfigExtSet(DB-EXT)
-        /\ OCs := getOCompExtSet(DB-EXT) .
-
-    eq procAnalyzeCommand('analyze.@Command@, ME, DB, DB-EXT) =
-        ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) [owise] .
-
     *** lastCheck command
     op procLastCheckCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
     ceq procLastCheckCommand('lastCheck.@Command@, ME, DB, DB-EXT)
@@ -181,7 +164,11 @@ fmod SOLVER-COMMAND-PROCESSING is
                 DB-EXT'' >>
             else << DB ;
                 (procAnalyzeCommand('analyze.@Command@, ME, DB', DB-EXT'') '\n
-                '\r 'Check: '\s '\o 'failure '\n) ;
+                '\r 'Check: '\s '\o 'failure '\n
+                'Formula: getFormula(R4C) '\n
+                --- get counterexample
+                'Cx: '\s eMetaPrettyPrint(M', Cx:Term) '\n
+                ) ;
                 DB-EXT'' >>
             fi
         if not isEmptyDatabaseExt(DB-EXT)
@@ -213,10 +200,53 @@ fmod SOLVER-COMMAND-PROCESSING is
         /\ M := getFlatModule(originModule(Cs'), DB')
         /\ R4C := lastLayerCheck(M, nodeSet(OCs'), Cs')
         /\ DB-EXT'' := evalOCompExtSet(DB-EXT', ((result: R4C)))
-        [print T " " T' " " NL " " R4C] .
+        --- get counterexample
+        /\ TTL:TransitionTermList := buildCounterExample(M', reverse(getLogList(R4C)))
+        /\ Cx:Term := combineCounterExample(reverse(TTL:TransitionTermList), getCx(R4C))
+        [print "\n T = " T "\n T' = " T' "\n NL = " NL "\n R4C = " R4C] .
 
     eq procCheckCommand('check_[T], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+
+    *** showCx command
+    op procShowCxCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
+    ceq procShowCxCommand('showCx.@Command@, ME, DB, DB-EXT)
+        = << DB ;
+            ('\r 'ShowCx: '\o '\n
+            eMetaPrettyPrint(M', Cx:Term) '\n
+            ) ;
+            DB-EXT >>
+        if not isEmptyDatabaseExt(DB-EXT)
+        /\ DB' := database(evalModExp(ME, DB))
+        /\ M := getFlatModule(ME, DB')
+        /\ Cs := getConfigExtSet(DB-EXT)
+        /\ OCs := getOCompExtSet(DB-EXT)
+        /\ M' := getFlatModule(reviseModule(Cs), DB')
+        /\ R4C := result(OCs)
+        /\ R4C :: Result4Checking?
+        /\ TTL:TransitionTermList := buildCounterExample(M', reverse(getLogList(R4C)))
+        /\ Cx:Term := combineCounterExample(reverse(TTL:TransitionTermList), getCx(R4C))
+        [print "\n R4C = " R4C] .
+
+    eq procShowCxCommand('check_[T], ME, DB, DB-EXT) =
+        << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+
+    *** analyze command
+    op procAnalyzeCommand : Term ModuleExpression Database DatabaseExt -> QidList .
+    ceq procAnalyzeCommand('analyze.@Command@, ME, DB, DB-EXT)
+        = ('\b 'Analyzer: '\n
+            '\t '\o 'currentDepth: qid(currentDepth(OCs)) '\n
+            '\t '\o 'depthList: downQidList(depthList(OCs)) '\n
+            '\t '\o 'numberOfNodeSet: qid(| nodeSet(OCs) |) '\n
+            '\t '\o 'numberOfStates: qid(getNumberOfStates(nodeSet(OCs))) '\n
+            '\t '\o 'numberOfCxStates: qid(getNumberOfCxStates(nodeSet(OCs))) '\n
+        )
+        if not isEmptyDatabaseExt(DB-EXT)
+        /\ Cs := getConfigExtSet(DB-EXT)
+        /\ OCs := getOCompExtSet(DB-EXT) .
+
+    eq procAnalyzeCommand('analyze.@Command@, ME, DB, DB-EXT) =
+        ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) [owise] .
 
     *** clear command
     op procClearCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
