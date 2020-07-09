@@ -42,7 +42,7 @@ fmod SOLVER-COMMAND-PROCESSING is
         and S1' :: Sort
         and S2' :: Sort
             then << DB3 ;
-                ('\b 'Initialization: '\s ': '\o 'success '\s '\n
+                ('\b 'Initialization: '\s '\o 'success '\s '\n
                 '\o '\s 'originModule: ME' '\n
                 '\o '\s 'reviseModule: header2Qid(ME'') '\n
                 '\o '\s 'initialState: downQidList(T1') '\n
