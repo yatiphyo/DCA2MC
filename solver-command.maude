@@ -140,15 +140,23 @@ fmod SOLVER-COMMAND-PROCESSING is
                 ('\b 'LastCheck: '\s '\o 'success '\n) ;
                 DB-EXT' >>
             else << DB ;
-                ('\r 'LastCheck: '\s '\o 'failure '\n) ;
+                ('\r 'LastCheck: '\s '\o 'failure '\n
+                'Formula: getFormula(R4C) '\n
+                --- get counterexample
+                'Cx: '\s eMetaPrettyPrint(M', Cx:Term) '\n
+                ) ;
                 DB-EXT' >>
             fi
         if not isEmptyDatabaseExt(DB-EXT)
         /\ Cs := getConfigExtSet(DB-EXT)
         /\ OCs := getOCompExtSet(DB-EXT)
         /\ M := getFlatModule(originModule(Cs), DB)
+        /\ M' := getFlatModule(reviseModule(Cs), DB)
         /\ R4C := lastLayerCheck(M, nodeSet(OCs), Cs)
         /\ DB-EXT' := evalOCompExtSet(DB-EXT, ((result: R4C)))
+        --- get counterexample
+        /\ TTL:TransitionTermList := buildCounterExample(M', reverse(getLogList(R4C)))
+        /\ Cx:Term := combineCounterExample(reverse(TTL:TransitionTermList), getCx(R4C))
         [print R4C] .
 
     eq procLastCheckCommand('lastCheck.@Command@, ME, DB, DB-EXT) =
