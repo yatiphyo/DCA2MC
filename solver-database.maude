@@ -460,11 +460,7 @@ fmod CHECKER is
     eq transformTransitionTermList(TT TTL) = '`{_`,_`}[removeDepthFromTerm(getState(TT)), getLabel(TT)], transformTransitionTermList(TTL) [print "TT " TT] .
 
     op combineCounterExample : TransitionTermList Term -> Term .
-    eq combineCounterExample(TTL, 'counterexample[TL1:TermList, TL2:TermList]) = if TL1:TermList :: Term
-                                                                                 then 'counterexample['__[transformTransitionTermList(TTL), TL1:TermList], TL2:TermList]
-                                                                                 else 'counterexample[prependTermList(transformTransitionTermList(TTL), TL1:TermList), TL2:TermList]
-                                                                                 fi .
-    op prependTermList : TermList Term -> Term .
-    eq prependTermList(TL1:TermList, Q:Qid[TL2:TermList]) = Q:Qid[TL1:TermList, TL2:TermList] .
+    eq combineCounterExample(TTL, 'counterexample['__[TL1:TermList], TL2:TermList]) = 'counterexample['__[transformTransitionTermList(TTL), TL1:TermList], TL2:TermList] .
+    eq combineCounterExample(TTL, 'counterexample[TL1:TermList, TL2:TermList]) = 'counterexample['__[transformTransitionTermList(TTL), TL1:TermList], TL2:TermList] [owise] .
 
 endfm
