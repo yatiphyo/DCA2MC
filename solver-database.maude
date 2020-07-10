@@ -374,15 +374,6 @@ fmod CHECKER is
                                         fi
                                         if R4C := checkNode(M, ND, Cs) .
 
-    --- There exists a counterexample given by a initial state and a formula in a module ?
-    op isCounterExample : Module Term Term -> Bool .
-    ceq isCounterExample(M:Module, T:Term, F:Term) = if (T':Term :: Constant)
-                                    then false
-                                    else true
-                                    fi
-                                    if T':Term := getCounterExample(M:Module, 'modelCheck[T:Term, F:Term]) .
-    eq isCounterExample(M:Module, T:Term, F:Term) = false [owise] .
-
     --- Check counterexample in ALLStates one by one
     op checkStates : Module TermSet LogList ConfigExtSet -> Result4Checking? .
     eq checkStates(M, emptyTermSet, LL, Cs) = success .
