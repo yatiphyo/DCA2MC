@@ -231,13 +231,13 @@ fmod SOLVER-COMMAND-PROCESSING is
         /\ OCs := getOCompExtSet(DB-EXT)
         /\ M' := getFlatModule(reviseModule(Cs), DB')
         /\ R4C := result(OCs)
-        /\ R4C :: Result4Checking?
+        /\ not R4C :: Result4Checking
         /\ TTL:TransitionTermList := buildCounterExample(M', reverse(getLogList(R4C)))
         /\ Cx:Term := combineCounterExample(reverse(TTL:TransitionTermList), getCx(R4C))
         [print "\n R4C = " R4C] .
 
-    eq procShowCxCommand('check_[T], ME, DB, DB-EXT) =
-        << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+    eq procShowCxCommand('showCx.@Command@, ME, DB, DB-EXT) =
+        << DB ; ('\r 'Error: '\o string2qidList("cannot find initialization or cannot proceed a counterexample") '\n) ; DB-EXT >> [owise] .
 
     *** analyze command
     op procAnalyzeCommand : Term ModuleExpression Database DatabaseExt -> QidList .
