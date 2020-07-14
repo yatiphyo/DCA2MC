@@ -123,7 +123,7 @@ In `RELATIVE` column, we get the value of a line which is executing your command
 
 That is relative timestamps in microsecond. The latter value substracts the former value and then dividing to 10^6.
 
-You can get the elapsed time of your command.
+You can get the elapsed time of your command in second.
 
 **Note that:** you need to enable **dtrace** beforehand as following with Mac OS
 
