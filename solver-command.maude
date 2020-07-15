@@ -143,7 +143,7 @@ fmod SOLVER-COMMAND-PROCESSING is
                 ('\r 'LastCheck: '\s '\o 'failure '\n
                 'Formula: getFormula(R4C) '\n
                 --- get counterexample
-                'Cx: '\s eMetaPrettyPrint(M', Cx:Term) '\n
+                'Cx: '\s eMetaPrettyPrint(M', getCounterExample(M', R4C)) '\n
                 ) ;
                 DB-EXT' >>
             fi
@@ -154,9 +154,6 @@ fmod SOLVER-COMMAND-PROCESSING is
         /\ M' := getFlatModule(reviseModule(Cs), DB)
         /\ R4C := lastLayerCheck(M, nodeSet(OCs), Cs)
         /\ DB-EXT' := evalOCompExtSet(DB-EXT, ((result: R4C)))
-        --- get counterexample
-        /\ TTL:TransitionTermList := buildCounterExample(M', reverse(getLogList(R4C)))
-        /\ Cx:Term := combineCounterExample(reverse(TTL:TransitionTermList), getCx(R4C))
         [print R4C] .
 
     eq procLastCheckCommand('lastCheck.@Command@, ME, DB, DB-EXT) =
@@ -175,7 +172,7 @@ fmod SOLVER-COMMAND-PROCESSING is
                 '\r 'Check: '\s '\o 'failure '\n
                 'Formula: getFormula(R4C) '\n
                 --- get counterexample
-                'Cx: '\s eMetaPrettyPrint(M', Cx:Term) '\n
+                'Cx: '\s eMetaPrettyPrint(M', getCounterExample(M', R4C)) '\n
                 ) ;
                 DB-EXT'' >>
             fi
@@ -208,20 +205,20 @@ fmod SOLVER-COMMAND-PROCESSING is
         /\ M := getFlatModule(originModule(Cs'), DB')
         /\ R4C := lastLayerCheck(M, nodeSet(OCs'), Cs')
         /\ DB-EXT'' := evalOCompExtSet(DB-EXT', ((result: R4C)))
-        --- get counterexample
-        /\ TTL:TransitionTermList := buildCounterExample(M', reverse(getLogList(R4C)))
-        /\ Cx:Term := combineCounterExample(reverse(TTL:TransitionTermList), getCx(R4C))
         [print "\n T = " T "\n T' = " T' "\n NL = " NL "\n R4C = " R4C] .
 
     eq procCheckCommand('check_[T], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+    
+    op getCounterExample : Module Result4Checking? -> Term .
+    eq getCounterExample(M, R4C) = combineCounterExample(reverse(buildCounterExample(M, reverse(getLogList(R4C)))), getCx(R4C)) .
 
     *** showCx command
     op procShowCxCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
     ceq procShowCxCommand('showCx.@Command@, ME, DB, DB-EXT)
         = << DB ;
             ('\r 'ShowCx: '\o '\n
-            eMetaPrettyPrint(M', Cx:Term) '\n
+            eMetaPrettyPrint(M', getCounterExample(M', R4C)) '\n
             ) ;
             DB-EXT >>
         if not isEmptyDatabaseExt(DB-EXT)
@@ -232,8 +229,6 @@ fmod SOLVER-COMMAND-PROCESSING is
         /\ M' := getFlatModule(reviseModule(Cs), DB')
         /\ R4C := result(OCs)
         /\ not R4C :: Result4Checking
-        /\ TTL:TransitionTermList := buildCounterExample(M', reverse(getLogList(R4C)))
-        /\ Cx:Term := combineCounterExample(reverse(TTL:TransitionTermList), getCx(R4C))
         [print "\n R4C = " R4C] .
 
     eq procShowCxCommand('showCx.@Command@, ME, DB, DB-EXT) =
