@@ -115,7 +115,17 @@ For example: `(solver-help)`
 
 ## Problem
 
-We cannot print exactly the elapsed time of each command. However, we can use another tool to mitigate the problem.
+We cannot print exactly the elapsed time of each command. However, we can two ways to mitigate the problem.
+
+**1./ Using command line and output to a log file. (should use when experiment)**
+
+Prepare a maude file and load all command being fed to Maude program. For example you can see `test.maude` file. Then using the following command:
+
+`maude test.maude > out.log 2>&1`
+
+When the program finishes, you can see the `out.log` file information, such as created date, modified data. From that you can calculate the elapsed time of the program.
+
+**2./ Using another tool called `druss`, however this tool make the program slower (should use when debugging)**
 
 `dtruss -a -t write -p <PID>`
 
