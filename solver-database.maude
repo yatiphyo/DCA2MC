@@ -143,6 +143,7 @@ fmod DATABASE-EXT is
     vars NS NS' : NodeSet .
     vars ND : Node .
     vars R4C R4C' : Result4Checking? .
+    vars B : Bool .
 
     op sum : NatList -> Nat .
     eq sum(N NL) = N + sum(NL) .
@@ -187,7 +188,7 @@ fmod DATABASE-EXT is
     eq result(((result: R4C), OCs)) = R4C .
 
     op clearDatabase : DatabaseExt -> DatabaseExt .
-    eq clearDatabase({ Cs ; OCs }) = { Cs ; buildInitialOCompExtSet(initState(Cs)) } .
+    eq clearDatabase({ Cs ; OCs }) = { Cs ; buildInitialOCompExtSet(initState(Cs), isCheckingLeadsTo(Cs)) } .
 
     op evalOCompExtSet : DatabaseExt OCompExtSet -> DatabaseExt .
 
@@ -205,10 +206,20 @@ fmod DATABASE-EXT is
     eq $evalOCompExtSet({ Cs ; ((result: R4C), OCs) }, (result: R4C'))
     = { Cs ; ((result: R4C'), OCs) } .
 
-    op buildInitialOCompExtSet : Term -> OCompExtSet .
-    eq buildInitialOCompExtSet(T)
+    op isCheckingLeadsTo : ConfigExt -> Bool .
+    eq isCheckingLeadsTo(((leadsToFormula: T), Cs)) = true .
+    eq isCheckingLeadsTo(Cs) = false [owise] .
+    op isCheckingEventually : ConfigExt -> Bool .
+    eq isCheckingEventually(Cs) = not isCheckingLeadsTo(Cs) .
+    
+    op buildInitialOCompExtSet : Term Bool -> OCompExtSet .
+    ceq buildInitialOCompExtSet(T, B)
         = (depthList: nil), (currentDepth: 0),
-        ( nodeSet: < < addDepthToTerm(T) : emptyTermSet > : nil > ), (result: nil) .
+        ( nodeSet: < < addDepthToTerm(T) : emptyTermSet > : nil > ), (result: nil) if B .
+    
+    eq buildInitialOCompExtSet(T, B)
+        = (depthList: nil), (currentDepth: 0),
+        ( nodeSet: < < emptyTermSet : addDepthToTerm(T) > : nil > ), (result: nil) [owise] .
 
     op getNumberOfStates : NodeSet -> Nat .
     op getNumberOfCxStates : NodeSet -> Nat .
@@ -292,7 +303,7 @@ fmod CHECKER is
                                                                 < (STATES | states(CACHE)) : (CxSTATES | cxStates(CACHE)) >,
                                                                 Cs
                                                             ) if STATES := genTermSet(M, T, N, Cs)
-                                                            /\ CxSTATES := allCounterExample(M, T, leadsToFormula(Cs), eventuallyProp(Cs)) .
+                                                            /\ CxSTATES := allCounterExample(M, T, leadsToFormula(Cs), eventuallyProp(Cs)) [print "Never come here if you are checking for eventually property"] .
 
     ceq $$layerCheck(M, < < emptyTermSet : T | TS2 > : LL >, N, NS, CACHE, Cs) = $$layerCheck(
                                                                 M,

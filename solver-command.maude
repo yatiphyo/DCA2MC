@@ -73,18 +73,31 @@ fmod SOLVER-COMMAND-PROCESSING is
 
     op initializeDatabaseExt : ModuleExpression ModuleExpression Term Term Term Sort Sort Database DatabaseExt -> DatabaseExt .
     ceq initializeDatabaseExt(ME, ME', T1, T2, T3, S, S', DB, DB-EXT) =
-        if T1' :: Term and T1'' :: Term and T2' :: Term and T3' :: Term and T4' :: Term
+        if T1' :: Term and T1'' :: Term and T3' :: Term and T4' :: Term
         then
-            {
-                (originModule: ME),
-                (reviseModule: ME'),
-                (initState: T1''),
-                (leadsToFormula: T2'),
-                (eventuallyFormula: T3'),
-                (eventuallyProp: T4'),
-                (eleSort: S),
-                (soupSort: S')
-            ; buildInitialOCompExtSet(T1'') }
+            if T2' :: Term
+            then    --- checking leads to property
+                {
+                    (originModule: ME),
+                    (reviseModule: ME'),
+                    (initState: T1''),
+                    (leadsToFormula: T2'),
+                    (eventuallyFormula: T3'),
+                    (eventuallyProp: T4'),
+                    (eleSort: S),
+                    (soupSort: S')
+                ; buildInitialOCompExtSet(T1'', true) }
+            else    --- checking eventually property
+                {
+                    (originModule: ME),
+                    (reviseModule: ME'),
+                    (initState: T1''),
+                    (eventuallyFormula: T3'),
+                    (eventuallyProp: T4'),
+                    (eleSort: S),
+                    (soupSort: S')
+                ; buildInitialOCompExtSet(T1'', false) }
+            fi
         else
             DB-EXT
         fi

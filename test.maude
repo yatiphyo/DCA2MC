@@ -1,6 +1,8 @@
+--- set print attribute on .
 in specs/qlock.maude
 in full-maude
 in solver
-(initialize[QLOCK-CHECK, init5, lofree1, lofree2, OComp, Soup{OComp}])
+--- (initialize[QLOCK-CHECK, init5, lofree1, lofree2, OComp, Soup{OComp}])
+(initialize[QLOCK-CHECK, init5, nil, lofree2, OComp, Soup{OComp}])
 (check 2 2)
 quit

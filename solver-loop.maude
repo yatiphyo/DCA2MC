@@ -2,7 +2,7 @@
 fmod SOLVER-BANNER is
     pr STRING .
     op solver-banner : -> String .
-    eq solver-banner = "L+1 Layers Divide & Conquer Approach to Leads-To Model Checking Available Now" .
+    eq solver-banner = "L+1 Layers Divide & Conquer Approach to Leads-To and Eventually Model Checking" .
 endfm
 
 mod FULL-MAUDE is

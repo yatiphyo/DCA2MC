@@ -1,4 +1,4 @@
-# L+1 Layers Divide and Conquer Approach to Leads-To Model Checking
+# L+1 Layers Divide and Conquer Approach to Leads-To and Eventually Model Checking
 
 The tool is developed in **Full Maude** supported by **Maude 2.7.1** version.
 
@@ -7,11 +7,11 @@ We have 2 case studies **QLOCK** and **TAS** under the **specs** folder for demo
 
 The following shows how to interact with the tool to do model checking with our approach.
 
+**Note that:** For **LeadsTo** property, you need to define **LeadsTo** and **Eventually** formula in the specfication. For **Eventually** property, you only need to define **Eventually** formula in the specfication.
+
 **Step1:** Start up Maude and load your specfication.
 
 in specs/qlock.maude
-
-**Note that:** you need to define **LeadsTo** and **Eventually** formula in the specfication beforehand.
 
 **Step2:** Load Full maude because we developed based on it.
 
@@ -44,9 +44,13 @@ and do model checking with your specfication.
 
 `<soupSort>` : sort of soup of observable components
 
-For QLOCK example, the following is the correct format:
+For QLOCK example with **LeadsTo** property, the following is the correct format:
 
 `(initialize[QLOCK-CHECK, init, lofree1, lofree2, OComp, Soup{OComp}])`
+
+For **Eventually** property, you set the `<leadsToFormula>` to `nil`. The following is the correct format:
+
+`(initialize[QLOCK-CHECK, init, nil, lofree2, OComp, Soup{OComp}])`
 
 2./ `(layerCheck <NatList>)`
 
