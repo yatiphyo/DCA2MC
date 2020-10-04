@@ -48,9 +48,9 @@ For QLOCK example with **LeadsTo** property, the following is the correct format
 
 `(initialize[QLOCK-CHECK, init, lofree1, lofree2, OComp, Soup{OComp}])`
 
-For **Eventually** property, you set the `<leadsToFormula>` to `nil`. The following is the correct format:
+For **Eventually** property, you set the `<leadsToFormula>` to `null`. The following is the correct format:
 
-`(initialize[QLOCK-CHECK, init, nil, lofree2, OComp, Soup{OComp}])`
+`(initialize[QLOCK-CHECK, init, null, lofree2, OComp, Soup{OComp}])`
 
 2./ `(layerCheck <NatList>)`
 
