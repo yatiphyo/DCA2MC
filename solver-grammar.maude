@@ -16,7 +16,7 @@ endfm
 fmod SOLVER-META-SIGN is
     pr META-LEVEL .
     pr META-FULL-MAUDE-SIGN .
-    pr UNIT .
+    pr FM-UNIT .
 
     op SOLVER-GRAMMAR : -> FModule .
     eq SOLVER-GRAMMAR = addImports((including 'SOLVER-SIGN .), GRAMMAR) .

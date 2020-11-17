@@ -9,7 +9,7 @@ mod FULL-MAUDE is
     pr SOLVER-META-SIGN .
     pr SOLVER-DATABASE-HANDLING .
     inc LOOP-MODE .
-    pr BANNER .
+    pr FM-BANNER .
     pr SOLVER-BANNER .
 
     subsort Object < State .

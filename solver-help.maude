@@ -1,5 +1,5 @@
 fmod SOLVER-HELP is
-  pr EXT-QID-LIST .
+  pr FM-EXT-QID-LIST .
   op solver-help : -> QidList .
   eq solver-help
     = '\b string2qidList("SOLVER - Additional commands available:") '\o '\n

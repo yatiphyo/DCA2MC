@@ -1,5 +1,5 @@
 fmod META-UTILS is
-    pr UNIT .
+    pr FM-UNIT .
     pr CONVERSION .
 
     --- Check existing Equation in EqutionSet by Qid
@@ -128,7 +128,7 @@ fmod REVISE-MODULE is
 endfm
 
 fmod TERMSET-EXT is
-    pr TERMSET .
+    pr FM-EXT-TERMSET .
 
     vars TS TS' TS'' : TermSet .
     vars T : TermSet .

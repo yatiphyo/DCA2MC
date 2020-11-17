@@ -1,5 +1,5 @@
 fmod SOLVER-COMMAND-PROCESSING is
-    pr COMMAND-PROCESSING .
+    pr FM-COMMAND-PROCESSING .
     pr REVISE-MODULE .
     pr CHECKER .
 
@@ -222,7 +222,7 @@ fmod SOLVER-COMMAND-PROCESSING is
 
     eq procCheckCommand('check_[T], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
-    
+
     op getCounterExample : Module Result4Checking? -> Term .
     eq getCounterExample(M, R4C) = combineCounterExample(reverse(buildCounterExample(M, reverse(getLogList(R4C)))), getCx(R4C)) .
 
