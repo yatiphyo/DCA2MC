@@ -1,0 +1,63 @@
+mod SOLVER-MESSAGE is
+    pr CONFIGURATION .
+    pr STATE .
+
+    op server :_ : Oid -> Attribute [ctor] .
+    op cache :_ : Oid -> Attribute [ctor] .
+    op app :_ : Oid -> Attribute [ctor] .
+
+    --- cache messages
+    op isExist : Oid Oid State -> Msg [ctor msg format (b o)] .
+    op notExist : Oid Oid State -> Msg [ctor msg format (b o)] .
+    op convertState2String : Oid Oid State -> Msg [ctor msg format (b o)] .
+    op convertString2State : Oid Oid State -> Msg [ctor msg format (b o)] .
+
+    --- app messages
+    op initialize : Oid String -> Msg [ctor msg format (b o)] .
+    op initialized : Oid -> Msg [ctor msg format (b o)] .
+    op depthInfo : Oid String -> Msg [ctor msg format (b o)] .
+endm
+
+mod SOLVER-MESSAGE-CONVERTER is
+    pr META-LEVEL .
+    pr STATE .
+    pr FM-UNIT .
+
+    vars Q : Qid .
+    vars QIL : QidList .
+    vars S S' S'' : String .
+    vars SS : State .
+    vars N : Nat .
+
+    op SM : -> Module .
+    eq SM = upModule('STATE, false) .
+
+    op qidListString : QidList -> String .
+    op qidListString : QidList String -> String .
+    op stringQidList : String -> QidList .
+    op stringQidList : String QidList -> QidList .
+
+    eq qidListString(QIL) = qidListString(QIL, "") .
+    eq qidListString(nil, S) = S .
+    eq qidListString(Q QIL, S) = qidListString(QIL, S + string(Q) + " ") .
+
+    eq stringQidList(S) = stringQidList(S, nil) .
+    eq stringQidList("", QIL) = QIL .
+    eq stringQidList(S, QIL) = QIL qid(S) [owise] . ***if S =/= "" /\ find(S, " ", 0) = notFound .
+    ceq stringQidList(S, QIL)
+        = stringQidList(S'', QIL qid(S') )
+        if N := find(S, " ", 0)
+        /\ S' := substr(S, 0, N)
+        /\ S'' := substr(S, N + 1, length(S)) .
+
+    op state2string : State -> String .
+    eq state2string(SS) = qidListString(metaPrettyPrint(SM, upTerm(SS), none)) .
+
+    op string2state : String -> State .
+    eq string2state(S)
+        = downTerm(getTerm(metaParse(SM, stringQidList(S), 'State)), null) .
+
+endm
+
+--- red state2string(( '`{_`}['__['queue:_['empq.Queue`{Pid`}],'cnt:_['s_^2['0.Zero]],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc]]], cx, 0, (< '2.Nat : 3 > nil) )) .
+--- red string2state(state2string(( '`{_`}['__['queue:_['empq.Queue`{Pid`}],'cnt:_['s_^2['0.Zero]],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc]]], cx, 0, (< '2.Nat : 3 > nil) ))) .

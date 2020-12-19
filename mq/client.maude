@@ -1,0 +1,36 @@
+load buffered-socket.maude
+load request.maude
+
+mod CLIENT is
+    pr BUFFERED-SOCKET .
+    pr REQUEST .
+    pr SOLVER-MESSAGE .
+    pr SOLVER-MESSAGE-CONVERTER .
+
+    op Client : -> Cid .
+    vars O CLIENT : Oid .
+    var  A : AttributeSet .
+    vars DATA S : String .
+
+    rl [MqCreatedSocket] :
+        < O : Client | A > CreatedSocket(O, socketManager, CLIENT)
+        => < O : Client | A > Send(CLIENT, O, getJob)  Receive(CLIENT, O) .
+
+    rl [MqSent] :
+        < O : Client | A > Sent(O, CLIENT)
+        => < O : Client | A > .
+
+    crl [MqReceived1] :
+        < O : Client | A > Received(O, CLIENT, DATA)
+        => < O : Client | A > Send(CLIENT, O, "6")
+        if DATA == waiting .
+
+    crl [MqReceived2] :
+        < O : Client | A > Received(O, CLIENT, DATA)
+        => < O : Client | A > Send(CLIENT, O, getJob)
+        if DATA == done .
+
+    rl [MqClosedSocket] :
+        < O : Client | A > ClosedSocket(O, CLIENT, S)
+        => < O : Client | A > .
+endm

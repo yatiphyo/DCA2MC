@@ -30,6 +30,38 @@ fmod TRACE-LIST is
     pr LIST{Log} * (sort NeList{Log} to NeLogList, sort List{Log} to LogList) .
 endfm
 
+view LogList from TRIV to TRACE-LIST is
+    sort Elt to LogList .
+endv
+
+view LogList from TRIV to TRACE-LIST is
+    sort Elt to LogList .
+endv
+
+fmod STATE-TYPE is
+    sort StateType .
+    ops cx all : -> StateType [ctor] .
+endfm
+
+view State-Type from TRIV to STATE-TYPE is
+    sort Elt to StateType .
+endv
+
+fmod STATE is
+    pr 4TUPLE{Term,State-Type,Bound,LogList} * (
+        op p1_ to getState,
+        op p2_ to getType,
+        op p3_ to getDepth,
+        op p4_ to getLog,
+        sort Tuple{Term,State-Type,Bound,LogList} to State
+    ) .
+    op null : -> State [ctor] .
+endfm
+
+view State from TRIV to STATE is
+    sort Elt to State .
+endv
+
 fmod STATES-&-CXSTATES is
     pr 2TUPLE{TermSet,TermSet} * (
         op `(_`,_`) to <_:_>,
@@ -40,10 +72,6 @@ endfm
 
 view States&CxStates from TRIV to STATES-&-CXSTATES is
     sort Elt to States&CxStates .
-endv
-
-view LogList from TRIV to TRACE-LIST is
-    sort Elt to LogList .
 endv
 
 fmod NODE is
@@ -125,6 +153,7 @@ endv
 
 fmod DATABASE-EXT is
     pr META-UTILS .
+    pr STATE .
     pr 2TUPLE{ConfigExtSet,OCompExtSet} * (op `(_`,_`) to `{_;_`},
         op p1_ to getConfig,
         op p2_ to getState,
@@ -211,12 +240,12 @@ fmod DATABASE-EXT is
     eq isCheckingLeadsTo(Cs) = false [owise] .
     op isCheckingEventually : ConfigExt -> Bool .
     eq isCheckingEventually(Cs) = not isCheckingLeadsTo(Cs) .
-    
+
     op buildInitialOCompExtSet : Term Bool -> OCompExtSet .
     ceq buildInitialOCompExtSet(T, B)
         = (depthList: nil), (currentDepth: 0),
         ( nodeSet: < < addDepthToTerm(T) : emptyTermSet > : nil > ), (result: nil) if B .
-    
+
     eq buildInitialOCompExtSet(T, B)
         = (depthList: nil), (currentDepth: 0),
         ( nodeSet: < < emptyTermSet : addDepthToTerm(T) > : nil > ), (result: nil) [owise] .
@@ -227,6 +256,21 @@ fmod DATABASE-EXT is
     eq getNumberOfStates(empty) = 0 .
     eq getNumberOfCxStates((ND , NS)) = | cxStates(states&CxStates(ND)) | + getNumberOfCxStates(NS) .
     eq getNumberOfCxStates(empty) = 0 .
+
+    op getNextDepth : Nat NatList -> Bound .
+    eq getNextDepth(N, nil) = unbounded .
+    eq getNextDepth(N, (N' NL)) = if N >= N'
+        then getNextDepth(sd(N, N'), NL)
+        else N'
+        fi .
+
+    op getInitialState : DatabaseExt -> State .
+    ceq getInitialState(DB-EXT) = ( addDepthToTerm(initState(getConfigExtSet(DB-EXT))),
+    all,
+    getNextDepth(0, depthList(getOCompExtSet(DB-EXT))),
+    nil) if not isEmptyDatabaseExt(DB-EXT) .
+
+    eq getInitialState(DB-EXT) = null .
 endfm
 
 view DatabaseExt from TRIV to DATABASE-EXT is

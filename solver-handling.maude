@@ -2,6 +2,7 @@ mod SOLVER-DATABASE-HANDLING is
     inc FM-DATABASE-HANDLING .
     pr SOLVER-COMMAND-PROCESSING .
     pr SOLVER-HELP .
+    pr SOLVER-MESSAGE .
 
     op db-ext :_ : DatabaseExt -> Attribute .
 
@@ -11,7 +12,7 @@ mod SOLVER-DATABASE-HANDLING is
     vars DB DB' DB'' : Database .
     var Atts : AttributeSet .
     var X@DatabaseClass : DatabaseClass .
-    var O : Oid .
+    vars O O' O'' : Oid .
     var DB-EXT : DatabaseExt .
     var QIL : QidList .
     var RES : Tuple{Database,QidList,DatabaseExt} .
@@ -44,6 +45,26 @@ mod SOLVER-DATABASE-HANDLING is
             db-ext : getDatabaseExt(RES),
             default : ME, Atts >
             if RES := procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT) .
+
+    crl [depthInfo] :
+        < O : X@DatabaseClass |
+            db : DB,
+            input : ('depthInfo_[T]),
+            output : nil,
+            db-ext : DB-EXT,
+            default : ME,
+            server : O',
+            cache : O'', Atts >
+        => < O : X@DatabaseClass |
+            db : getDatabase(RES),
+            input : nilTermList,
+            output : getQidList(RES),
+            db-ext : getDatabaseExt(RES),
+            default : ME,
+            server : O',
+            cache : O'', Atts >
+            isExist(O'', O, getInitialState(getDatabaseExt(RES)))
+            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "isExist msg = " O'' " " O] .
 
     crl [lastCheck] :
         < O : X@DatabaseClass |

@@ -1,0 +1,15 @@
+load ../utils .
+load ../MUnit/mUnit.maude
+
+(munit EXT-TERM-STRING is
+    assertEqual(term2string('0.Nat), "0")
+    assertEqual(term2string('N:Nat), "N")
+    assertEqual(term2string('__['1.Nat, '2.Nat, '3.Nat]), "(1) (2) (3)")
+    assertEqual(term2string('s_^2['0.Zero]), "s_^2(0)")
+    assertEqual(term2string('`{_`}['__['queue:_['empq.Queue`{Pid`}],'cnt:_['s_^2['0.Zero]],'pc`[_`]:_['p1.Pid, 'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc]]]),
+        "{ (queue: empq) (cnt: s_^2(0)) (pc[ p1 ]: ss) (pc[ p2 ]: ss) }")
+
+    assertEqual(replace("abcabc", "ab", "AB"), "ABcABc")
+    assertEqual(replace("xyz", "ab", "AB"), "xyz")
+    assertEqual(replace("", "ab", "AB"), "")
+endu)

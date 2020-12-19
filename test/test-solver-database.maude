@@ -1,0 +1,11 @@
+load test-debug.maude
+load ../solver-database.maude
+load ../MUnit/mUnit.maude
+
+(munit DATABASE-EXT is
+    assertEqual(getNextDepth(0, 2 2 2), 2)
+    assertEqual(getNextDepth(0, nil), unbounded)
+    assertEqual(getNextDepth(3, 3), unbounded)
+    assertEqual(getNextDepth(2, 2 1), 1)
+    assertEqual(getNextDepth(2, 2 0), unbounded)
+endu)

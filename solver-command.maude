@@ -145,6 +145,41 @@ fmod SOLVER-COMMAND-PROCESSING is
     eq procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
 
+    *** depthInfo command
+    op procDepthInfoCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
+    ceq procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT)
+        = if T' :: Term
+            then << DB' ;
+                (procAnalyzeCommand('analyze.@Command@, ME, DB', DB-EXT') '\n
+                '\b 'DepthInfo: '\s '\o 'success '\n) ;
+                DB-EXT' >>
+            else << DB ; ('\r 'Error: '\o 'Incorrect 'input. '\n) ; DB-EXT >>
+            fi
+        if not isEmptyDatabaseExt(DB-EXT)
+        /\ DB' := database(evalModExp(ME, DB))
+        /\ M := getFlatModule(ME, DB')
+        /\ Cs := getConfigExtSet(DB-EXT)
+        /\ OCs := getOCompExtSet(DB-EXT)
+        /\ T' := getTerm(
+                metaParse(
+                    upModule('NAT-LIST, false),
+                    downQidList(solveBubbleAndToken(T)),
+                    'NatList
+                )
+            )
+        /\ NL := downTerm(T', nil)
+        /\ DB-EXT' := evalOCompExtSet(
+            DB-EXT,
+            ((currentDepth: 0),
+            (depthList: (append(depthList(OCs), NL))),
+            (nodeSet: empty),
+            (result: nil))
+        )
+        [print T " " T' " " NL] .
+
+    eq procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) =
+        << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+
     *** lastCheck command
     op procLastCheckCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
     ceq procLastCheckCommand('lastCheck.@Command@, ME, DB, DB-EXT)

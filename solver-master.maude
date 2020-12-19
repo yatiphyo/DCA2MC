@@ -1,0 +1,33 @@
+in debug.maude
+in specs/qlock.maude
+in full-maude.maude
+in solver-parallel.maude
+in mq/server.maude
+in mq/cache.maude
+
+mod SOVLER-MASTER is
+    pr SERVER .
+    pr SOLVER-APP .
+    pr CACHE .
+
+    op o : -> Oid .
+    op aServer : -> Oid [ctor] .
+    op aCache : -> Oid [ctor] .
+
+    op init : -> Configuration .
+
+    eq init = <> < o : Database |
+                db : initialDatabase,
+                input : nilTermList, output : nil,
+                db-ext : emptyDatabaseExt,
+                server : aServer,
+                cache : aCache,
+                default : 'CONVERSION >
+                < aCache : Cache | CxState : empty, AllState : empty, server : aServer, app : o >
+                < aServer : Server | app : o, cache : aCache >
+                CreateServerTcpSocket(socketManager, aServer, 8811, 5)
+                initialize(o, "initialize[QLOCK-CHECK, init5, lofree1, lofree2, OComp, Soup{OComp}]")
+                depthInfo(o, "depthInfo 2 2 2") .
+endm
+
+erew init .

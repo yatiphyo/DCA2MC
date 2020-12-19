@@ -1,0 +1,28 @@
+in debug.maude
+in specs/qlock.maude
+in full-maude.maude
+in solver-parallel.maude
+in mq/client.maude
+in mq/cache.maude
+
+mod SOVLER-WORKER is
+    pr CLIENT .
+    pr SOLVER-APP .
+    pr CACHE .
+
+    op o : -> Oid .
+    op aClient : -> Oid [ctor] .
+
+    op init : -> Configuration .
+
+    eq init = <> < o : Database |
+                db : initialDatabase,
+                input : nilTermList, output : nil,
+                db-ext : emptyDatabaseExt,
+                default : 'CONVERSION >
+                initialize(o, "initialize[QLOCK-CHECK, init5, lofree1, lofree2, OComp, Soup{OComp}]")
+                < aClient : Client | none >
+                CreateClientTcpSocket(socketManager, aClient, "localhost", 8811) .
+endm
+
+erew init .

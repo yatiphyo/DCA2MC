@@ -1,0 +1,60 @@
+mod SOLVER-APP is
+    pr SOLVER-MESSAGE .
+    pr LEXICAL .
+    pr SOLVER-META-SIGN .
+    pr SOLVER-DATABASE-HANDLING .
+
+    vars  Atts : AttributeSet .
+    vars  X@DatabaseClass : DatabaseClass .
+    vars  O : Oid .
+    vars  DB : Database .
+    vars S : String .
+    vars QIL : QidList .
+    vars QI ME : Qid .
+    vars TL : TermList .
+    vars NL : NatList .
+
+    crl [init] :
+        < O : X@DatabaseClass |
+            db : DB, input : nilTermList, output : nil, default : ME, Atts >
+        initialize(O, S)
+        => if metaParse(SOLVER-GRAMMAR, QIL, '@Input@) :: ResultPair
+        then < O : X@DatabaseClass | db : DB,
+                input : getTerm(metaParse(SOLVER-GRAMMAR, QIL, '@Input@)),
+                output : nil, default : ME, Atts > initialized(O)
+        else < O : X@DatabaseClass | db : DB, input : nilTermList,
+                    output : ('\r 'Warning:
+                            printSyntaxError(metaParse(SOLVER-GRAMMAR, QIL, '@Input@),
+                                QIL)
+                            '\n
+                            '\r 'Error: '\o 'No 'parse 'for 'input. '\n),
+                    default : ME, Atts >
+        fi
+        if QIL := tokenize(S) [print S] .
+
+    crl [check] :
+        < O : X@DatabaseClass |
+            db : DB, input : nilTermList, output : nil, default : ME, Atts >
+        depthInfo(O, S) initialized(O)
+        => if metaParse(SOLVER-GRAMMAR, QIL, '@Input@) :: ResultPair
+        then < O : X@DatabaseClass | db : DB,
+                input : getTerm(metaParse(SOLVER-GRAMMAR, QIL, '@Input@)),
+                output : nil, default : ME, Atts >
+        else < O : X@DatabaseClass | db : DB, input : nilTermList,
+                    output : ('\r 'Warning:
+                            printSyntaxError(metaParse(SOLVER-GRAMMAR, QIL, '@Input@),
+                                QIL)
+                            '\n
+                            '\r 'Error: '\o 'No 'parse 'for 'input. '\n),
+                    default : ME, Atts >
+        fi
+        if QIL := tokenize(S) [print S] .
+
+    rl [out] :
+        < O : X@DatabaseClass |
+            db : DB, input : TL, output : (QI QIL), default : ME, Atts >
+        => < O : X@DatabaseClass |
+            db : DB, input : TL, output : nil, default : ME, Atts > [print "Output " QI " " QIL] .
+endm
+
+--- rew in SOLVER-INIT : init .

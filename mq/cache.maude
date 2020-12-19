@@ -1,0 +1,89 @@
+mod CACHE-INTERFACE is
+    pr SOLVER-MESSAGE .
+    pr MAP{Nat,TermSet} .
+
+    op Cache : -> Cid [ctor] .
+
+    op CxState :_ : Map{Nat,TermSet} -> Attribute [ctor] .
+    op AllState :_ : Map{Nat,TermSet} -> Attribute [ctor] .
+endm
+
+mod CACHE is
+    pr CACHE-INTERFACE .
+
+    vars O O' O'' : Oid .
+    vars MCX MAS : Map{Nat,TermSet} .
+    vars Atts : AttributeSet .
+    vars N : Nat .
+    vars T T' : Term .
+    vars AS CX TS : TermSet .
+    vars S : State .
+
+    ceq < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts  > isExist(O, O'', S)
+    = if getType(S) == cx
+    then (
+        if MCX[getDepth(S)] == undefined
+        then < O : Cache |
+            CxState : insert(getDepth(S), getState(S), MCX),
+            AllState : MAS, server : O', Atts > notExist(O', O, S)
+        else (
+            if getState(S) in MCX[getDepth(S)]
+            then < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts >
+            else < O : Cache |
+                CxState : insert(getDepth(S), getState(S) | MCX[getDepth(S)], MCX),
+                AllState : MAS, server : O', Atts > notExist(O', O, S)
+            fi
+        )
+        fi
+    )
+    else (
+        if MAS[getDepth(S)] == undefined
+        then < O : Cache |
+            AllState : insert(getDepth(S), getState(S), MAS),
+            CxState : MCX, server : O', Atts > notExist(O', O, S)
+        else (
+            if getState(S) in MAS[getDepth(S)]
+            then < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts >
+            else
+            < O : Cache |
+                AllState : insert(getDepth(S), getState(S) | MAS[getDepth(S)], MAS),
+                CxState : MCX, server : O', Atts > notExist(O', O, S)
+            fi
+        )
+        fi
+    )
+    fi
+    if S =/= null [print "Check existing state = " S] .
+
+    eq < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > isExist(O, O'', S)
+    = < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > [owise] .
+endm
+
+--- mod TEST-CACHE is
+---     pr CACHE .
+---     op aCache : -> Oid [ctor] .
+---     op aServer : -> Oid [ctor] .
+---     op o : -> Oid [ctor] .
+
+---     op test : -> Configuration .
+---     eq test = < aCache : Cache | server : aServer,
+---     CxState : (0 |-> ('1.Nat | '2.Nat), 2 |-> ('3.Nat | '4.Nat)),
+---     AllState : (0 |-> ('3.Nat | '4.Nat), 2 |-> ('1.Nat | '2.Nat)) >
+---     isExist(aCache, o, ( '1.Nat, cx, 0, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '3.Nat, cx, 0, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '1.Nat, cx, 2, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '3.Nat, cx, 2, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '1.Nat, all, 0, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '3.Nat, all, 0, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '1.Nat, all, 2, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '3.Nat, all, 2, (< '2.Nat : 3 > nil) )) .
+
+---     eq test = < aCache : Cache | server : aServer,
+---     CxState : empty,
+---     AllState : empty >
+---     isExist(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],all,2,nil))
+---     isExist(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],cx,2,nil))
+---     .
+--- endm
+
+--- red test .

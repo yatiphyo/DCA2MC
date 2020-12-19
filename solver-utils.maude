@@ -141,3 +141,58 @@ fmod TERMSET-EXT is
     eq diff(emptyTermSet, TS', TS'') = TS'' .
     eq diff((T | TS), TS', TS'') = diff(TS, TS', if T in TS' then TS'' else T | TS'' fi) .
 endfm
+
+mod EXT-TERM-STRING is
+    pr QID .
+    pr META-TERM .
+
+    var QID : Qid .
+    var T : Term .
+    var TL : TermList .
+    vars S B A F R : String .
+    var N : Nat .
+
+    op term2string : Term -> String .
+    ceq term2string(T:Term) = replace(string(getName(T)), "`", "") if (T :: Constant) or (T :: Variable) .
+    eq term2string(T:Term) = $term2string(T:Term) [owise] .
+
+    op $term2string : Term -> String .
+    ceq $term2string(QID[TL]) = termList2string(TL) if QID = '__ .
+    eq $term2string(QID[TL]) = $$term2string(replace(string(QID), "`", ""), TL) [owise] .
+
+    op termList2string : TermList -> String .
+    eq termList2string(empty) = "" .
+    eq termList2string((T, TL)) = if TL == empty
+                                  then "(" + term2string(T) + ")"
+                                  else "(" + term2string(T) + ") " + termList2string(TL)
+                                  fi .
+
+    op $$term2string : String TermList -> String .
+    eq $$term2string(S, empty) = if S == "" then S else " " + S fi .
+    ceq $$term2string(S, (T, TL)) = if B == "s" and substr(A, 0, 1) == "^"
+                                    then S + "(" + term2string(T) + ")"
+                                    else
+                                        if B == ""
+                                        then
+                                            if TL == empty
+                                            then term2string(T) + $$term2string(A, TL)
+                                            else term2string(T) + " " + $$term2string(A, TL)
+                                            fi
+                                        else
+                                            if TL == empty
+                                            then B + " " + term2string(T) + $$term2string(A, TL)
+                                            else B + " " + term2string(T) + " " + $$term2string(A, TL)
+                                            fi
+                                        fi
+                                    fi
+                                if N := find(S, "_", 0) /\
+                                B := substr(S, 0, N) /\
+                                A := substr(S, N + 1, length(S)) .
+
+    op replace : String String String -> String .
+    ceq replace(S, F, R) = B + R + replace(A, F, R)
+                            if N := find(S, F, 0) /\
+                            B := substr(S, 0, N) /\
+                            A := substr(S, N + length(F), length(S)) .
+    eq replace(S, F, R) = S [owise] .
+endm
