@@ -78,8 +78,8 @@ mod SOLVER-DATABASE-HANDLING is
             status : waiting,
             server : O',
             cache : O'', Atts >
-            isExist(O'', O, getInitialState(getDatabaseExt(RES)))
-            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[depthInfo] isExist msg = " O'' " " O " " T] .
+            lookupReq(O'', O, getInitialState(getDatabaseExt(RES)))
+            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[depthInfo] lookupReq msg = " O'' " " O " " T] .
 
     crl [depthInfo] :
         < O : X@DatabaseClass |
@@ -100,7 +100,7 @@ mod SOLVER-DATABASE-HANDLING is
             status : waiting,
             client : O',
             cache : O'', Atts >
-            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[depthInfo] isExist msg = " O'' " " O " " T] .
+            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[depthInfo] lookupReq msg = " O'' " " O " " T] .
 
     crl [handle] :
         < O : X@DatabaseClass |
@@ -149,7 +149,7 @@ mod SOLVER-DATABASE-HANDLING is
                     cache : O',
                     Atts >
                 genAllStates(O, ST, M, C')
-                checkStates(DB-EXT, O', O, ST, TS, all)
+                lookupBatchReq(O', O, termSetToStates(DB-EXT, O', O, ST, TS, all))
             else
                 < O : X@DatabaseClass |
                     db : DB,
@@ -165,10 +165,19 @@ mod SOLVER-DATABASE-HANDLING is
         /\ C' := getCount(GS)
         /\ TS := getStates(GS) [print "[genAllStates] = " O' " " O " " ST " " TS " " C " " C'] .
 
-    op checkStates : DatabaseExt Oid Oid State TermSet StateType -> Configuration .
-    eq checkStates(DB-EXT, O, O', ST, emptyTermSet, STYPE) = none .
-    eq checkStates(DB-EXT, O, O', ST, T | TS, STYPE) = isExist(O, O', buildState(DB-EXT, ST, T, STYPE)) .
+    op termSetToStates : DatabaseExt Oid Oid State TermSet StateType -> StateSet .
+    eq termSetToStates(DB-EXT, O, O', ST, emptyTermSet, STYPE) = empty .
+    eq termSetToStates(DB-EXT, O, O', ST, T | TS, STYPE) = buildState(DB-EXT, ST, T, STYPE), termSetToStates(DB-EXT, O, O', ST, TS, STYPE) .
 
+    rl [resumeWorking] :
+        < O : X@DatabaseClass |
+            status : suspending,
+            Atts >
+        resumeReq(O, O')
+    => < O : X@DatabaseClass |
+            status : working,
+            Atts > .
+    
     crl [lastCheck] :
         < O : X@DatabaseClass |
         db : DB,

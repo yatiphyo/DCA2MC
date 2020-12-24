@@ -11,16 +11,26 @@ mod CLIENT is
     vars DATA S : String .
     vars SERROR : [String] .
     vars ST : State .
+    vars SS : StateSet .
 
-    crl [GetState] : < O : Client | socket : CLIENT, A > notExist(O, O', ST)
+    crl [GetState] : < O : Client | socket : CLIENT, A > lookupReply(O, O', ST)
     => < O : Client | socket : CLIENT, A >
     Send(CLIENT, O, S)
     if S := state2string(ST) [print "[GetState] " S] .
 
-    crl [GetState] : < O : Client | app : O'', A > notExist(O, O', ST)
+    crl [GetState] : < O : Client | app : O'', A > lookupReply(O, O', ST)
     => < O : Client | app : O'', A >
     error(O'', O, noParse, "Cannot convert state to string")
     if SERROR := state2string(ST) [print "[GetState] Cannot convert state to string" SERROR] .
+
+    rl [GetStates] : < O : Client | socket : CLIENT, app : O', A > lookupBatchReply(O, O'', SS)
+    => < O : Client | socket : CLIENT, app : O', A >
+    resumeReq(O', O)
+    produceMessages(CLIENT, O, SS) [print "[GetState] " SS] .
+
+    op produceMessages : Oid Oid StateSet -> Configuration .
+    eq produceMessages(CLIENT, O, empty) = none .
+    eq produceMessages(CLIENT, O, (ST, SS)) = Send(CLIENT, O, state2string(ST)) produceMessages(CLIENT, O, SS) .
 
     rl [MqCreatedSocket] :
         < O : Client | A > CreatedSocket(O, socketManager, CLIENT)
@@ -49,4 +59,13 @@ mod CLIENT is
     rl [MqClosedSocket] :
         < O : Client | A > ClosedSocket(O, CLIENT, S)
         => < O : Client | A > [print "[MqClosedSocket]"] .
+
+    ops aClient aCache : -> Oid [ctor] .
 endm
+
+--- red produceMessages(aClient, aCache, ('`{_`}[
+---     '__['cnt:_['s_^5['0.Zero]],'depth:_['s_^2['0.Zero]],'queue:_['_|_['p1.Pid,'p2.Pid]],'pc`[_`]:_[
+---     'p1.Pid,'ws.Loc],'pc`[_`]:_['p2.Pid,'ws.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,
+---     'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc]]],all,2,4,< '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_[
+---     'empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,
+---     'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]] : 2 >)) .

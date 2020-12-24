@@ -4,34 +4,45 @@ mod CACHE-INTERFACE is
 
     op Cache : -> Cid [ctor] .
 
-    op CxState :_ : Map{Nat,TermSet} -> Attribute [ctor] .
-    op AllState :_ : Map{Nat,TermSet} -> Attribute [ctor] .
+    op CxState :_ : Map{Nat,TermSet} -> Attribute [ctor format(! o o o)] .
+    op AllState :_ : Map{Nat,TermSet} -> Attribute [ctor format(! o o o)] .
 endm
+
+view Map`{Nat`,TermSet`} from TRIV to CACHE-INTERFACE is
+    sort Elt to Map{Nat,TermSet} .
+endv
 
 mod CACHE is
     pr CACHE-INTERFACE .
+    pr 3TUPLE{Map{Nat,TermSet},Map{Nat,TermSet},StateSet} * (
+                 op p1_ to getCacheAllState,
+                 op p2_ to getCacheCxState,
+                 op p3_ to getStates,
+                 sort Tuple{Map{Nat,TermSet},Map{Nat,TermSet},StateSet} to CacheResult).
 
     vars O O' O'' : Oid .
-    vars MCX MAS : Map{Nat,TermSet} .
+    vars MCX MCX' MAS MAS' : Map{Nat,TermSet} .
     vars Atts : AttributeSet .
     vars N : Nat .
     vars T T' : Term .
     vars AS CX TS : TermSet .
     vars S : State .
+    vars SS SS' : StateSet .
+    vars CR : CacheResult .
 
-    crl [isExist] : < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts  > isExist(O, O'', S)
+    crl [lookupReq] : < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts  > lookupReq(O, O'', S)
     => if getType(S) == cx
     then (
         if MCX[getDepth(S)] == undefined
         then < O : Cache |
             CxState : insert(getDepth(S), getState(S), MCX),
-            AllState : MAS, server : O', Atts > notExist(O', O, S)
+            AllState : MAS, server : O', Atts > lookupReply(O', O, S)
         else (
             if getState(S) in MCX[getDepth(S)]
             then < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts >
             else < O : Cache |
                 CxState : insert(getDepth(S), getState(S) | MCX[getDepth(S)], MCX),
-                AllState : MAS, server : O', Atts > notExist(O', O, S)
+                AllState : MAS, server : O', Atts > lookupReply(O', O, S)
             fi
         )
         fi
@@ -40,23 +51,64 @@ mod CACHE is
         if MAS[getDepth(S)] == undefined
         then < O : Cache |
             AllState : insert(getDepth(S), getState(S), MAS),
-            CxState : MCX, server : O', Atts > notExist(O', O, S)
+            CxState : MCX, server : O', Atts > lookupReply(O', O, S)
         else (
             if getState(S) in MAS[getDepth(S)]
             then < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts >
             else
             < O : Cache |
                 AllState : insert(getDepth(S), getState(S) | MAS[getDepth(S)], MAS),
-                CxState : MCX, server : O', Atts > notExist(O', O, S)
+                CxState : MCX, server : O', Atts > lookupReply(O', O, S)
             fi
         )
         fi
     )
     fi
-    if S =/= null [print "[isExist] Check existing state = " S] .
+    if S =/= null [print "[lookupReq] Check existing state = " S] .
 
-    crl [isExist] : < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > isExist(O, O'', S)
+    crl [lookupReq] : < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > lookupReq(O, O'', S)
     => < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > if S == null [print "[isExistNull]"] .
+
+    op lookupStates : Map{Nat,TermSet} Map{Nat,TermSet} StateSet -> CacheResult .
+    eq lookupStates(MCX, MAS, SS) = $lookupStates(MCX, MAS, SS, empty) .
+
+    op $lookupStates : Map{Nat,TermSet} Map{Nat,TermSet} StateSet StateSet -> CacheResult .
+    eq $lookupStates(MCX, MAS, empty, SS') =  (MCX, MAS, SS') [print "EmptySet " SS'] .
+    eq $lookupStates(MCX, MAS, (S, SS), SS') =  if getType(S) == cx
+    then (
+        if MCX[getDepth(S)] == undefined
+        then 
+            $lookupStates(insert(getDepth(S), getState(S), MCX), MAS, SS, insert(S, SS'))
+        else (
+            if getState(S) in MCX[getDepth(S)]
+            then $lookupStates(MCX, MAS, SS, SS')
+            else $lookupStates(insert(getDepth(S), getState(S) | MCX[getDepth(S)], MCX), MAS, SS, insert(S, SS'))
+            fi
+        )
+        fi
+    )
+    else (
+        if MAS[getDepth(S)] == undefined
+        then $lookupStates(MCX, insert(getDepth(S), getState(S), MAS), SS, insert(S, SS'))
+        else (
+            if getState(S) in MAS[getDepth(S)]
+            then $lookupStates(MCX, MAS, SS, SS')
+            else $lookupStates(MCX, insert(getDepth(S), getState(S) | MAS[getDepth(S)], MAS), SS, insert(S, SS'))
+            fi
+        )
+        fi
+    )
+    fi .
+
+    crl [lookupBatchReq] : < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > lookupBatchReq(O, O'', SS)
+    => if SS' == empty
+        then < O : Cache | CxState : MCX', AllState : MAS', server : O', Atts >
+        else < O : Cache | CxState : MCX', AllState : MAS', server : O', Atts > lookupBatchReply(O', O, SS')
+        fi
+    if CR := lookupStates(MCX, MAS, SS)
+    /\ SS' := getStates(CR)
+    /\ MCX' := getCacheCxState(CR)
+    /\ MAS' := getCacheAllState(CR) [print "[lockupBachReq] SS = " SS " CR = " CR " MCX = " MCX " MAS = " MAS " SS'" SS'] .
 
     --- rl [allStates] : < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts > allStates(O, O'', S, (T | TS))
     --- => < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts  > allStates(O, O'', S, TS) [print "[allStates] State=" S "Term = " T] .
@@ -76,20 +128,20 @@ endm
 ---     eq test = < aCache : Cache | server : aServer,
 ---     CxState : (0 |-> ('1.Nat | '2.Nat), 2 |-> ('3.Nat | '4.Nat)),
 ---     AllState : (0 |-> ('3.Nat | '4.Nat), 2 |-> ('1.Nat | '2.Nat)) >
----     isExist(aCache, o, ( '1.Nat, cx, 0, 2, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '3.Nat, cx, 0, 2, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '1.Nat, cx, 2, 4, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '3.Nat, cx, 2, 4, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '1.Nat, all, 0, 2, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '3.Nat, all, 0, 2, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '1.Nat, all, 2, 4, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '3.Nat, all, 2, 4, (< '2.Nat : 3 > nil) )) .
+---     lookupReq(aCache, o, ( '1.Nat, cx, 0, 2, (< '2.Nat : 3 > nil) ))
+---     lookupReq(aCache, o, ( '3.Nat, cx, 0, 2, (< '2.Nat : 3 > nil) ))
+---     lookupReq(aCache, o, ( '1.Nat, cx, 2, 4, (< '2.Nat : 3 > nil) ))
+---     lookupReq(aCache, o, ( '3.Nat, cx, 2, 4, (< '2.Nat : 3 > nil) ))
+---     lookupReq(aCache, o, ( '1.Nat, all, 0, 2, (< '2.Nat : 3 > nil) ))
+---     lookupReq(aCache, o, ( '3.Nat, all, 0, 2, (< '2.Nat : 3 > nil) ))
+---     lookupReq(aCache, o, ( '1.Nat, all, 2, 4, (< '2.Nat : 3 > nil) ))
+---     lookupReq(aCache, o, ( '3.Nat, all, 2, 4, (< '2.Nat : 3 > nil) )) .
 
 ---     eq test = < aCache : Cache | server : aServer,
 ---     CxState : empty,
 ---     AllState : empty >
----     isExist(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],all,2,4,nil))
----     isExist(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],cx,2,4,nil))
+---     lookupReq(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],all,2,4,nil))
+---     lookupReq(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],cx,2,4,nil))
 ---     .
 --- endm
 

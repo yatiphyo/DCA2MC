@@ -25,7 +25,7 @@ mod SERVER is
     vars C : Configuration .
     var ST : State .
 
-    crl [GetState] : < O : Server | jobs : J, A > notExist(O, O', ST)
+    crl [GetState] : < O : Server | jobs : J, A > lookupReply(O, O', ST)
         => < O : Server | jobs : enqueue(J, S), A >
         if S := state2string(ST) [print "[GetState] " S] .
 
@@ -51,7 +51,7 @@ mod SERVER is
 
     crl [MqReceived] :
         < O : Server | cache : O', A > Received(O, CLIENT, DATA)
-        => < O : Server | cache : O', A > isExist(O', O, ST)
+        => < O : Server | cache : O', A > lookupReq(O', O, ST)
         if DATA =/= getJob /\ ST := string2state(DATA) [print "[MqReceived] State " ST] .
 
     rl [MqSent] :

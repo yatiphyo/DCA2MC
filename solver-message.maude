@@ -35,23 +35,24 @@ mod SOLVER-MESSAGE is
     pr CONFIGURATION .
     pr REQUEST .
     pr STATE .
+    pr STATE-SET .
 
     op server :_ : Oid -> Attribute [ctor] .
     op client :_ : Oid -> Attribute [ctor] .
     op cache :_ : Oid -> Attribute [ctor] .
     op app :_ : Oid -> Attribute [ctor] .
-    op status :_ : Status -> Attribute [ctor] .
-    op batchSize :_ : Bound -> Attribute [ctor] .
-    op socket :_ : Oid -> Attribute [ctor] .
+    op status :_ : Status -> Attribute [ctor format(! o o o)] .
+    op batchSize :_ : Bound -> Attribute [ctor format(! o o o)] .
+    op socket :_ : Oid -> Attribute [ctor format(! o o o)] .
 
     sort Status .
     ops idle initialized waiting suspending working : -> Status .
 
     --- cache messages
-    op isExist : Oid Oid State -> Msg [ctor msg format (b o)] .
-    op notExist : Oid Oid State -> Msg [ctor msg format (b o)] .
-    op convertState2String : Oid Oid State -> Msg [ctor msg format (b o)] .
-    op convertString2State : Oid Oid State -> Msg [ctor msg format (b o)] .
+    op lookupReq : Oid Oid State -> Msg [ctor msg format (b o)] .
+    op lookupBatchReq : Oid Oid StateSet -> Msg [ctor msg format (b o)] .
+    op lookupReply : Oid Oid State -> Msg [ctor msg format (b o)] .
+    op lookupBatchReply : Oid Oid StateSet -> Msg [ctor msg format (b o)] .
     op allStates : Oid Oid State TermSet -> Msg [ctor msg format (b o)] .
     op cxStates : Oid Oid State TermSet -> Msg [ctor msg format (b o)] .
 
@@ -60,6 +61,7 @@ mod SOLVER-MESSAGE is
     op initialized : Oid -> Msg [ctor msg format (b o)] .
     op depthInfo : Oid String -> Msg [ctor msg format (b o)] .
     op sendState : Oid Oid -> Msg [ctor msg format (b o)] .
+    op resumeReq : Oid Oid -> Msg [ctor msg format (b o)] .
 
     --- worker messages
     op handle : Oid Oid State -> Msg [ctor msg format (b o)] .

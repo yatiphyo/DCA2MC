@@ -63,6 +63,14 @@ view State from TRIV to STATE is
     sort Elt to State .
 endv
 
+fmod STATE-SET is
+    pr SET{State} * (sort Set{State} to StateSet) .
+endfm
+
+view StateSet from TRIV to STATE-SET is
+    sort Elt to StateSet .
+endv
+
 fmod STATES-&-CXSTATES is
     pr 2TUPLE{TermSet,TermSet} * (
         op `(_`,_`) to <_:_>,

@@ -2,12 +2,12 @@ load ../solver-database.maude
 load ../MUnit/mUnit.maude
 
 (munit DATABASE-EXT is
-    assertEqual(getNextDepth(0, 2 2 2), 2)
-    assertEqual(getNextDepth(2, 2 2 2), 4)
-    assertEqual(getNextDepth(4, 2 2 2), 6)
-    assertEqual(getNextDepth(6, 2 2 2), unbounded)
-    assertEqual(getNextDepth(0, nil), unbounded)
-    assertEqual(getNextDepth(3, 3), unbounded)
-    assertEqual(getNextDepth(2, 2 1), 3)
-    assertEqual(getNextDepth(2, 2 0), unbounded)
+    assertEqual(findNextDepth(0, 2 2 2), 2)
+    assertEqual(findNextDepth(2, 2 2 2), 4)
+    assertEqual(findNextDepth(4, 2 2 2), 6)
+    assertEqual(findNextDepth(6, 2 2 2), unbounded)
+    assertEqual(findNextDepth(0, nil), unbounded)
+    assertEqual(findNextDepth(3, 3), unbounded)
+    assertEqual(findNextDepth(2, 2 1), 3)
+    assertEqual(findNextDepth(2, 2 0), unbounded)
 endu)
