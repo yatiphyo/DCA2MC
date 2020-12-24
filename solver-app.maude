@@ -6,36 +6,20 @@ mod SOLVER-APP is
 
     vars  Atts : AttributeSet .
     vars  X@DatabaseClass : DatabaseClass .
-    vars  O : Oid .
+    vars  O O' : Oid .
     vars  DB : Database .
-    vars S : String .
+    vars S DATA : String .
     vars QIL : QidList .
     vars QI ME : Qid .
     vars TL : TermList .
     vars NL : NatList .
+    vars ST : State .
+    vars R : Request .
 
     crl [init] :
         < O : X@DatabaseClass |
             db : DB, input : nilTermList, output : nil, default : ME, Atts >
         initialize(O, S)
-        => if metaParse(SOLVER-GRAMMAR, QIL, '@Input@) :: ResultPair
-        then < O : X@DatabaseClass | db : DB,
-                input : getTerm(metaParse(SOLVER-GRAMMAR, QIL, '@Input@)),
-                output : nil, default : ME, Atts > initialized(O)
-        else < O : X@DatabaseClass | db : DB, input : nilTermList,
-                    output : ('\r 'Warning:
-                            printSyntaxError(metaParse(SOLVER-GRAMMAR, QIL, '@Input@),
-                                QIL)
-                            '\n
-                            '\r 'Error: '\o 'No 'parse 'for 'input. '\n),
-                    default : ME, Atts >
-        fi
-        if QIL := tokenize(S) [print S] .
-
-    crl [check] :
-        < O : X@DatabaseClass |
-            db : DB, input : nilTermList, output : nil, default : ME, Atts >
-        depthInfo(O, S) initialized(O)
         => if metaParse(SOLVER-GRAMMAR, QIL, '@Input@) :: ResultPair
         then < O : X@DatabaseClass | db : DB,
                 input : getTerm(metaParse(SOLVER-GRAMMAR, QIL, '@Input@)),
@@ -48,13 +32,37 @@ mod SOLVER-APP is
                             '\r 'Error: '\o 'No 'parse 'for 'input. '\n),
                     default : ME, Atts >
         fi
-        if QIL := tokenize(S) [print S] .
+        if QIL := tokenize(S) [print "[init] " S] .
+
+    crl [depthInfo] :
+        < O : X@DatabaseClass |
+            db : DB, input : nilTermList, output : nil, default : ME, Atts >
+        depthInfo(O, S)
+        => if metaParse(SOLVER-GRAMMAR, QIL, '@Input@) :: ResultPair
+        then < O : X@DatabaseClass | db : DB,
+                input : getTerm(metaParse(SOLVER-GRAMMAR, QIL, '@Input@)),
+                output : nil, default : ME, Atts >
+        else < O : X@DatabaseClass | db : DB, input : nilTermList,
+                    output : ('\r 'Warning:
+                            printSyntaxError(metaParse(SOLVER-GRAMMAR, QIL, '@Input@),
+                                QIL)
+                            '\n
+                            '\r 'Error: '\o 'No 'parse 'for 'input. '\n),
+                    default : ME, Atts >
+        fi
+        if QIL := tokenize(S) [print "[depthInfo] " S] .
+
+    rl [error] :
+        < O : X@DatabaseClass | Atts >
+        error(O, O', R, DATA)
+        =>
+        < O : X@DatabaseClass | Atts > [print "[error] " R " -> " DATA] .
 
     rl [out] :
         < O : X@DatabaseClass |
             db : DB, input : TL, output : (QI QIL), default : ME, Atts >
         => < O : X@DatabaseClass |
-            db : DB, input : TL, output : nil, default : ME, Atts > [print "Output " QI " " QIL] .
+            db : DB, input : TL, output : nil, default : ME, Atts > [print "[output] " QI " " QIL] .
 endm
 
 --- rew in SOLVER-INIT : init .

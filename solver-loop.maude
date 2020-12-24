@@ -35,6 +35,7 @@ mod FULL-MAUDE is
                 db : initialDatabase,
                 input : nilTermList, output : nil,
                 db-ext : emptyDatabaseExt,
+                status : idle,
                 default : 'CONVERSION >,
             ('\n '\t '\s '\s '\s '\s string2qidList(solver-banner) '\n)] .
 

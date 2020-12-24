@@ -1,21 +1,73 @@
+fmod VALIDATOR is
+    pr CONVERSION .
+
+    vars S S' : String .
+    vars N : Nat .
+
+    op equalsTo : String String -> Bool .
+    ceq equalsTo(S, S') = true if length(S) == length(S') /\ N := find(S, S', 0) .
+    eq equalsTo(S, S') = false [owise] .
+endfm
+
+fmod REQUEST is
+    pr VALIDATOR .
+
+    sort Request .
+
+    subsort String < Request .
+    op getJob : -> Request .
+    eq getJob = "getJob" .
+    op sendJob : -> Request .
+    eq sendJob = "sendJob" .
+    op waiting : -> Request .
+    eq waiting = "waiting" .
+    op done : -> Request .
+    eq done = "done" .
+    op initialJob : -> Request .
+    eq initialJob = "initialJob" .
+    op noParse : -> Request .
+    eq noParse = "noParse" .
+endfm
+
 mod SOLVER-MESSAGE is
+    pr META-LEVEL .
+    pr FM-TERMSET .
     pr CONFIGURATION .
+    pr REQUEST .
     pr STATE .
 
     op server :_ : Oid -> Attribute [ctor] .
+    op client :_ : Oid -> Attribute [ctor] .
     op cache :_ : Oid -> Attribute [ctor] .
     op app :_ : Oid -> Attribute [ctor] .
+    op status :_ : Status -> Attribute [ctor] .
+    op batchSize :_ : Bound -> Attribute [ctor] .
+    op socket :_ : Oid -> Attribute [ctor] .
+
+    sort Status .
+    ops idle initialized waiting suspending working : -> Status .
 
     --- cache messages
     op isExist : Oid Oid State -> Msg [ctor msg format (b o)] .
     op notExist : Oid Oid State -> Msg [ctor msg format (b o)] .
     op convertState2String : Oid Oid State -> Msg [ctor msg format (b o)] .
     op convertString2State : Oid Oid State -> Msg [ctor msg format (b o)] .
+    op allStates : Oid Oid State TermSet -> Msg [ctor msg format (b o)] .
+    op cxStates : Oid Oid State TermSet -> Msg [ctor msg format (b o)] .
 
     --- app messages
     op initialize : Oid String -> Msg [ctor msg format (b o)] .
     op initialized : Oid -> Msg [ctor msg format (b o)] .
     op depthInfo : Oid String -> Msg [ctor msg format (b o)] .
+    op sendState : Oid Oid -> Msg [ctor msg format (b o)] .
+
+    --- worker messages
+    op handle : Oid Oid State -> Msg [ctor msg format (b o)] .
+    op genAllStates : Oid State Module Nat -> Msg [ctor msg format (b o)] .
+    op genCxStates : Oid State Module -> Msg [ctor msg format (b o)] .
+
+    --- error message
+    op error : Oid Oid Request String -> Msg [ctor msg format (b o)] .
 endm
 
 mod SOLVER-MESSAGE-CONVERTER is

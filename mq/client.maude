@@ -1,36 +1,52 @@
 load buffered-socket.maude
-load request.maude
 
 mod CLIENT is
     pr BUFFERED-SOCKET .
-    pr REQUEST .
     pr SOLVER-MESSAGE .
     pr SOLVER-MESSAGE-CONVERTER .
 
     op Client : -> Cid .
-    vars O CLIENT : Oid .
+    vars O O' O'' CLIENT : Oid .
     var  A : AttributeSet .
     vars DATA S : String .
+    vars SERROR : [String] .
+    vars ST : State .
+
+    crl [GetState] : < O : Client | socket : CLIENT, A > notExist(O, O', ST)
+    => < O : Client | socket : CLIENT, A >
+    Send(CLIENT, O, S)
+    if S := state2string(ST) [print "[GetState] " S] .
+
+    crl [GetState] : < O : Client | app : O'', A > notExist(O, O', ST)
+    => < O : Client | app : O'', A >
+    error(O'', O, noParse, "Cannot convert state to string")
+    if SERROR := state2string(ST) [print "[GetState] Cannot convert state to string" SERROR] .
 
     rl [MqCreatedSocket] :
         < O : Client | A > CreatedSocket(O, socketManager, CLIENT)
-        => < O : Client | A > Send(CLIENT, O, getJob)  Receive(CLIENT, O) .
+        => < O : Client | socket : CLIENT, A >
+        Send(CLIENT, O, getJob)
+        Receive(CLIENT, O) [print "[MqCreatedSocket]"] .
 
     rl [MqSent] :
         < O : Client | A > Sent(O, CLIENT)
-        => < O : Client | A > .
+        => < O : Client | A > [print "[MqSent]"] .
 
-    crl [MqReceived1] :
+    crl [MqReceived] :
         < O : Client | A > Received(O, CLIENT, DATA)
-        => < O : Client | A > Send(CLIENT, O, "6")
-        if DATA == waiting .
+        => < O : Client | A >
+        if DATA == waiting [print "[MqReceived] Received -> " DATA] .
 
-    crl [MqReceived2] :
-        < O : Client | A > Received(O, CLIENT, DATA)
-        => < O : Client | A > Send(CLIENT, O, getJob)
-        if DATA == done .
+    crl [MqReceived] :
+        < O : Client | app : O', A > Received(O, CLIENT, DATA)
+        => if (string2state(DATA) == null)
+            then < O : Client | app : O',  A > error(O', O, noParse, DATA)
+            else < O : Client | app : O', A > handle(O', O, string2state(DATA))
+            fi
+        if not equalsTo(DATA, waiting)
+        /\ not equalsTo(DATA, done) [print "[MqReceived] Received -> " DATA] .
 
     rl [MqClosedSocket] :
         < O : Client | A > ClosedSocket(O, CLIENT, S)
-        => < O : Client | A > .
+        => < O : Client | A > [print "[MqClosedSocket]"] .
 endm

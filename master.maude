@@ -1,14 +1,14 @@
-in debug.maude
 in specs/qlock.maude
 in full-maude.maude
 in solver-parallel.maude
 in mq/server.maude
 in mq/cache.maude
+in debug.maude
 
 mod SOVLER-MASTER is
-    pr SERVER .
     pr SOLVER-APP .
     pr CACHE .
+    pr SERVER .
 
     op o : -> Oid .
     op aServer : -> Oid [ctor] .
@@ -16,12 +16,14 @@ mod SOVLER-MASTER is
 
     op init : -> Configuration .
 
-    eq init = <> < o : Database |
+    eq init = < o : Database |
                 db : initialDatabase,
                 input : nilTermList, output : nil,
                 db-ext : emptyDatabaseExt,
                 server : aServer,
                 cache : aCache,
+                status : idle,
+                batchSize : 100,
                 default : 'CONVERSION >
                 < aCache : Cache | CxState : empty, AllState : empty, server : aServer, app : o >
                 < aServer : Server | app : o, cache : aCache >
@@ -30,4 +32,4 @@ mod SOVLER-MASTER is
                 depthInfo(o, "depthInfo 2 2 2") .
 endm
 
-erew init .
+erew <> init .

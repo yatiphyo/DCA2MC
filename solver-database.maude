@@ -48,12 +48,13 @@ view State-Type from TRIV to STATE-TYPE is
 endv
 
 fmod STATE is
-    pr 4TUPLE{Term,State-Type,Bound,LogList} * (
+    pr 5TUPLE{Term,State-Type,Bound,Bound,LogList} * (
         op p1_ to getState,
         op p2_ to getType,
         op p3_ to getDepth,
-        op p4_ to getLog,
-        sort Tuple{Term,State-Type,Bound,LogList} to State
+        op p4_ to getNextDepth,
+        op p5_ to getLog,
+        sort Tuple{Term,State-Type,Bound,Bound,LogList} to State
     ) .
     op null : -> State [ctor] .
 endfm
@@ -115,19 +116,19 @@ fmod DATABASE-EXT-DECL is
     eq getLogList({formula: F:Term, term: T:Term, trace: L:LogList, cx: Cx:Term}) = L:LogList .
     eq getCx({formula: F:Term, term: T:Term, trace: L:LogList, cx: Cx:Term}) = Cx:Term .
 
-    op (originModule:_) : ModuleExpression -> ConfigExt .
-    op (reviseModule:_) : ModuleExpression -> ConfigExt .
-    op (initState:_) : Term -> ConfigExt .
-    op (leadsToFormula:_) : Term -> ConfigExt .
-    op (eventuallyFormula:_) : Term -> ConfigExt .
-    op (eleSort:_) : Sort -> ConfigExt .
-    op (soupSort:_) : Sort -> ConfigExt .
-    op (eventuallyProp:_) : Term -> ConfigExt .
+    op (originModule:_) : ModuleExpression -> ConfigExt [ctor format (! o o)] .
+    op (reviseModule:_) : ModuleExpression -> ConfigExt [ctor format (! o o)] .
+    op (initState:_) : Term -> ConfigExt [ctor format (! o o)] .
+    op (leadsToFormula:_) : Term -> ConfigExt [ctor format (! o o)] .
+    op (eventuallyFormula:_) : Term -> ConfigExt [ctor format (! o o)] .
+    op (eleSort:_) : Sort -> ConfigExt [ctor format (! o o)] .
+    op (soupSort:_) : Sort -> ConfigExt [ctor format (! o o)] .
+    op (eventuallyProp:_) : Term -> ConfigExt [ctor format (! o o)] .
 
-    op (depthList:_) : NatList -> OCompExt .
-    op (currentDepth:_) : Nat -> OCompExt .
-    op (nodeSet:_) : NodeSet -> OCompExt .
-    op (result:_) : Result4Checking? -> OCompExt .
+    op (depthList:_) : NatList -> OCompExt [ctor format (! o o)] .
+    op (currentDepth:_) : Nat -> OCompExt [ctor format (! o o)] .
+    op (nodeSet:_) : NodeSet -> OCompExt [ctor format (! o o)] .
+    op (result:_) : Result4Checking? -> OCompExt [ctor format (! o o)] .
 endfm
 
 view ConfigExt from TRIV to DATABASE-EXT-DECL is
@@ -168,11 +169,13 @@ fmod DATABASE-EXT is
     vars T : Term .
     vars S : Sort .
     vars NL NL' : NatList .
-    vars N N' : Nat .
+    vars N N' N'' : Nat .
     vars NS NS' : NodeSet .
     vars ND : Node .
     vars R4C R4C' : Result4Checking? .
     vars B : Bool .
+    vars ST : State .
+    vars STYPE : StateType .
 
     op sum : NatList -> Nat .
     eq sum(N NL) = N + sum(NL) .
@@ -257,20 +260,31 @@ fmod DATABASE-EXT is
     eq getNumberOfCxStates((ND , NS)) = | cxStates(states&CxStates(ND)) | + getNumberOfCxStates(NS) .
     eq getNumberOfCxStates(empty) = 0 .
 
-    op getNextDepth : Nat NatList -> Bound .
-    eq getNextDepth(N, nil) = unbounded .
-    eq getNextDepth(N, (N' NL)) = if N >= N'
-        then getNextDepth(sd(N, N'), NL)
-        else N'
-        fi .
+    op findNextDepth : Nat NatList -> Bound .
+    eq findNextDepth(N, NL) = $findNextDepth(N, NL, 0) .
+
+    op $findNextDepth : Nat NatList Nat -> Bound .
+    eq $findNextDepth(N, nil, N'') = unbounded .
+    eq $findNextDepth(N, (N' NL), N'') = if N'' == N and N'' + N' > N
+                                        then N'' + N'
+                                        else $findNextDepth(N, NL, N' + N'')
+                                        fi .
 
     op getInitialState : DatabaseExt -> State .
     ceq getInitialState(DB-EXT) = ( addDepthToTerm(initState(getConfigExtSet(DB-EXT))),
     all,
-    getNextDepth(0, depthList(getOCompExtSet(DB-EXT))),
+    0,
+    findNextDepth(0, depthList(getOCompExtSet(DB-EXT))),
     nil) if not isEmptyDatabaseExt(DB-EXT) .
-
     eq getInitialState(DB-EXT) = null .
+
+    op buildState : DatabaseExt State Term StateType -> State .
+    eq buildState(DB-EXT, ST, T, STYPE) = (T,
+    STYPE,
+    getNextDepth(ST),
+    findNextDepth(getNextDepth(ST), depthList(getOCompExtSet(DB-EXT))),
+    (< getState(ST) : getNextDepth(ST) > getLog(ST))
+    ) .
 endfm
 
 view DatabaseExt from TRIV to DATABASE-EXT is
@@ -286,12 +300,18 @@ fmod CHECKER is
         op p2_ to cache,
         sort Tuple{NodeSet,States&CxStates} to NodeSet&Cache) .
 
+    pr 2TUPLE{TermSet,Nat} * (
+        op p1_ to getStates,
+        op p2_ to getCount,
+        sort Tuple{TermSet,Nat} to GenState) .
+
     pr TRANSITION-TERM-LIST .
 
     vars M : Module .
     vars NS NS1 NS2 : NodeSet .
     vars ND : Node .
-    vars N D : Nat .
+    vars N D C : Nat .
+    vars B : Bound .
     vars L : NatList .
     vars LL : LogList .
     vars NeLL : NeLogList .
@@ -509,4 +529,19 @@ fmod CHECKER is
     eq combineCounterExample(TTL, 'counterexample['__[TL1:TermList], TL2:TermList]) = 'counterexample['__[transformTransitionTermList(TTL), TL1:TermList], TL2:TermList] .
     eq combineCounterExample(TTL, 'counterexample[TL1:TermList, TL2:TermList]) = 'counterexample['__[transformTransitionTermList(TTL), TL1:TermList], TL2:TermList] [owise] .
 
+    ************ PROCESS STATES AT A DEPTH ************
+    --- module, term, depth, config, count, bound
+    op procGenAllStates : Module Term Nat ConfigExtSet Nat Bound -> GenState .
+    eq procGenAllStates(M, T, D, Cs, C, B) = $procGenAllStates(changeDepth(M, D), T, D, Cs, C, B, emptyTermSet, 0) .
+
+    op $procGenAllStates : Module Term Nat ConfigExtSet Nat Bound TermSet Nat -> GenState .
+    ceq $procGenAllStates(M, T, D, Cs, C, B, TS, N) = $procGenAllStates(M, T, D, Cs, C + 1, B, getTerm(RT) | TS, N + 1)
+                                                        if B == unbounded /\ RT := genState(M, T, D, Cs, C) .
+
+    ceq $procGenAllStates(M, T, D, Cs, C, B, TS, N) = $procGenAllStates(M, T, D, Cs, C + 1, B, getTerm(RT) | TS, N + 1)
+                                                        if B =/= unbounded /\ N < B /\ RT := genState(M, T, D, Cs, C) .
+    eq $procGenAllStates(M, T, D, Cs, C, B, TS, N) = (TS, C) [owise print TS " " C] .
+
+    op genState : Module Term Nat ConfigExtSet Nat -> ResultTriple? .
+    eq genState(M, T, D, Cs, C) = metaSearch(M, T, '`{_`}['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, C) .
 endfm

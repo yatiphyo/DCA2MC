@@ -1,0 +1,4 @@
+load full-maude.maude
+in test-utils.maude
+in test-solver-database.maude
+in test-solver-message.maude

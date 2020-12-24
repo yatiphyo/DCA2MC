@@ -1,4 +1,4 @@
-load ../utils .
+load ../solver-utils
 load ../MUnit/mUnit.maude
 
 (munit EXT-TERM-STRING is

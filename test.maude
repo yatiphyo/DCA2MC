@@ -1,4 +1,4 @@
-in debug.maude .
+--- in debug.maude .
 in specs/qlock.maude
 in full-maude
 in solver

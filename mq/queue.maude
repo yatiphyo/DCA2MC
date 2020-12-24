@@ -51,13 +51,12 @@ view Worker from TRIV to CONFIGURATION is
 endv
 
 --- red enqueue(empty, (status : idle msg : 2)) .
+--- fmod TEST-MQ-MESSAGE is
+---     pr MQ-MESSAGE{Nat} .
 
-fmod TEST-MQ-MESSAGE is
-    pr MQ-MESSAGE{Nat} .
+---     op msg : -> MqMsg{Nat} .
+---     eq msg = buildJob(idle, 1) .
+--- endfm
 
-    op msg : -> MqMsg{Nat} .
-    eq msg = buildJob(idle, 1) .
-endfm
-
-red in TEST-MQ-MESSAGE : msg .
-red in TEST-MQ-MESSAGE : getContent(msg) .
+--- red in TEST-MQ-MESSAGE : msg .
+--- red in TEST-MQ-MESSAGE : getContent(msg) .

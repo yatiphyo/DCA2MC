@@ -12,6 +12,7 @@ mod SOVLER-WORKER is
 
     op o : -> Oid .
     op aClient : -> Oid [ctor] .
+    op aCache : -> Oid [ctor] .
 
     op init : -> Configuration .
 
@@ -19,9 +20,15 @@ mod SOVLER-WORKER is
                 db : initialDatabase,
                 input : nilTermList, output : nil,
                 db-ext : emptyDatabaseExt,
+                client : aClient,
+                cache : aCache,
+                status : idle,
+                batchSize : 1,
                 default : 'CONVERSION >
                 initialize(o, "initialize[QLOCK-CHECK, init5, lofree1, lofree2, OComp, Soup{OComp}]")
-                < aClient : Client | none >
+                depthInfo(o, "depthInfo 2 2 2")
+                < aCache : Cache | CxState : empty, AllState : empty, server : aClient, app : o >
+                < aClient : Client | app : o, cache : aCache >
                 CreateClientTcpSocket(socketManager, aClient, "localhost", 8811) .
 endm
 

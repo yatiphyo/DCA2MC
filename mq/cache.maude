@@ -19,8 +19,8 @@ mod CACHE is
     vars AS CX TS : TermSet .
     vars S : State .
 
-    ceq < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts  > isExist(O, O'', S)
-    = if getType(S) == cx
+    crl [isExist] : < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts  > isExist(O, O'', S)
+    => if getType(S) == cx
     then (
         if MCX[getDepth(S)] == undefined
         then < O : Cache |
@@ -53,37 +53,44 @@ mod CACHE is
         fi
     )
     fi
-    if S =/= null [print "Check existing state = " S] .
+    if S =/= null [print "[isExist] Check existing state = " S] .
 
-    eq < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > isExist(O, O'', S)
-    = < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > [owise] .
+    crl [isExist] : < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > isExist(O, O'', S)
+    => < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > if S == null [print "[isExistNull]"] .
+
+    --- rl [allStates] : < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts > allStates(O, O'', S, (T | TS))
+    --- => < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts  > allStates(O, O'', S, TS) [print "[allStates] State=" S "Term = " T] .
+
+    --- rl [allStates] : < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts > allStates(O, O'', S, emptyTermSet)
+    --- => < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts  > [print "emptyTermSet"] .
 endm
 
 --- mod TEST-CACHE is
 ---     pr CACHE .
 ---     op aCache : -> Oid [ctor] .
 ---     op aServer : -> Oid [ctor] .
+---     op aClient : -> Oid [ctor] .
 ---     op o : -> Oid [ctor] .
 
 ---     op test : -> Configuration .
 ---     eq test = < aCache : Cache | server : aServer,
 ---     CxState : (0 |-> ('1.Nat | '2.Nat), 2 |-> ('3.Nat | '4.Nat)),
 ---     AllState : (0 |-> ('3.Nat | '4.Nat), 2 |-> ('1.Nat | '2.Nat)) >
----     isExist(aCache, o, ( '1.Nat, cx, 0, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '3.Nat, cx, 0, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '1.Nat, cx, 2, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '3.Nat, cx, 2, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '1.Nat, all, 0, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '3.Nat, all, 0, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '1.Nat, all, 2, (< '2.Nat : 3 > nil) ))
----     isExist(aCache, o, ( '3.Nat, all, 2, (< '2.Nat : 3 > nil) )) .
+---     isExist(aCache, o, ( '1.Nat, cx, 0, 2, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '3.Nat, cx, 0, 2, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '1.Nat, cx, 2, 4, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '3.Nat, cx, 2, 4, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '1.Nat, all, 0, 2, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '3.Nat, all, 0, 2, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '1.Nat, all, 2, 4, (< '2.Nat : 3 > nil) ))
+---     isExist(aCache, o, ( '3.Nat, all, 2, 4, (< '2.Nat : 3 > nil) )) .
 
 ---     eq test = < aCache : Cache | server : aServer,
 ---     CxState : empty,
 ---     AllState : empty >
----     isExist(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],all,2,nil))
----     isExist(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],cx,2,nil))
+---     isExist(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],all,2,4,nil))
+---     isExist(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],cx,2,4,nil))
 ---     .
 --- endm
 
---- red test .
+--- rew test .

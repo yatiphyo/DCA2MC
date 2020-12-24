@@ -1,7 +1,0 @@
-set trace off .
---- set trace whole on .
---- set trace eq off .
---- set trace substitution off .
---- trace exclude FULL-MAUDE SOVLER SOVLER-MASTER SOVLER-WORKER .
-set print attribute off .
-set show timing on .

@@ -16,19 +16,32 @@ mod SOLVER-DATABASE-HANDLING is
     var DB-EXT : DatabaseExt .
     var QIL : QidList .
     var RES : Tuple{Database,QidList,DatabaseExt} .
+    var ST : State .
+    var STYPE : StateType .
+    vars M M' : Module .
+    vars OCs OCs' : OCompExtSet .
+    vars Cs Cs' : ConfigExtSet .
+    vars N N' C C' : Nat .
+    vars B : Bound .
+    vars GS : GenState .
+    vars TS : TermSet .
 
     crl [initialize] :
         < O : X@DatabaseClass | db : DB,
             input : ('initialize`[_`,_`,_`,_`,_`,_`][T, T1, T2, T3, T4, T5]),
             output : nil,
             db-ext : DB-EXT,
-            default : ME, Atts >
+            default : ME,
+            status : idle,
+            Atts >
      => < O : X@DatabaseClass |
             db : getDatabase(RES),
             input : nilTermList,
             output : getQidList(RES),
             db-ext : getDatabaseExt(RES),
-            default : parseHeader(T), Atts >
+            default : parseHeader(T),
+            status : initialized,
+            Atts >
             if RES := procInitializeCommand('initialize`[_`,_`,_`,_`,_`,_`][T, T1, T2, T3, T4, T5], ME, DB, DB-EXT) .
 
     crl [layerCheck] :
@@ -53,6 +66,7 @@ mod SOLVER-DATABASE-HANDLING is
             output : nil,
             db-ext : DB-EXT,
             default : ME,
+            status : initialized,
             server : O',
             cache : O'', Atts >
         => < O : X@DatabaseClass |
@@ -61,10 +75,99 @@ mod SOLVER-DATABASE-HANDLING is
             output : getQidList(RES),
             db-ext : getDatabaseExt(RES),
             default : ME,
+            status : waiting,
             server : O',
             cache : O'', Atts >
             isExist(O'', O, getInitialState(getDatabaseExt(RES)))
-            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "isExist msg = " O'' " " O] .
+            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[depthInfo] isExist msg = " O'' " " O " " T] .
+
+    crl [depthInfo] :
+        < O : X@DatabaseClass |
+            db : DB,
+            input : ('depthInfo_[T]),
+            output : nil,
+            db-ext : DB-EXT,
+            default : ME,
+            status : initialized,
+            client : O',
+            cache : O'', Atts >
+        => < O : X@DatabaseClass |
+            db : getDatabase(RES),
+            input : nilTermList,
+            output : getQidList(RES),
+            db-ext : getDatabaseExt(RES),
+            default : ME,
+            status : waiting,
+            client : O',
+            cache : O'', Atts >
+            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[depthInfo] isExist msg = " O'' " " O " " T] .
+
+    crl [handle] :
+        < O : X@DatabaseClass |
+            db : DB,
+            input : nilTermList,
+            db-ext : DB-EXT,
+            status : waiting,
+            Atts >
+        handle(O, O', ST)
+        => if getType(ST) == all
+        then < O : X@DatabaseClass |
+            db : DB,
+            input : nilTermList,
+            db-ext : DB-EXT,
+            status : working,
+            Atts > genAllStates(O, ST, M, 0)
+        else < O : X@DatabaseClass |
+            db : DB,
+            input : nilTermList,
+            db-ext : DB-EXT,
+            status : working,
+            Atts > genCxStates(O, ST, M)
+        fi
+        if Cs := getConfigExtSet(DB-EXT)
+        /\ M := getFlatModule(reviseModule(Cs), DB)
+        [print "[handle] State = " ST] .
+
+    crl [genAllStates] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            input : nilTermList,
+            status : working,
+            batchSize : B,
+            cache : O',
+            Atts >
+        genAllStates(O, ST, M, C)
+        =>  if C' > C
+            then
+                < O : X@DatabaseClass |
+                    db : DB,
+                    db-ext : DB-EXT,
+                    input : nilTermList,
+                    status : suspending,
+                    batchSize : B,
+                    cache : O',
+                    Atts >
+                genAllStates(O, ST, M, C')
+                checkStates(DB-EXT, O', O, ST, TS, all)
+            else
+                < O : X@DatabaseClass |
+                    db : DB,
+                    db-ext : DB-EXT,
+                    input : nilTermList,
+                    status : waiting,
+                    batchSize : B,
+                    cache : O',
+                    Atts >
+            fi
+        if Cs := getConfigExtSet(DB-EXT)
+        /\ GS := procGenAllStates(M, getState(ST), getNextDepth(ST), Cs, C, B)
+        /\ C' := getCount(GS)
+        /\ TS := getStates(GS) [print "[genAllStates] = " O' " " O " " ST " " TS " " C " " C'] .
+
+    op checkStates : DatabaseExt Oid Oid State TermSet StateType -> Configuration .
+    eq checkStates(DB-EXT, O, O', ST, emptyTermSet, STYPE) = none .
+    eq checkStates(DB-EXT, O, O', ST, T | TS, STYPE) = isExist(O, O', buildState(DB-EXT, ST, T, STYPE)) .
 
     crl [lastCheck] :
         < O : X@DatabaseClass |

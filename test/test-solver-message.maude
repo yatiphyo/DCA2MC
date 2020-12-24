@@ -1,0 +1,8 @@
+load ../solver-message.maude .
+load ../MUnit/mUnit.maude
+
+(munit REQUEST is
+    assertTrue(equalsTo(waiting, waiting))
+    assertTrue(equalsTo(done, done))
+    assertFalse(equalsTo(done, waiting))
+endu)
