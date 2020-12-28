@@ -27,30 +27,9 @@ mod SERVER is
     vars C : Configuration .
     var ST : State .
 
-    crl [GetState] : < O : Server | jobs : J, A > lookupReply(O, O', ST)
+    crl [lookupReply] : < O : Server | jobs : J, A > lookupReply(O, O', ST)
         => < O : Server | jobs : enqueue(J, S), A >
-        if S := state2string(ST) [print "[GetState] " S] .
-
-    rl [MqCreatedSocket] :
-        < O : Server | A > CreatedSocket(O, socketManager, LISTENER)
-        => < O : Server | listener : LISTENER, workers : empty, jobs : empty, waitingWorkers : empty, A >
-        AcceptClient(LISTENER, O) [print "[MqCreatedSocket]"] .
-
-    rl [MqAcceptedClient] :
-        < O : Server | workers : SW, A > AcceptedClient(O, LISTENER, IP, CLIENT)
-        => < O : Server | workers : (CLIENT, SW), A > Receive(CLIENT, O) [print "[MqAcceptedClient]"] .
-
-    crl [MqReceived] :
-        < O : Server | jobs : J, waitingWorkers : W, A > Received(O, CLIENT, DATA)
-        => < O : Server | jobs : J, waitingWorkers : enqueue(W, CLIENT), A >
-        --- Send(CLIENT, O, waiting)
-        if DATA == getJob [print "[MqReceived] " DATA] .
-
-    crl [MqReceived] :
-        < O : Server | A > Received(O, CLIENT, DATA)
-        => < O : Server | A >
-        stopWorking(O, CLIENT)
-        if DATA == stop [print "[MqReceived] " DATA] .
+        if S := state2string(ST) [print "[lookupReply] " S] .
 
     rl [StopClient] : < O : Server | workers : (CLIENT, SW), A > stopWorking(O, O')
         => CloseSocket(CLIENT, O) < O : Server | workers : SW, A > stopWorking(O, O') [print "[StopClient] " CLIENT] .
@@ -65,10 +44,29 @@ mod SERVER is
         /\ qsize(W) > 0
         /\ qsize(W) == | SW | [print "[CheckTermination]"] .
 
-    crl < O : Server | jobs : J, waitingWorkers : W, A >
+    rl [MqCreatedSocket] :
+        < O : Server | A > CreatedSocket(O, socketManager, LISTENER)
+        => < O : Server | listener : LISTENER, workers : empty, jobs : empty, waitingWorkers : empty, A >
+        AcceptClient(LISTENER, O) [print "[MqCreatedSocket]"] .
+
+    rl [MqAcceptedClient] :
+        < O : Server | workers : SW, A > AcceptedClient(O, LISTENER, IP, CLIENT)
+        => < O : Server | workers : (CLIENT, SW), A > Receive(CLIENT, O) [print "[MqAcceptedClient]"] .
+
+    crl [MqReceived] :
+        < O : Server | jobs : J, waitingWorkers : W, A > Received(O, CLIENT, DATA)
+        => < O : Server | jobs : J, waitingWorkers : enqueue(W, CLIENT), A > --- Send(CLIENT, O, waiting)
+        if DATA == getJob [print "[MqReceived] " DATA] .
+
+    crl [MqReceived] :
+        < O : Server | A > Received(O, CLIENT, DATA)
+        => < O : Server | A > stopWorking(O, CLIENT)
+        if DATA == stop [print "[MqReceived] " DATA] .
+
+    crl [SendJob] : < O : Server | jobs : J, waitingWorkers : W, A >
         => < O : Server | jobs : dequeue(J), waitingWorkers : dequeue(W), A >
         Send(first(W), O, first(J))
-        if not isEmpty(J) /\ not isEmpty(W) .
+        if not isEmpty(J) /\ not isEmpty(W) [print "[SendJob]"] .
 
     crl [MqReceived] :
         < O : Server | cache : O', A > Received(O, CLIENT, DATA)

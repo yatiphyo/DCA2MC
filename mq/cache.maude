@@ -29,20 +29,21 @@ mod CACHE is
     vars S : State .
     vars SS SS' : StateSet .
     vars CR : CacheResult .
+    vars L L' : Logger .
 
-    crl [lookupReq] : < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts  > lookupReq(O, O'', S)
+    crl [lookupReq] : < O : Cache | CxState : MCX, AllState : MAS, server : O', logger : L, Atts  > lookupReq(O, O'', S)
     => if getType(S) == cx
     then (
         if MCX[getDepth(S)] == undefined
         then < O : Cache |
             CxState : insert(getDepth(S), getState(S), MCX),
-            AllState : MAS, server : O', Atts > lookupReply(O', O, S)
+            AllState : MAS, server : O', logger : L', Atts > lookupReply(O', O, S)
         else (
             if getState(S) in MCX[getDepth(S)]
-            then < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts >
+            then < O : Cache | CxState : MCX, AllState : MAS, server : O', logger : L', Atts >
             else < O : Cache |
                 CxState : insert(getDepth(S), getState(S) | MCX[getDepth(S)], MCX),
-                AllState : MAS, server : O', Atts > lookupReply(O', O, S)
+                AllState : MAS, server : O', logger : L', Atts > lookupReply(O', O, S)
             fi
         )
         fi
@@ -51,23 +52,25 @@ mod CACHE is
         if MAS[getDepth(S)] == undefined
         then < O : Cache |
             AllState : insert(getDepth(S), getState(S), MAS),
-            CxState : MCX, server : O', Atts > lookupReply(O', O, S)
+            CxState : MCX, server : O', logger : L', Atts > lookupReply(O', O, S)
         else (
             if getState(S) in MAS[getDepth(S)]
-            then < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts >
+            then < O : Cache | CxState : MCX, AllState : MAS, server : O', logger : L', Atts >
             else
             < O : Cache |
                 AllState : insert(getDepth(S), getState(S) | MAS[getDepth(S)], MAS),
-                CxState : MCX, server : O', Atts > lookupReply(O', O, S)
+                CxState : MCX, server : O', logger : L', Atts > lookupReply(O', O, S)
             fi
         )
         fi
     )
     fi
-    if S =/= null [print "[lookupReq] Check existing state = " S] .
+    if S =/= null
+    /\ L' := logging(L, getDepth(S), getType(S))
+    [print "[lookupReq] Check existing state = " S] .
 
     crl [lookupReq] : < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > lookupReq(O, O'', S)
-    => < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > if S == null [print "[isExistNull]"] .
+    => < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > if S == null [print "[lookupReq] null state"] .
 
     op lookupStates : Map{Nat,TermSet} Map{Nat,TermSet} StateSet -> CacheResult .
     eq lookupStates(MCX, MAS, SS) = $lookupStates(MCX, MAS, SS, empty) .
@@ -108,13 +111,7 @@ mod CACHE is
     if CR := lookupStates(MCX, MAS, SS)
     /\ SS' := getStates(CR)
     /\ MCX' := getCacheCxState(CR)
-    /\ MAS' := getCacheAllState(CR) [print "[lockupBatchReq] SS = " SS " SS' = " SS'] .
-
-    --- rl [allStates] : < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts > allStates(O, O'', S, (T | TS))
-    --- => < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts  > allStates(O, O'', S, TS) [print "[allStates] State=" S "Term = " T] .
-
-    --- rl [allStates] : < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts > allStates(O, O'', S, emptyTermSet)
-    --- => < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts  > [print "emptyTermSet"] .
+    /\ MAS' := getCacheAllState(CR) [print "[lookupBatchReq] SS = " SS " SS' = " SS'] .
 endm
 
 --- mod TEST-CACHE is

@@ -543,7 +543,7 @@ fmod CHECKER is
     eq combineCounterExample(TTL, 'counterexample[TL1:TermList, TL2:TermList]) = 'counterexample['__[transformTransitionTermList(TTL), TL1:TermList], TL2:TermList] [owise] .
 
     ************ PROCESS STATES AT A DEPTH ************
-    --- module, term, depth, config, count, bound
+    --- process all states with batch
     op procGenAllStates : Module Term Nat ConfigExtSet Nat Bound -> GenState .
     eq procGenAllStates(M, T, D, Cs, C, B) = $procGenAllStates(changeDepth(M, D), T, D, Cs, C, B, emptyTermSet, 0) .
 
@@ -559,7 +559,7 @@ fmod CHECKER is
     eq genState(M, T, D, Cs, C) = metaSearch(M, T, '`{_`}['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, C) .
 
 
-    --- process counter example states
+    --- process counterexample states with batch
     op procGenCxStates : Module Term Nat ConfigExtSet Bound StateType -> GenCxState .
     eq procGenCxStates(M, T, D, Cs, B, all) = $procGenCxStates(changeDepth(M, D), T, D, leadsToFormula(Cs), eventuallyProp(Cs), B, emptyTermSet, 0) .
     eq procGenCxStates(M, T, D, Cs, B, cx) = $procGenCxStates(changeDepth(M, D), T, D, eventuallyFormula(Cs), eventuallyProp(Cs), B, emptyTermSet, 0) .

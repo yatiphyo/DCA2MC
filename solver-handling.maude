@@ -62,7 +62,7 @@ mod SOLVER-DATABASE-HANDLING is
             default : ME, Atts >
             if RES := procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT) .
 
-    crl [depthInfo] :
+    crl [serverDepthInfo] :
         < O : X@DatabaseClass |
             db : DB,
             input : ('depthInfo_[T]),
@@ -82,9 +82,9 @@ mod SOLVER-DATABASE-HANDLING is
             server : O',
             cache : O'', Atts >
             lookupReq(O'', O, getInitialState(getDatabaseExt(RES)))
-            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[depthInfo] lookupReq msg = " O'' " " O " " T] .
+            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[serverDepthInfo] " T] .
 
-    crl [depthInfo] :
+    crl [clientDepthInfo] :
         < O : X@DatabaseClass |
             db : DB,
             input : ('depthInfo_[T]),
@@ -103,7 +103,7 @@ mod SOLVER-DATABASE-HANDLING is
             status : waiting,
             client : O',
             cache : O'', Atts >
-            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[depthInfo] lookupReq msg = " O'' " " O " " T] .
+            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[clientDepthInfo] " T] .
 
     crl [handle] :
         < O : X@DatabaseClass |
@@ -291,7 +291,6 @@ mod SOLVER-DATABASE-HANDLING is
     /\ M := getFlatModule(originModule(Cs), DB)
     /\ R4C := checkStates(M, getState(ST), getLog(ST), Cs)
     [print "lastCheckAllState = " ST " R4C = " R4C] .
-
 
     crl [lastCheckCxState] :
         < O : X@DatabaseClass |
