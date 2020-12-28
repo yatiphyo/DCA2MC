@@ -27,6 +27,7 @@ mod SOLVER-DATABASE-HANDLING is
     vars GCxS : GenCxState .
     vars TS : TermSet .
     vars R4C : Result4Checking? .
+    vars L L' : Logger .
 
     crl [initialize] :
         < O : X@DatabaseClass | db : DB,
@@ -111,7 +112,7 @@ mod SOLVER-DATABASE-HANDLING is
             input : nilTermList,
             status : waiting,
             client : O'',
-            count : N,
+            logger : L,
             Atts >
         handle(O, O', ST)
         => if getType(ST) == all
@@ -124,7 +125,7 @@ mod SOLVER-DATABASE-HANDLING is
                 input : nilTermList,
                 status : working,
                 client : O'',
-                count : N',
+                logger : L',
                 Atts > genAllStates(O, ST, M, 0)
             else
                 < O : X@DatabaseClass |
@@ -133,7 +134,7 @@ mod SOLVER-DATABASE-HANDLING is
                 input : nilTermList,
                 status : working,
                 client : O'',
-                count : N',
+                logger : L',
                 Atts > lastCheckAllState(O, ST)
             fi
         else
@@ -145,7 +146,7 @@ mod SOLVER-DATABASE-HANDLING is
                 input : nilTermList,
                 status : working,
                 client : O'',
-                count : N',
+                logger : L',
                 Atts > genCxStates(O, ST, M)
             else
                 < O : X@DatabaseClass |
@@ -154,14 +155,14 @@ mod SOLVER-DATABASE-HANDLING is
                 input : nilTermList,
                 status : working,
                 client : O'',
-                count : N',
+                logger : L',
                 Atts > lastCheckCxState(O, ST)
             fi
         fi
         if Cs := getConfigExtSet(DB-EXT)
         /\ M := getFlatModule(reviseModule(Cs), DB)
-        /\ N' := (N + 1)
-        [print "[handle] State " N' " = " ST] .
+        /\ L' := logging(L, getDepth(ST), getType(ST))
+        [print "[handle] State " ST " Logger = " L'] .
 
     crl [genAllStates] :
         < O : X@DatabaseClass |

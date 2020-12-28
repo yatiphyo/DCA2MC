@@ -2,6 +2,7 @@ in solver-utils .
 in solver-grammar .
 in solver-database .
 in solver-help .
+in solver-logger .
 in solver-message .
 in solver-command .
 in solver-handling .

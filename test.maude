@@ -4,5 +4,5 @@ in full-maude
 in solver
 --- (initialize[QLOCK-CHECK, init, lofree1, lofree2, OComp, Soup{OComp}])
 (initialize[QLOCK-CHECK, init, lofree1, lofree2, OComp, Soup{OComp}])
-(layerCheck 2)
+(layerCheck 2 2 2)
 --- quit

@@ -1,0 +1,37 @@
+mod SOLVER-LOGGER is
+    pr STATE .
+    pr MAP{Nat,Tuple{Nat,Nat}} * (
+        op p1_ to numAllStates,
+        op p2_ to numCxStates,
+        sort Tuple{Nat,Nat} to Counter,
+        sort Entry{Nat,Tuple{Nat,Nat}} to LoggerEntry,
+        sort Map{Nat,Tuple{Nat,Nat}} to Logger ) .
+
+    vars L : Logger .
+    vars K : Nat .
+    vars STYPE : StateType .
+
+    op logging : Logger Nat StateType -> Logger .
+
+    ceq logging(L, K, STYPE) = if L[K] == undefined
+                            then insert(K, (1, 0), L)
+                            else insert(K, (numAllStates(L[K]) + 1, numCxStates(L[K])), L)
+                            fi
+                            if STYPE == all .
+    ceq logging(L, K, STYPE) = if L[K] == undefined
+                            then insert(K, (0, 1), L)
+                            else insert(K, (numAllStates(L[K]), numCxStates(L[K]) + 1), L)
+                            fi
+                            if STYPE == cx .
+    eq logging(L, K, STYPE) = L [owise] .
+endm
+
+--- mod TEST-SOLVER-LOGGER is
+---     pr LOGGER .
+
+---     op logger : -> Logger .
+---     eq logger = empty .
+--- endm
+
+--- red logging(logging(logger, 1, all), 2, cx) .
+--- red logging(logging(logger, 2, cx), 1, all) .

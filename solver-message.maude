@@ -40,14 +40,15 @@ mod SOLVER-MESSAGE is
     pr REQUEST .
     pr STATE .
     pr STATE-SET .
+    pr SOLVER-LOGGER .
 
     op server :_ : Oid -> Attribute [ctor] .
     op client :_ : Oid -> Attribute [ctor] .
     op cache :_ : Oid -> Attribute [ctor] .
     op app :_ : Oid -> Attribute [ctor] .
     op status :_ : Status -> Attribute [ctor format(m o o o)] .
+    op logger :_ : Logger -> Attribute [ctor format(m o o o)] .
     op batchSize :_ : Bound -> Attribute [ctor format(! o o o)] .
-    op count :_ : Nat -> Attribute [ctor format(! o o o)] .
     op socket :_ : Oid -> Attribute [ctor format(! o o o)] .
     op listener :_ : Oid -> Attribute [ctor format(! o o o)] .
 

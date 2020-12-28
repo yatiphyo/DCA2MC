@@ -18,7 +18,7 @@ mod CACHE is
                  op p1_ to getCacheCxState,
                  op p2_ to getCacheAllState,
                  op p3_ to getStates,
-                 sort Tuple{Map{Nat,TermSet},Map{Nat,TermSet},StateSet} to CacheResult).
+                 sort Tuple{Map{Nat,TermSet},Map{Nat,TermSet},StateSet} to CacheResult) .
 
     vars O O' O'' : Oid .
     vars MCX MCX' MAS MAS' : Map{Nat,TermSet} .
