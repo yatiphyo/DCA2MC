@@ -136,7 +136,7 @@ fmod DATABASE-EXT-DECL is
     op (depthList:_) : NatList -> OCompExt [ctor format (! o o)] .
     op (currentDepth:_) : Nat -> OCompExt [ctor format (! o o)] .
     op (nodeSet:_) : NodeSet -> OCompExt [ctor format (! o o)] .
-    op (result:_) : Result4Checking? -> OCompExt [ctor format (! o o)] .
+    op (result:_) : Result4Checking? -> OCompExt [ctor format (m o o)] .
 endfm
 
 view ConfigExt from TRIV to DATABASE-EXT-DECL is
@@ -457,7 +457,7 @@ fmod CHECKER is
                                         fi
                                         if R4C := checkNode(M, ND, Cs) .
 
-    --- Check counterexample in ALLStates one by one
+    --- Check all states in ALLStates one by one
     op checkStates : Module TermSet LogList ConfigExtSet -> Result4Checking? .
     eq checkStates(M, emptyTermSet, LL, Cs) = success .
     ceq checkStates(M, T | TS, LL, Cs) = if (Cx :: Constant)
@@ -548,7 +548,7 @@ fmod CHECKER is
 
     ceq $procGenAllStates(M, T, D, Cs, C, B, TS, N) = $procGenAllStates(M, T, D, Cs, C + 1, B, getTerm(RT) | TS, N + 1)
                                                         if B =/= unbounded /\ N < B /\ RT := genState(M, T, D, Cs, C) .
-    eq $procGenAllStates(M, T, D, Cs, C, B, TS, N) = (TS, C) [owise print TS " " C] .
+    eq $procGenAllStates(M, T, D, Cs, C, B, TS, N) = (TS, C) [owise] .
 
     op genState : Module Term Nat ConfigExtSet Nat -> ResultTriple? .
     eq genState(M, T, D, Cs, C) = metaSearch(M, T, '`{_`}['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, C) .

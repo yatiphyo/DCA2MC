@@ -5,16 +5,18 @@ mod SERVER is
     pr BUFFERED-SOCKET .
     pr IQUEUE{Job} .
     pr IQUEUE{Worker} .
+    pr SET{Worker} .
     pr SOLVER-MESSAGE .
     pr SOLVER-MESSAGE-CONVERTER .
 
     --- contain all jobs
-    op jobs :_ : Queue{Job} -> Attribute .
-    op workers :_ : Queue{Worker} -> Attribute .
-    op tick :_ : Nat -> Attribute .
+    op jobs :_ : Queue{Job} -> Attribute [ctor format(! o o o)] .
+    op waitingWorkers :_ : Queue{Worker} -> Attribute [ctor format(! o o o)] .
+    op workers :_ : Set{Worker} -> Attribute [ctor format(! o o o)] .
 
-    var J : Queue{Job} .
-    var W : Queue{Worker} .
+    vars J : Queue{Job} .
+    vars W : Queue{Worker} .
+    vars SW : Set{Worker} .
 
     op Server : -> Cid [ctor] .
 
@@ -31,21 +33,40 @@ mod SERVER is
 
     rl [MqCreatedSocket] :
         < O : Server | A > CreatedSocket(O, socketManager, LISTENER)
-        => < O : Server | jobs : empty, workers : empty, A >
+        => < O : Server | listener : LISTENER, workers : empty, jobs : empty, waitingWorkers : empty, A >
         AcceptClient(LISTENER, O) [print "[MqCreatedSocket]"] .
 
     rl [MqAcceptedClient] :
-        < O : Server | A > AcceptedClient(O, LISTENER, IP, CLIENT)
-        => < O : Server | A > Receive(CLIENT, O) [print "[MqAcceptedClient]"] .
+        < O : Server | workers : SW, A > AcceptedClient(O, LISTENER, IP, CLIENT)
+        => < O : Server | workers : (CLIENT, SW), A > Receive(CLIENT, O) [print "[MqAcceptedClient]"] .
 
     crl [MqReceived] :
-        < O : Server | jobs : J, workers : W, A > Received(O, CLIENT, DATA)
-        => < O : Server | jobs : J, workers : enqueue(W, CLIENT), A >
-        Send(CLIENT, O, waiting)
+        < O : Server | jobs : J, waitingWorkers : W, A > Received(O, CLIENT, DATA)
+        => < O : Server | jobs : J, waitingWorkers : enqueue(W, CLIENT), A >
+        --- Send(CLIENT, O, waiting)
         if DATA == getJob [print "[MqReceived] " DATA] .
 
-    crl < O : Server | jobs : J, workers : W, A >
-        => < O : Server | jobs : dequeue(J), workers : dequeue(W), A >
+    crl [MqReceived] :
+        < O : Server | A > Received(O, CLIENT, DATA)
+        => < O : Server | A >
+        stopWorking(O, CLIENT)
+        if DATA == stop [print "[MqReceived] " DATA] .
+
+    rl [StopClient] : < O : Server | workers : (CLIENT, SW), A > stopWorking(O, O')
+        => CloseSocket(CLIENT, O) < O : Server | workers : SW, A > stopWorking(O, O') [print "[StopClient] " CLIENT] .
+
+    rl [StopClient] : < O : Server | workers : empty, A > stopWorking(O, O')
+        => < O : Server | workers : empty, A > [print "[StopClient]"] .
+
+    crl [CheckTermination] :
+        < O : Server | workers : SW, jobs : J, waitingWorkers : W, A >
+        => < O : Server | workers : SW, jobs : J, waitingWorkers : W, A > stopWorking(O, O)
+        if qsize(J) == 0
+        /\ qsize(W) > 0
+        /\ qsize(W) == | SW | [print "[CheckTermination]"] .
+
+    crl < O : Server | jobs : J, waitingWorkers : W, A >
+        => < O : Server | jobs : dequeue(J), waitingWorkers : dequeue(W), A >
         Send(first(W), O, first(J))
         if not isEmpty(J) /\ not isEmpty(W) .
 

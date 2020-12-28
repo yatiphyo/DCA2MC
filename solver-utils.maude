@@ -58,7 +58,7 @@ fmod META-UTILS is
                                                         fi .
     --- update new depth
     op updateEquation : Equation Nat -> Equation .
-    eq updateEquation((eq T1:Term = T2:Term [AS:AttrSet] .), D:Nat) = (eq T1:Term = upTerm(D:Nat) [AS:AttrSet] .) [print "Bound = " D:Nat ", T2 = " T2:Term] .
+    eq updateEquation((eq T1:Term = T2:Term [AS:AttrSet] .), D:Nat) = (eq T1:Term = upTerm(D:Nat) [AS:AttrSet] .) . --- [print "Bound = " D:Nat ", T2 = " T2:Term] .
 
     --- transformRules with depth
     op transformRules : SModule Term -> SModule [memo] .

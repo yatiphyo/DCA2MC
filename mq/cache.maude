@@ -15,8 +15,8 @@ endv
 mod CACHE is
     pr CACHE-INTERFACE .
     pr 3TUPLE{Map{Nat,TermSet},Map{Nat,TermSet},StateSet} * (
-                 op p1_ to getCacheAllState,
-                 op p2_ to getCacheCxState,
+                 op p1_ to getCacheCxState,
+                 op p2_ to getCacheAllState,
                  op p3_ to getStates,
                  sort Tuple{Map{Nat,TermSet},Map{Nat,TermSet},StateSet} to CacheResult).
 
@@ -73,11 +73,11 @@ mod CACHE is
     eq lookupStates(MCX, MAS, SS) = $lookupStates(MCX, MAS, SS, empty) .
 
     op $lookupStates : Map{Nat,TermSet} Map{Nat,TermSet} StateSet StateSet -> CacheResult .
-    eq $lookupStates(MCX, MAS, empty, SS') =  (MCX, MAS, SS') [print "EmptySet " SS'] .
+    eq $lookupStates(MCX, MAS, empty, SS') =  (MCX, MAS, SS') .
     eq $lookupStates(MCX, MAS, (S, SS), SS') =  if getType(S) == cx
     then (
         if MCX[getDepth(S)] == undefined
-        then 
+        then
             $lookupStates(insert(getDepth(S), getState(S), MCX), MAS, SS, insert(S, SS'))
         else (
             if getState(S) in MCX[getDepth(S)]
@@ -100,15 +100,15 @@ mod CACHE is
     )
     fi .
 
-    crl [lookupBatchReq] : < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > lookupBatchReq(O, O'', SS)
+    crl [lookupBatchReq] : < O : Cache | CxState : MCX, AllState : MAS, server : O', app : O'', Atts > lookupBatchReq(O, O'', SS)
     => if SS' == empty
-        then < O : Cache | CxState : MCX', AllState : MAS', server : O', Atts >
-        else < O : Cache | CxState : MCX', AllState : MAS', server : O', Atts > lookupBatchReply(O', O, SS')
+        then < O : Cache | CxState : MCX', AllState : MAS', server : O', app : O'', Atts > resumeReq(O'', O)
+        else < O : Cache | CxState : MCX', AllState : MAS', server : O', app : O'', Atts > lookupBatchReply(O', O, SS')
         fi
     if CR := lookupStates(MCX, MAS, SS)
     /\ SS' := getStates(CR)
     /\ MCX' := getCacheCxState(CR)
-    /\ MAS' := getCacheAllState(CR) [print "[lockupBachReq] SS = " SS " CR = " CR " MCX = " MCX " MAS = " MAS " SS'" SS'] .
+    /\ MAS' := getCacheAllState(CR) [print "[lockupBatchReq] SS = " SS " SS' = " SS'] .
 
     --- rl [allStates] : < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts > allStates(O, O'', S, (T | TS))
     --- => < O : Cache | CxState : MCX, AllState : MAS, client : O', Atts  > allStates(O, O'', S, TS) [print "[allStates] State=" S "Term = " T] .
@@ -143,6 +143,15 @@ endm
 ---     lookupReq(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],all,2,4,nil))
 ---     lookupReq(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],cx,2,4,nil))
 ---     .
+
+---     eq test = < aCache : Cache | server : aServer,
+---     CxState : empty,
+---     AllState : empty >
+---     lookupBatchReq(aCache, o, ('`{_`}['__['cnt:_['s_^5['0.Zero]],'depth:_['s_^2['0.Zero]],'queue:_['_|_['p1.Pid,'p3.Pid]],
+---     'pc`[_`]:_['p1.Pid,'ws.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ws.Loc],'pc`[_`]:_[
+---     'p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc]]],all,2,4,< '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_[
+---     'empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,
+---     'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]] : 2 >)) .
 --- endm
 
 --- rew test .

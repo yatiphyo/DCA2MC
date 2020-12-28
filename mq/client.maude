@@ -26,11 +26,18 @@ mod CLIENT is
     rl [GetStates] : < O : Client | socket : CLIENT, app : O', A > lookupBatchReply(O, O'', SS)
     => < O : Client | socket : CLIENT, app : O', A >
     resumeReq(O', O)
-    produceMessages(CLIENT, O, SS) [print "[GetState] " SS] .
+    produceMessages(CLIENT, O, SS) [print "[GetStates] " SS] .
 
     op produceMessages : Oid Oid StateSet -> Configuration .
     eq produceMessages(CLIENT, O, empty) = none .
-    eq produceMessages(CLIENT, O, (ST, SS)) = Send(CLIENT, O, state2string(ST)) produceMessages(CLIENT, O, SS) .
+    eq produceMessages(CLIENT, O, (ST, SS)) = Send(CLIENT, O, state2string(ST)) produceMessages(CLIENT, O, SS) [print "[Send] " ST] .
+
+    rl [FetchState] : < O : Client | socket : CLIENT, A > fetchState(O, O')
+        => < O : Client | socket : CLIENT, A >
+        Send(CLIENT, O, getJob) [print "[FetchState] getJob"] .
+
+    rl [StopWorking] : < O : Client | socket : CLIENT, A > stopWorking(O, O')
+        => < O : Client | socket : CLIENT, A > Send(CLIENT, O, stop) [print "[StopWorking]"] .
 
     rl [MqCreatedSocket] :
         < O : Client | A > CreatedSocket(O, socketManager, CLIENT)

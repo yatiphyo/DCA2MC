@@ -25,6 +25,7 @@ mod SOLVER-DATABASE-HANDLING is
     vars B : Bound .
     vars GS : GenState .
     vars TS : TermSet .
+    vars R4C : Result4Checking? .
 
     crl [initialize] :
         < O : X@DatabaseClass | db : DB,
@@ -105,28 +106,61 @@ mod SOLVER-DATABASE-HANDLING is
     crl [handle] :
         < O : X@DatabaseClass |
             db : DB,
-            input : nilTermList,
             db-ext : DB-EXT,
+            input : nilTermList,
             status : waiting,
+            client : O'',
+            count : N,
             Atts >
         handle(O, O', ST)
         => if getType(ST) == all
-        then < O : X@DatabaseClass |
-            db : DB,
-            input : nilTermList,
-            db-ext : DB-EXT,
-            status : working,
-            Atts > genAllStates(O, ST, M, 0)
-        else < O : X@DatabaseClass |
-            db : DB,
-            input : nilTermList,
-            db-ext : DB-EXT,
-            status : working,
-            Atts > genCxStates(O, ST, M)
+        then
+            if getNextDepth(ST) =/= unbounded
+            then
+                < O : X@DatabaseClass |
+                db : DB,
+                db-ext : DB-EXT,
+                input : nilTermList,
+                status : working,
+                client : O'',
+                count : N',
+                Atts > genAllStates(O, ST, M, 0)
+            else
+                < O : X@DatabaseClass |
+                db : DB,
+                db-ext : DB-EXT,
+                input : nilTermList,
+                status : working,
+                client : O'',
+                count : N',
+                Atts > lastCheckAllStates(O, ST)
+            fi
+        else
+            if getNextDepth(ST) =/= unbounded
+            then
+                < O : X@DatabaseClass |
+                db : DB,
+                db-ext : DB-EXT,
+                input : nilTermList,
+                status : working,
+                client : O'',
+                count : N',
+                Atts > genCxStates(O, ST, M)
+            else
+                < O : X@DatabaseClass |
+                db : DB,
+                db-ext : DB-EXT,
+                input : nilTermList,
+                status : working,
+                client : O'',
+                count : N',
+                Atts > lastCheckCxStates(O, ST)
+            fi
         fi
         if Cs := getConfigExtSet(DB-EXT)
         /\ M := getFlatModule(reviseModule(Cs), DB)
-        [print "[handle] State = " ST] .
+        /\ N' := (N + 1)
+        [print "[handle] State " N' " = " ST] .
 
     crl [genAllStates] :
         < O : X@DatabaseClass |
@@ -136,6 +170,7 @@ mod SOLVER-DATABASE-HANDLING is
             status : working,
             batchSize : B,
             cache : O',
+            client : O'',
             Atts >
         genAllStates(O, ST, M, C)
         =>  if C' > C
@@ -147,6 +182,7 @@ mod SOLVER-DATABASE-HANDLING is
                     status : suspending,
                     batchSize : B,
                     cache : O',
+                    client : O'',
                     Atts >
                 genAllStates(O, ST, M, C')
                 lookupBatchReq(O', O, termSetToStates(DB-EXT, O', O, ST, TS, all))
@@ -158,12 +194,14 @@ mod SOLVER-DATABASE-HANDLING is
                     status : waiting,
                     batchSize : B,
                     cache : O',
+                    client : O'',
                     Atts >
+                fetchState(O'', O)
             fi
         if Cs := getConfigExtSet(DB-EXT)
         /\ GS := procGenAllStates(M, getState(ST), getNextDepth(ST), Cs, C, B)
         /\ C' := getCount(GS)
-        /\ TS := getStates(GS) [print "[genAllStates] = " O' " " O " " ST " " TS " " C " " C'] .
+        /\ TS := getStates(GS) [print "[genAllStates] = " O' " " O " ST = " ST " TS = " TS " C = " C " C' = " C'] .
 
     op termSetToStates : DatabaseExt Oid Oid State TermSet StateType -> StateSet .
     eq termSetToStates(DB-EXT, O, O', ST, emptyTermSet, STYPE) = empty .
@@ -176,8 +214,41 @@ mod SOLVER-DATABASE-HANDLING is
         resumeReq(O, O')
     => < O : X@DatabaseClass |
             status : working,
-            Atts > .
-    
+            Atts > [print "[ResumeWorking]"] .
+
+    crl [lastCheckAllState] :
+        < O : X@DatabaseClass |
+        db : DB,
+        db-ext : DB-EXT,
+        input : nilTermList,
+        status : working,
+        client : O'',
+        Atts > lastCheckAllStates(O, ST)
+    => if R4C :: Result4Checking
+        then
+            < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            input : nilTermList,
+            status : waiting,
+            client : O'',
+            Atts >
+            fetchState(O'', O)
+        else
+            < O : X@DatabaseClass |
+            db : DB,
+            db-ext : evalOCompExtSet(DB-EXT, ((result: R4C))),
+            input : nilTermList,
+            status : stopping,
+            client : O'',
+            Atts >
+            stopWorking(O'', O)
+        fi
+    if Cs := getConfigExtSet(DB-EXT)
+    /\ M := getFlatModule(originModule(Cs), DB)
+    /\ R4C := checkStates(M, getState(ST), getLog(ST), Cs)
+    [print "lastCheckAllState = " ST " R4C = " R4C] .
+
     crl [lastCheck] :
         < O : X@DatabaseClass |
         db : DB,

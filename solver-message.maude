@@ -23,10 +23,14 @@ fmod REQUEST is
     eq waiting = "waiting" .
     op done : -> Request .
     eq done = "done" .
+    op stop : -> Request .
+    eq stop = "stop" .
     op initialJob : -> Request .
     eq initialJob = "initialJob" .
     op noParse : -> Request .
     eq noParse = "noParse" .
+    op foundCx : -> Request .
+    eq foundCx = "foundCx" .
 endfm
 
 mod SOLVER-MESSAGE is
@@ -41,12 +45,14 @@ mod SOLVER-MESSAGE is
     op client :_ : Oid -> Attribute [ctor] .
     op cache :_ : Oid -> Attribute [ctor] .
     op app :_ : Oid -> Attribute [ctor] .
-    op status :_ : Status -> Attribute [ctor format(! o o o)] .
+    op status :_ : Status -> Attribute [ctor format(m o o o)] .
     op batchSize :_ : Bound -> Attribute [ctor format(! o o o)] .
+    op count :_ : Nat -> Attribute [ctor format(! o o o)] .
     op socket :_ : Oid -> Attribute [ctor format(! o o o)] .
+    op listener :_ : Oid -> Attribute [ctor format(! o o o)] .
 
     sort Status .
-    ops idle initialized waiting suspending working : -> Status .
+    ops idle initialized waiting suspending working stopping terminated : -> Status .
 
     --- cache messages
     op lookupReq : Oid Oid State -> Msg [ctor msg format (b o)] .
@@ -62,11 +68,15 @@ mod SOLVER-MESSAGE is
     op depthInfo : Oid String -> Msg [ctor msg format (b o)] .
     op sendState : Oid Oid -> Msg [ctor msg format (b o)] .
     op resumeReq : Oid Oid -> Msg [ctor msg format (b o)] .
+    op fetchState : Oid Oid -> Msg [ctor msg format (b o)] .
 
     --- worker messages
     op handle : Oid Oid State -> Msg [ctor msg format (b o)] .
     op genAllStates : Oid State Module Nat -> Msg [ctor msg format (b o)] .
     op genCxStates : Oid State Module -> Msg [ctor msg format (b o)] .
+    op lastCheckAllStates : Oid State -> Msg [ctor msg format (b o)] .
+    op lastCheckCxStates : Oid State -> Msg [ctor msg format (b o)] .
+    op stopWorking : Oid Oid -> Msg [ctor msg format (b o)] .
 
     --- error message
     op error : Oid Oid Request String -> Msg [ctor msg format (b o)] .

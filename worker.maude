@@ -24,8 +24,9 @@ mod SOVLER-WORKER is
                 cache : aCache,
                 status : idle,
                 batchSize : 1,
+                count : 0,
                 default : 'CONVERSION >
-                initialize(o, "initialize[QLOCK-CHECK, init5, lofree1, lofree2, OComp, Soup{OComp}]")
+                initialize(o, "initialize[QLOCK-CHECK, init, lofree1, lofree2, OComp, Soup{OComp}]")
                 depthInfo(o, "depthInfo 2 2 2")
                 < aCache : Cache | CxState : empty, AllState : empty, server : aClient, app : o >
                 < aClient : Client | app : o, cache : aCache >
