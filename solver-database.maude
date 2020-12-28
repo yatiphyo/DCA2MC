@@ -313,6 +313,11 @@ fmod CHECKER is
         op p2_ to getCount,
         sort Tuple{TermSet,Nat} to GenState) .
 
+    pr 2TUPLE{TermSet,Module} * (
+        op p1_ to getCxState,
+        op p2_ to getModule,
+        sort Tuple{TermSet,Module} to GenCxState) .
+
     pr TRANSITION-TERM-LIST .
 
     vars M : Module .
@@ -552,4 +557,28 @@ fmod CHECKER is
 
     op genState : Module Term Nat ConfigExtSet Nat -> ResultTriple? .
     eq genState(M, T, D, Cs, C) = metaSearch(M, T, '`{_`}['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, C) .
+
+
+    --- process counter example states
+    op procGenCxStates : Module Term Nat ConfigExtSet Bound StateType -> GenCxState .
+    eq procGenCxStates(M, T, D, Cs, B, all) = $procGenCxStates(changeDepth(M, D), T, D, leadsToFormula(Cs), eventuallyProp(Cs), B, emptyTermSet, 0) .
+    eq procGenCxStates(M, T, D, Cs, B, cx) = $procGenCxStates(changeDepth(M, D), T, D, eventuallyFormula(Cs), eventuallyProp(Cs), B, emptyTermSet, 0) .
+
+    op $procGenCxStates : Module Term Nat Term Term Bound TermSet Nat -> GenCxState .
+    ceq $procGenCxStates(M, T, D, F, P, B, TS, N) = if Cx :: Constant
+                                                then (TS, M)
+                                                else $procGenCxStates(addEqs(buildEqs(getCounterExampleState(Cx), P), M), T, D, F, P, B, getCounterExampleState(Cx) | TS, N + 1)
+                                                fi
+                                            if B == unbounded
+                                            /\ Cx := getCounterExample(M, 'modelCheck[T, F]) .
+
+    ceq $procGenCxStates(M, T, D, F, P, B, TS, N) = if Cx :: Constant
+                                                    then (TS, M)
+                                                    else $procGenCxStates(addEqs(buildEqs(getCounterExampleState(Cx), P), M), T, D, F, P, B, getCounterExampleState(Cx) | TS, N + 1)
+                                                    fi
+                                                if B =/= unbounded
+                                                /\ N < B
+                                                /\ Cx := getCounterExample(M, 'modelCheck[T, F]) [print "[procGenCxState] Cx = " Cx " T = " T " F = " F " P = " P] .
+
+    eq $procGenCxStates(M, T, D, F, P, B, TS, N) = (TS, M) [owise] .
 endfm

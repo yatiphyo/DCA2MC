@@ -24,6 +24,7 @@ mod SOLVER-DATABASE-HANDLING is
     vars N N' C C' : Nat .
     vars B : Bound .
     vars GS : GenState .
+    vars GCxS : GenCxState .
     vars TS : TermSet .
     vars R4C : Result4Checking? .
 
@@ -133,7 +134,7 @@ mod SOLVER-DATABASE-HANDLING is
                 status : working,
                 client : O'',
                 count : N',
-                Atts > lastCheckAllStates(O, ST)
+                Atts > lastCheckAllState(O, ST)
             fi
         else
             if getNextDepth(ST) =/= unbounded
@@ -154,7 +155,7 @@ mod SOLVER-DATABASE-HANDLING is
                 status : working,
                 client : O'',
                 count : N',
-                Atts > lastCheckCxStates(O, ST)
+                Atts > lastCheckCxState(O, ST)
             fi
         fi
         if Cs := getConfigExtSet(DB-EXT)
@@ -185,9 +186,54 @@ mod SOLVER-DATABASE-HANDLING is
                     client : O'',
                     Atts >
                 genAllStates(O, ST, M, C')
-                lookupBatchReq(O', O, termSetToStates(DB-EXT, O', O, ST, TS, all))
+                lookupBatchReq(O', O, termSetToStates(DB-EXT, ST, TS, all))
             else
                 < O : X@DatabaseClass |
+                    db : DB,
+                    db-ext : DB-EXT,
+                    input : nilTermList,
+                    status : working,
+                    batchSize : B,
+                    cache : O',
+                    client : O'',
+                    Atts >
+                genCxStates(O, ST, M)
+            fi
+        if Cs := getConfigExtSet(DB-EXT)
+        /\ GS := procGenAllStates(M, getState(ST), getNextDepth(ST), Cs, C, B)
+        /\ C' := getCount(GS)
+        /\ TS := getStates(GS) [print "[genAllStates] = " O' " " O " ST = " ST " TS = " TS " C = " C " C' = " C'] .
+
+    op termSetToStates : DatabaseExt State TermSet StateType -> StateSet .
+    eq termSetToStates(DB-EXT, ST, emptyTermSet, STYPE) = empty .
+    eq termSetToStates(DB-EXT, ST, T | TS, STYPE) = buildState(DB-EXT, ST, T, STYPE), termSetToStates(DB-EXT, ST, TS, STYPE) .
+
+    crl [genCxStates] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            input : nilTermList,
+            status : working,
+            batchSize : B,
+            cache : O',
+            client : O'',
+            Atts >
+        genCxStates(O, ST, M)
+    =>  if | TS | > 0
+        then
+            < O : X@DatabaseClass |
+                db : DB,
+                db-ext : DB-EXT,
+                input : nilTermList,
+                status : suspending,
+                batchSize : B,
+                cache : O',
+                client : O'',
+                Atts >
+            genCxStates(O, ST, M')
+            lookupBatchReq(O', O, termSetToStates(DB-EXT, ST, TS, cx))
+        else
+            < O : X@DatabaseClass |
                     db : DB,
                     db-ext : DB-EXT,
                     input : nilTermList,
@@ -196,16 +242,12 @@ mod SOLVER-DATABASE-HANDLING is
                     cache : O',
                     client : O'',
                     Atts >
-                fetchState(O'', O)
-            fi
-        if Cs := getConfigExtSet(DB-EXT)
-        /\ GS := procGenAllStates(M, getState(ST), getNextDepth(ST), Cs, C, B)
-        /\ C' := getCount(GS)
-        /\ TS := getStates(GS) [print "[genAllStates] = " O' " " O " ST = " ST " TS = " TS " C = " C " C' = " C'] .
-
-    op termSetToStates : DatabaseExt Oid Oid State TermSet StateType -> StateSet .
-    eq termSetToStates(DB-EXT, O, O', ST, emptyTermSet, STYPE) = empty .
-    eq termSetToStates(DB-EXT, O, O', ST, T | TS, STYPE) = buildState(DB-EXT, ST, T, STYPE), termSetToStates(DB-EXT, O, O', ST, TS, STYPE) .
+            fetchState(O'', O)
+        fi
+    if  Cs := getConfigExtSet(DB-EXT)
+    /\ GCxS := procGenCxStates(M, getState(ST), getNextDepth(ST), Cs, B, getType(ST))
+    /\ TS := getCxState(GCxS)
+    /\ M' := getModule(GCxS) [print "[genCxStates] ST = " ST " TS = " TS " M' = " M'] .
 
     rl [resumeWorking] :
         < O : X@DatabaseClass |
@@ -223,7 +265,7 @@ mod SOLVER-DATABASE-HANDLING is
         input : nilTermList,
         status : working,
         client : O'',
-        Atts > lastCheckAllStates(O, ST)
+        Atts > lastCheckAllState(O, ST)
     => if R4C :: Result4Checking
         then
             < O : X@DatabaseClass |
@@ -248,6 +290,40 @@ mod SOLVER-DATABASE-HANDLING is
     /\ M := getFlatModule(originModule(Cs), DB)
     /\ R4C := checkStates(M, getState(ST), getLog(ST), Cs)
     [print "lastCheckAllState = " ST " R4C = " R4C] .
+
+
+    crl [lastCheckCxState] :
+        < O : X@DatabaseClass |
+        db : DB,
+        db-ext : DB-EXT,
+        input : nilTermList,
+        status : working,
+        client : O'',
+        Atts > lastCheckCxState(O, ST)
+    => if R4C :: Result4Checking
+        then
+            < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            input : nilTermList,
+            status : waiting,
+            client : O'',
+            Atts >
+            fetchState(O'', O)
+        else
+            < O : X@DatabaseClass |
+            db : DB,
+            db-ext : evalOCompExtSet(DB-EXT, ((result: R4C))),
+            input : nilTermList,
+            status : stopping,
+            client : O'',
+            Atts >
+            stopWorking(O'', O)
+        fi
+    if Cs := getConfigExtSet(DB-EXT)
+    /\ M := getFlatModule(originModule(Cs), DB)
+    /\ R4C := checkCxStates(M, getState(ST), getLog(ST), Cs)
+    [print "lastCheckCxState = " ST " R4C = " R4C] .
 
     crl [lastCheck] :
         < O : X@DatabaseClass |
