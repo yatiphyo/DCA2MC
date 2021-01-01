@@ -16,7 +16,7 @@ mod SOVLER-WORKER is
 
     op init : -> Configuration .
 
-    eq init = <> < o : Database |
+    eq init = < o : Database |
                 db : initialDatabase,
                 input : nilTermList, output : nil,
                 db-ext : emptyDatabaseExt,
@@ -30,7 +30,7 @@ mod SOVLER-WORKER is
                 depthInfo(o, "depthInfo 2 2 2")
                 < aCache : Cache | CxState : empty, AllState : empty, server : aClient, app : o >
                 < aClient : Client | app : o, cache : aCache >
-                CreateClientTcpSocket(socketManager, aClient, "localhost", 8811) .
+                CreateClientTcpSocket(socketManager, aClient, "localhost", 8812) .
 endm
 
-erew init .
+erew <> init .

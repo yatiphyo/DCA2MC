@@ -45,9 +45,15 @@ mod SERVER is
         /\ qsize(W) == | SW | [print "[CheckTermination]"] .
 
     rl [MqCreatedSocket] :
-        < O : Server | A > CreatedSocket(O, socketManager, LISTENER)
-        => < O : Server | listener : LISTENER, workers : empty, jobs : empty, waitingWorkers : empty, A >
-        AcceptClient(LISTENER, O) [print "[MqCreatedSocket]"] .
+        < O : Server | nWorkers : N, A > CreatedSocket(O, socketManager, LISTENER)
+        => < O : Server | nWorkers : N, workers : empty, jobs : empty, waitingWorkers : empty, A >
+        produceAcceptClient(LISTENER, O, N) [print "[MqCreatedSocket]"] .
+
+    op produceAcceptClient : Oid Oid Nat -> Configuration .
+    eq produceAcceptClient(LISTENER, O, N) = if N > 0
+                                            then AcceptClient(LISTENER, O) produceAcceptClient(LISTENER, O, sd(N, 1))
+                                            else none
+                                            fi .
 
     rl [MqAcceptedClient] :
         < O : Server | workers : SW, A > AcceptedClient(O, LISTENER, IP, CLIENT)

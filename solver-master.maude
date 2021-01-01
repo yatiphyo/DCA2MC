@@ -25,8 +25,8 @@ mod SOVLER-MASTER is
                 status : idle,
                 default : 'CONVERSION >
                 < aCache : Cache | CxState : empty, AllState : empty, server : aServer, app : o, logger : empty >
-                < aServer : Server | app : o, cache : aCache >
-                CreateServerTcpSocket(socketManager, aServer, 8811, 5)
+                < aServer : Server | nWorkers : 1, app : o, cache : aCache >
+                CreateServerTcpSocket(socketManager, aServer, 8812, 5)
                 initialize(o, "initialize[QLOCK-CHECK, init, lofree1, lofree2, OComp, Soup{OComp}]")
                 depthInfo(o, "depthInfo 2 2 2") .
 endm

@@ -49,8 +49,8 @@ mod SOLVER-MESSAGE is
     op status :_ : Status -> Attribute [ctor format(m o o o)] .
     op logger :_ : Logger -> Attribute [ctor format(m o o o)] .
     op batchSize :_ : Bound -> Attribute [ctor format(! o o o)] .
+    op nWorkers :_ : Nat -> Attribute [ctor format(! o o o)] .
     op socket :_ : Oid -> Attribute [ctor format(! o o o)] .
-    op listener :_ : Oid -> Attribute [ctor format(! o o o)] .
 
     sort Status .
     ops idle initialized waiting suspending working stopping terminated : -> Status .
