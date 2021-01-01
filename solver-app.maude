@@ -32,7 +32,7 @@ mod SOLVER-APP is
                             '\r 'Error: '\o 'No 'parse 'for 'input. '\n),
                     default : ME, Atts >
         fi
-        if QIL := tokenize(S) [print "[init] " S] .
+        if QIL := tokenize(S) .
 
     crl [depthInfo] :
         < O : X@DatabaseClass |
@@ -50,7 +50,7 @@ mod SOLVER-APP is
                             '\r 'Error: '\o 'No 'parse 'for 'input. '\n),
                     default : ME, Atts >
         fi
-        if QIL := tokenize(S) [print "[depthInfo] " S] .
+        if QIL := tokenize(S) .
 
     rl [error] :
         < O : X@DatabaseClass | Atts >

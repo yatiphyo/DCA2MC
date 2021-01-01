@@ -1,4 +1,4 @@
-in specs/qlock.maude
+in specs/anderson.maude
 in full-maude.maude
 in solver-parallel.maude
 in mq/server.maude
@@ -25,10 +25,10 @@ mod SOVLER-MASTER is
                 status : idle,
                 default : 'CONVERSION >
                 < aCache : Cache | CxState : empty, AllState : empty, server : aServer, app : o, logger : empty >
-                < aServer : Server | nWorkers : 1, app : o, cache : aCache >
+                < aServer : Server | nWorkers : 4, app : o, cache : aCache >
                 CreateServerTcpSocket(socketManager, aServer, 8812, 5)
-                initialize(o, "initialize[QLOCK-CHECK, init, lofree1, lofree2, OComp, Soup{OComp}]")
-                depthInfo(o, "depthInfo 2 2 2") .
+                initialize(o, "initialize[ANDERSON-CHECK, init9, lofree1, lofree2, OComp, Soup{OComp}]")
+                depthInfo(o, "depthInfo 2 2") .
 endm
 
 erew <> init .

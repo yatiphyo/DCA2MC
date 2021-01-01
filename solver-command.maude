@@ -30,8 +30,8 @@ fmod SOLVER-COMMAND-PROCESSING is
     eq extractEventuallyPropTerm(EQS:EquationSet, T) = 'nil [owise] .
 
     op solveBubbleAndToken : Term -> Term .
-    eq solveBubbleAndToken('token[T]) = T [print "Token = " T] .
-    eq solveBubbleAndToken('bubble[T]) = T [print "Bubble = " T] .
+    eq solveBubbleAndToken('token[T]) = T .
+    eq solveBubbleAndToken('bubble[T]) = T .
 
     *** initialize command
     op procInitializeCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
@@ -69,7 +69,7 @@ fmod SOLVER-COMMAND-PROCESSING is
                     revise-module(M, S1', S2'),
                     ME''),
                     none, DB2)
-                fi [print ME' " " T1' " " T2' " " T3' " " S1' " " S2'] .
+                fi . --- [print ME' " " T1' " " T2' " " T3' " " S1' " " S2'] .
 
     op initializeDatabaseExt : ModuleExpression ModuleExpression Term Term Term Sort Sort Database DatabaseExt -> DatabaseExt .
     ceq initializeDatabaseExt(ME, ME', T1, T2, T3, S, S', DB, DB-EXT) =
@@ -105,8 +105,8 @@ fmod SOLVER-COMMAND-PROCESSING is
         /\ T1'' := getTerm(metaReduce(upModule(ME, true), T1'))
         /\ T2' := getTerm(metaParse(upModule(ME, false), downQid(T2), anyType))
         /\ T3' := getTerm(metaParse(upModule(ME, false), downQid(T3), anyType))
-        /\ T4' := extractEventuallyPropTerm(getEqs(upModule(ME, false)), T3')
-        [print ME " " T1 " " T2 " " T3 " " T1' " " T2' " " T3' " " T1''] .
+        /\ T4' := extractEventuallyPropTerm(getEqs(upModule(ME, false)), T3') .
+        --- [print ME " " T1 " " T2 " " T3 " " T1' " " T2' " " T3' " " T1''] .
 
     *** layerCheck command
     op procLayerCheckCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
@@ -139,8 +139,7 @@ fmod SOLVER-COMMAND-PROCESSING is
             (depthList: (append(depthList(OCs), NL))),
             (nodeSet: NS),
             (result: nil))
-        )
-        [print T " " T' " " NL] .
+        ) .
 
     eq procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
@@ -174,8 +173,7 @@ fmod SOLVER-COMMAND-PROCESSING is
             (depthList: (append(depthList(OCs), NL))),
             (nodeSet: empty),
             (result: nil))
-        )
-        [print T " " T' " " NL] .
+        ) .
 
     eq procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .

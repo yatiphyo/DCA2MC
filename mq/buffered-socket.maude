@@ -115,18 +115,18 @@ mod BUFFERED-SOCKET is
     => < b(SOCKET) : BufferedSocket | read : (S + DATA), Atts >
         receive(SOCKET, b(SOCKET)) .
 
-    crl [Received] :
-        < b(SOCKET) : BufferedSocket | waiting : O, read : S, Atts >
-    => < b(SOCKET) : BufferedSocket | waiting : O, read : S', Atts >
-        Received(O, b(SOCKET), DATA)
-    if N := find(S, "#", 0) /\
-        DATA := substr(S, 0, N) /\
-        S' := substr(S, N + 1, length(S)) .
+    --- crl [Received] :
+    ---     < b(SOCKET) : BufferedSocket | waiting : O, read : S, Atts >
+    --- => < b(SOCKET) : BufferedSocket | waiting : O, read : S', Atts >
+    ---     Received(O, b(SOCKET), DATA)
+    --- if N := find(S, "#", 0) /\
+    ---     DATA := substr(S, 0, N) /\
+    ---     S' := substr(S, N + 1, length(S)) .
 
-    --- ceq < b(SOCKET) : BufferedSocket | waiting : O, read : S, Atts > =
-    ---      < b(SOCKET) : BufferedSocket | waiting : O, read : S', Atts > Received(O, b(SOCKET), DATA)
-    ---      if N := find(S, "#", 0) /\
-    ---      DATA := substr(S, 0, N) /\
-    ---      S' := substr(S, N + 1, length(S)) .
+    ceq < b(SOCKET) : BufferedSocket | waiting : O, read : S, Atts > =
+         < b(SOCKET) : BufferedSocket | waiting : O, read : S', Atts > Received(O, b(SOCKET), DATA)
+         if N := find(S, "#", 0) /\
+         DATA := substr(S, 0, N) /\
+         S' := substr(S, N + 1, length(S)) .
 endm
 

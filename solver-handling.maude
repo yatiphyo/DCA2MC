@@ -82,7 +82,7 @@ mod SOLVER-DATABASE-HANDLING is
             server : O',
             cache : O'', Atts >
             lookupReq(O'', O, getInitialState(getDatabaseExt(RES)))
-            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[serverDepthInfo] " T] .
+            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) .
 
     crl [clientDepthInfo] :
         < O : X@DatabaseClass |
@@ -103,7 +103,7 @@ mod SOLVER-DATABASE-HANDLING is
             status : waiting,
             client : O',
             cache : O'', Atts >
-            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) [print "[clientDepthInfo] " T] .
+            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) .
 
     crl [handle] :
         < O : X@DatabaseClass |
@@ -162,7 +162,9 @@ mod SOLVER-DATABASE-HANDLING is
         if Cs := getConfigExtSet(DB-EXT)
         /\ M := getFlatModule(reviseModule(Cs), DB)
         /\ L' := logging(L, getDepth(ST), getType(ST))
-        [print "[handle] State " ST " Logger = " L'] .
+        /\ N := getDepth(ST)
+        /\ B := getNextDepth(ST)
+        [print "[handle] State at Depth = " N " nextDepth = " B " Logger = " L'] .
 
     crl [genAllStates] :
         < O : X@DatabaseClass |
@@ -203,7 +205,7 @@ mod SOLVER-DATABASE-HANDLING is
         if Cs := getConfigExtSet(DB-EXT)
         /\ GS := procGenAllStates(M, getState(ST), getNextDepth(ST), Cs, C, B)
         /\ C' := getCount(GS)
-        /\ TS := getStates(GS) [print "[genAllStates] = " O' " " O " ST = " ST " TS = " TS " C = " C " C' = " C'] .
+        /\ TS := getStates(GS) [print "[genAllStates]"] .
 
     op termSetToStates : DatabaseExt State TermSet StateType -> StateSet .
     eq termSetToStates(DB-EXT, ST, emptyTermSet, STYPE) = empty .
@@ -248,7 +250,7 @@ mod SOLVER-DATABASE-HANDLING is
     if  Cs := getConfigExtSet(DB-EXT)
     /\ GCxS := procGenCxStates(M, getState(ST), getNextDepth(ST), Cs, B, getType(ST))
     /\ TS := getCxState(GCxS)
-    /\ M' := getModule(GCxS) [print "[genCxStates] ST = " ST " TS = " TS " M' = " M'] .
+    /\ M' := getModule(GCxS) [print "[genCxStates]"] .
 
     rl [resumeWorking] :
         < O : X@DatabaseClass |
@@ -290,7 +292,7 @@ mod SOLVER-DATABASE-HANDLING is
     if Cs := getConfigExtSet(DB-EXT)
     /\ M := getFlatModule(originModule(Cs), DB)
     /\ R4C := checkStates(M, getState(ST), getLog(ST), Cs)
-    [print "lastCheckAllState = " ST " R4C = " R4C] .
+    [print "[lastCheckAllState] R4C = " R4C] .
 
     crl [lastCheckCxState] :
         < O : X@DatabaseClass |
@@ -323,7 +325,7 @@ mod SOLVER-DATABASE-HANDLING is
     if Cs := getConfigExtSet(DB-EXT)
     /\ M := getFlatModule(originModule(Cs), DB)
     /\ R4C := checkCxStates(M, getState(ST), getLog(ST), Cs)
-    [print "lastCheckCxState = " ST " R4C = " R4C] .
+    [print "[lastCheckCxState] R4C = " R4C] .
 
     crl [lastCheck] :
         < O : X@DatabaseClass |

@@ -25,18 +25,18 @@ mod CLIENT is
 
     rl [LookupBatchReply] : < O : Client | socket : CLIENT, app : O', A > lookupBatchReply(O, O'', SS)
     => < O : Client | socket : CLIENT, app : O', A >
-    resumeReq(O', O) produceMessages(CLIENT, O, SS) [print "[LookupBatchReply] " SS] .
+    resumeReq(O', O) produceMessages(CLIENT, O, SS) [print "[LookupBatchReply] States"] .
 
     op produceMessages : Oid Oid StateSet -> Configuration .
     eq produceMessages(CLIENT, O, empty) = none .
-    eq produceMessages(CLIENT, O, (ST, SS)) = Send(CLIENT, O, state2string(ST)) produceMessages(CLIENT, O, SS) [print "[Send] " ST] .
+    eq produceMessages(CLIENT, O, (ST, SS)) = Send(CLIENT, O, state2string(ST)) produceMessages(CLIENT, O, SS) [print "[SendReq] State"] .
 
     rl [FetchState] : < O : Client | socket : CLIENT, A > fetchState(O, O')
         => < O : Client | socket : CLIENT, A >
-        Send(CLIENT, O, getJob) [print "[FetchState]"] .
+        Send(CLIENT, O, getJob) [print "[FetchStateReq]"] .
 
     rl [StopWorking] : < O : Client | socket : CLIENT, A > stopWorking(O, O')
-        => < O : Client | socket : CLIENT, A > Send(CLIENT, O, stop) [print "[StopWorking]"] .
+        => < O : Client | socket : CLIENT, A > Send(CLIENT, O, stop) [print "[StopWorkingReq]"] .
 
     rl [MqCreatedSocket] :
         < O : Client | A > CreatedSocket(O, socketManager, CLIENT)
@@ -49,18 +49,12 @@ mod CLIENT is
         => < O : Client | A > [print "[MqSent]"] .
 
     crl [MqReceived] :
-        < O : Client | A > Received(O, CLIENT, DATA)
-        => < O : Client | A >
-        if DATA == waiting [print "[MqReceived] Received -> " DATA] .
-
-    crl [MqReceived] :
         < O : Client | app : O', A > Received(O, CLIENT, DATA)
-        => if (string2state(DATA) == null)
+        => if (ST == null)
             then < O : Client | app : O',  A > error(O', O, noParse, DATA)
-            else < O : Client | app : O', A > handle(O', O, string2state(DATA))
+            else < O : Client | app : O', A > handle(O', O, ST)
             fi
-        if not equalsTo(DATA, waiting)
-        /\ not equalsTo(DATA, done) [print "[MqReceived] Received -> " DATA] .
+        if ST := string2state(DATA) [print "[MqReceived] State"] .
 
     rl [MqClosedSocket] :
         < O : Client | A > ClosedSocket(O, CLIENT, S)

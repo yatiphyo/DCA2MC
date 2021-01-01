@@ -578,7 +578,7 @@ fmod CHECKER is
                                                     fi
                                                 if B =/= unbounded
                                                 /\ N < B
-                                                /\ Cx := getCounterExample(M, 'modelCheck[T, F]) [print "[procGenCxState] Cx = " Cx " T = " T " F = " F " P = " P] .
+                                                /\ Cx := getCounterExample(M, 'modelCheck[T, F]) .
 
     eq $procGenCxStates(M, T, D, F, P, B, TS, N) = (TS, M) [owise] .
 endfm

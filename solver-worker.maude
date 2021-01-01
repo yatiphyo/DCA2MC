@@ -1,9 +1,9 @@
-in debug.maude
-in specs/qlock.maude
+in specs/anderson.maude
 in full-maude.maude
 in solver-parallel.maude
 in mq/client.maude
 in mq/cache.maude
+in debug.maude
 
 mod SOVLER-WORKER is
     pr CLIENT .
@@ -26,11 +26,11 @@ mod SOVLER-WORKER is
                 batchSize : 1,
                 logger : empty,
                 default : 'CONVERSION >
-                initialize(o, "initialize[QLOCK-CHECK, init, lofree1, lofree2, OComp, Soup{OComp}]")
-                depthInfo(o, "depthInfo 2 2 2")
                 < aCache : Cache | CxState : empty, AllState : empty, server : aClient, app : o >
                 < aClient : Client | app : o, cache : aCache >
-                CreateClientTcpSocket(socketManager, aClient, "localhost", 8812) .
+                CreateClientTcpSocket(socketManager, aClient, "localhost", 8812)
+                initialize(o, "initialize[ANDERSON-CHECK, init9, lofree1, lofree2, OComp, Soup{OComp}]")
+                depthInfo(o, "depthInfo 2 2") .
 endm
 
 erew <> init .
