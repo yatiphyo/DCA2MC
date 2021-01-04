@@ -184,7 +184,7 @@ mod MCS-CHECK is
 endm
 
 ***(
-  red in MCS-CHECK : modelCheck(init,lofree1) .
+  red in MCS-CHECK : modelCheck(init3,lofree1) .
   red in MCS-CHECK : modelCheck(init5,lofree1) .
   red in MCS-CHECK : modelCheck(init6,lofree1) .
 )
