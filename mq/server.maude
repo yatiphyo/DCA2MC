@@ -27,7 +27,7 @@ mod SERVER is
     var ST : State .
 
     crl [lookupReply] : < O : Server | jobs : J, A > lookupReply(O, O', ST)
-        => < O : Server | jobs : enqueue(J, S), A >
+        => < O : Server | jobs : (J | S), A >
         if S := state2string(ST) [print "[lookupReply] State"] .
 
     rl [StopClient] : < O : Server | workers : (CLIENT, SW), A > stopWorking(O, O')
@@ -39,13 +39,13 @@ mod SERVER is
     crl [CheckTermination] :
         < O : Server | workers : SW, jobs : J, waitingWorkers : W, A >
         => < O : Server | workers : SW, jobs : J, waitingWorkers : W, A > stopWorking(O, O)
-        if qsize(J) == 0
+        if isEmpty(J)
         /\ qsize(W) > 0
         /\ qsize(W) == | SW | [print "[CheckTermination]"] .
 
     rl [MqCreatedSocket] :
         < O : Server | nWorkers : N, A > CreatedSocket(O, socketManager, LISTENER)
-        => < O : Server | nWorkers : N, workers : empty, jobs : empty, waitingWorkers : empty, A >
+        => < O : Server | nWorkers : N, workers : empty, jobs : emptyq, waitingWorkers : emptyq, A >
         produceAcceptClient(LISTENER, O, N) [print "[MqCreatedSocket]"] .
 
     op produceAcceptClient : Oid Oid Nat -> Configuration .
@@ -60,7 +60,7 @@ mod SERVER is
 
     crl [MqReceived] :
         < O : Server | jobs : J, waitingWorkers : W, A > Received(O, CLIENT, DATA)
-        => < O : Server | jobs : J, waitingWorkers : enqueue(W, CLIENT), A >
+        => < O : Server | jobs : J, waitingWorkers : (W | CLIENT), A >
         if DATA == getJob [print "[MqReceived] " DATA] .
 
     crl [MqReceived] :
@@ -68,10 +68,9 @@ mod SERVER is
         => < O : Server | A > stopWorking(O, CLIENT)
         if DATA == stop [print "[MqReceived] " DATA] .
 
-    crl [SendJob] : < O : Server | jobs : J, waitingWorkers : W, A >
-        => < O : Server | jobs : dequeue(J), waitingWorkers : dequeue(W), A >
-        Send(first(W), O, first(J))
-        if not isEmpty(J) /\ not isEmpty(W) [print "[SendJob]"] .
+    rl [SendJob] : < O : Server | jobs : (S | J), waitingWorkers : (CLIENT | W), A >
+        => < O : Server | jobs : J, waitingWorkers : W, A >
+        Send(CLIENT, O, S) [print "[SendJob]"] .
 
     crl [MqReceived] :
         < O : Server | cache : O', A > Received(O, CLIENT, DATA)

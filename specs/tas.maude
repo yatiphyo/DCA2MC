@@ -5,7 +5,7 @@ endfm
 
 fmod PID is
   sort Pid .
-  ops p1 p2 : -> Pid [ctor] .
+  ops p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 : -> Pid [ctor] .
 endfm
 
 fmod SOUP {D :: TRIV} is
@@ -41,8 +41,10 @@ fmod CONFIG is
   pr SOUP{OComp} .
   sort Config .
   op {_} : Soup{OComp} -> Config [ctor] .
-  op init : -> Config .
+  ops init init10 : -> Config .
   eq init = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (cnt: 2) } .
+  eq init10 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
+              (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss) (cnt: 10) } .
 endfm
 
 mod TAS is
@@ -84,5 +86,6 @@ endm
 ***(
 search [1] in TAS : init =>! {OCs} .
 search in TAS : init =>* {OCs} such that false .
-red in TAS-CHECK : modelCheck(init,inWs1 |-> inCs1) .
+red in TAS-CHECK : modelCheck(init, lofree1) .
+red in TAS-CHECK : modelCheck(init10, lofree1) .
 )***

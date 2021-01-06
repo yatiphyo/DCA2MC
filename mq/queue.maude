@@ -2,26 +2,20 @@ fmod IQUEUE{X :: TRIV} is
     protecting BOOL .
     pr NAT .
 
-    sort NeQueue{X} Queue{X} .
-    subsort NeQueue{X} < Queue{X} .
-    op empty : -> Queue{X} [ctor] .
-    op enqueue : Queue{X} X$Elt -> NeQueue{X} [ctor] .
-    op dequeue : NeQueue{X} -> Queue{X} .
-    op first : NeQueue{X} -> X$Elt .
+    sort Queue{X} .
+    subsort X$Elt < Queue{X} .
+    op emptyq : -> Queue{X} [ctor] .
+    op _|_ : Queue{X} Queue{X} -> Queue{X} [ctor assoc id: emptyq] .
     op isEmpty : Queue{X} -> Bool .
     op qsize : Queue{X} -> Nat .
     var Q : Queue{X} .
     var E : X$Elt .
 
-    eq qsize(empty) = 0 .
-    eq qsize(enqueue(Q, E)) = qsize(Q) + 1 .
+    eq qsize(emptyq) = 0 .
+    eq qsize(E | Q) = qsize(Q) + 1 .
 
-    eq dequeue(enqueue(empty, E)) = empty .
-    ceq dequeue(enqueue(Q, E)) = enqueue(dequeue(Q), E) if Q =/= empty .
-    eq first(enqueue(empty, E)) = E .
-    ceq first(enqueue(Q, E)) = first(Q) if Q =/= empty .
-    eq isEmpty(empty) = true .
-    eq isEmpty(enqueue(Q, E)) = false .
+    eq isEmpty(emptyq) = true .
+    eq isEmpty(E | Q) = false .
 endfm
 
 fmod MQ-MESSAGE{X :: TRIV} is
