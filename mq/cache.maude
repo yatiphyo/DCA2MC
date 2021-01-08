@@ -112,43 +112,10 @@ mod CACHE is
     /\ SS' := getStates(CR)
     /\ MCX' := getCacheCxState(CR)
     /\ MAS' := getCacheAllState(CR) [print "[lookupBatchReq] States "] .
+
+    rl [clearCache] : < O : Cache | logger : L, Atts > clearCache(O, O')
+    => if L == empty
+    then < O : Cache | none >
+    else < O : Cache | logger : L >
+    fi .
 endm
-
---- mod TEST-CACHE is
----     pr CACHE .
----     op aCache : -> Oid [ctor] .
----     op aServer : -> Oid [ctor] .
----     op aClient : -> Oid [ctor] .
----     op o : -> Oid [ctor] .
-
----     op test : -> Configuration .
----     eq test = < aCache : Cache | server : aServer,
----     CxState : (0 |-> ('1.Nat | '2.Nat), 2 |-> ('3.Nat | '4.Nat)),
----     AllState : (0 |-> ('3.Nat | '4.Nat), 2 |-> ('1.Nat | '2.Nat)) >
----     lookupReq(aCache, o, ( '1.Nat, cx, 0, 2, (< '2.Nat : 3 > nil) ))
----     lookupReq(aCache, o, ( '3.Nat, cx, 0, 2, (< '2.Nat : 3 > nil) ))
----     lookupReq(aCache, o, ( '1.Nat, cx, 2, 4, (< '2.Nat : 3 > nil) ))
----     lookupReq(aCache, o, ( '3.Nat, cx, 2, 4, (< '2.Nat : 3 > nil) ))
----     lookupReq(aCache, o, ( '1.Nat, all, 0, 2, (< '2.Nat : 3 > nil) ))
----     lookupReq(aCache, o, ( '3.Nat, all, 0, 2, (< '2.Nat : 3 > nil) ))
----     lookupReq(aCache, o, ( '1.Nat, all, 2, 4, (< '2.Nat : 3 > nil) ))
----     lookupReq(aCache, o, ( '3.Nat, all, 2, 4, (< '2.Nat : 3 > nil) )) .
-
----     eq test = < aCache : Cache | server : aServer,
----     CxState : empty,
----     AllState : empty >
----     lookupReq(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],all,2,4,nil))
----     lookupReq(aCache, o,( '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_['empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]],cx,2,4,nil))
----     .
-
----     eq test = < aCache : Cache | server : aServer,
----     CxState : empty,
----     AllState : empty >
----     lookupBatchReq(aCache, o, ('`{_`}['__['cnt:_['s_^5['0.Zero]],'depth:_['s_^2['0.Zero]],'queue:_['_|_['p1.Pid,'p3.Pid]],
----     'pc`[_`]:_['p1.Pid,'ws.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,'ws.Loc],'pc`[_`]:_[
----     'p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc]]],all,2,4,< '`{_`}['__['cnt:_['s_^5['0.Zero]],'queue:_[
----     'empq.Queue`{Pid`}],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc],'pc`[_`]:_['p3.Pid,
----     'ss.Loc],'pc`[_`]:_['p4.Pid,'ss.Loc],'pc`[_`]:_['p5.Pid,'ss.Loc],'depth:_['0.Zero]]] : 2 >)) .
---- endm
-
---- rew test .

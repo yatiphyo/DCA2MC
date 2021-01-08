@@ -115,48 +115,29 @@ mod SOLVER-DATABASE-HANDLING is
             logger : L,
             Atts >
         handle(O, O', ST)
-        => if getType(ST) == all
+        =>
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            input : nilTermList,
+            status : working,
+            client : O'',
+            logger : L',
+            Atts >
+        if getType(ST) == all
         then
             if getNextDepth(ST) =/= unbounded
             then
-                < O : X@DatabaseClass |
-                db : DB,
-                db-ext : DB-EXT,
-                input : nilTermList,
-                status : working,
-                client : O'',
-                logger : L',
-                Atts > genAllStates(O, ST, M, 0)
+                genAllStates(O, ST, M, 0)
             else
-                < O : X@DatabaseClass |
-                db : DB,
-                db-ext : DB-EXT,
-                input : nilTermList,
-                status : working,
-                client : O'',
-                logger : L',
-                Atts > lastCheckAllState(O, ST)
+                lastCheckAllState(O, ST)
             fi
         else
             if getNextDepth(ST) =/= unbounded
             then
-                < O : X@DatabaseClass |
-                db : DB,
-                db-ext : DB-EXT,
-                input : nilTermList,
-                status : working,
-                client : O'',
-                logger : L',
-                Atts > genCxStates(O, ST, M)
+                genCxStates(O, ST, M)
             else
-                < O : X@DatabaseClass |
-                db : DB,
-                db-ext : DB-EXT,
-                input : nilTermList,
-                status : working,
-                client : O'',
-                logger : L',
-                Atts > lastCheckCxState(O, ST)
+                lastCheckCxState(O, ST)
             fi
         fi
         if Cs := getConfigExtSet(DB-EXT)
@@ -267,7 +248,7 @@ mod SOLVER-DATABASE-HANDLING is
         db-ext : DB-EXT,
         input : nilTermList,
         status : working,
-        client : O'',
+        client : O',
         Atts > lastCheckAllState(O, ST)
     => if R4C :: Result4Checking
         then
@@ -276,18 +257,19 @@ mod SOLVER-DATABASE-HANDLING is
             db-ext : DB-EXT,
             input : nilTermList,
             status : waiting,
-            client : O'',
+            client : O',
             Atts >
-            fetchState(O'', O)
+            fetchState(O', O)
         else
             < O : X@DatabaseClass |
             db : DB,
             db-ext : evalOCompExtSet(DB-EXT, ((result: R4C))),
             input : nilTermList,
             status : stopping,
-            client : O'',
+            client : O',
             Atts >
-            stopWorking(O'', O)
+            buildCx(O, O)
+            stopWorking(O', O)
         fi
     if Cs := getConfigExtSet(DB-EXT)
     /\ M := getFlatModule(originModule(Cs), DB)
@@ -300,7 +282,7 @@ mod SOLVER-DATABASE-HANDLING is
         db-ext : DB-EXT,
         input : nilTermList,
         status : working,
-        client : O'',
+        client : O',
         Atts > lastCheckCxState(O, ST)
     => if R4C :: Result4Checking
         then
@@ -309,23 +291,44 @@ mod SOLVER-DATABASE-HANDLING is
             db-ext : DB-EXT,
             input : nilTermList,
             status : waiting,
-            client : O'',
+            client : O',
             Atts >
-            fetchState(O'', O)
+            fetchState(O', O)
         else
             < O : X@DatabaseClass |
             db : DB,
             db-ext : evalOCompExtSet(DB-EXT, ((result: R4C))),
             input : nilTermList,
             status : stopping,
-            client : O'',
+            client : O',
             Atts >
-            stopWorking(O'', O)
+            buildCx(O, O)
+            stopWorking(O', O)
         fi
     if Cs := getConfigExtSet(DB-EXT)
     /\ M := getFlatModule(originModule(Cs), DB)
     /\ R4C := checkCxStates(M, getState(ST), getLog(ST), Cs)
     [print "[lastCheckCxState] R4C = " R4C] .
+
+    crl [buildCxState] :
+        < O : X@DatabaseClass |
+        db : DB,
+        db-ext : DB-EXT,
+        status : stopping,
+        Atts > buildCx(O, O')
+    => < O : X@DatabaseClass |
+        db : DB,
+        db-ext : DB-EXT,
+        status : stopping,
+        Atts >
+        counterexample(O, T)
+    if Cs := getConfigExtSet(DB-EXT)
+    /\ OCs := getOCompExtSet(DB-EXT)
+    /\ M := getFlatModule(reviseModule(Cs), DB)
+    /\ R4C := result(OCs)
+    /\ not R4C :: Result4Checking
+    /\ T := getCounterExample(M, R4C)
+    [print "[buildCxState] Counterexample = " T] .
 
     crl [lastCheck] :
         < O : X@DatabaseClass |

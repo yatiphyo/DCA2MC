@@ -26,7 +26,7 @@ mod SOVLER-WORKER is
                 batchSize : 1,
                 logger : empty,
                 default : 'CONVERSION >
-                < aCache : Cache | CxState : empty, AllState : empty, server : aClient, app : o >
+                < aCache : Cache | CxState : empty, AllState : empty, server : aClient, app : o, logger : empty >
                 < aClient : Client | app : o, cache : aCache >
                 CreateClientTcpSocket(socketManager, aClient, "localhost", 8812)
                 initialize(o, "initialize[QLOCK-CHECK, init5, lofree1, lofree2, OComp, Soup{OComp}]")

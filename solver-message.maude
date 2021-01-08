@@ -62,6 +62,7 @@ mod SOLVER-MESSAGE is
     op lookupBatchReply : Oid Oid StateSet -> Msg [ctor msg format (b o)] .
     op allStates : Oid Oid State TermSet -> Msg [ctor msg format (b o)] .
     op cxStates : Oid Oid State TermSet -> Msg [ctor msg format (b o)] .
+    op clearCache : Oid Oid -> Msg [ctor msg format (b o)] .
 
     --- app messages
     op initialize : Oid String -> Msg [ctor msg format (b o)] .
@@ -70,6 +71,9 @@ mod SOLVER-MESSAGE is
     op sendState : Oid Oid -> Msg [ctor msg format (b o)] .
     op resumeReq : Oid Oid -> Msg [ctor msg format (b o)] .
     op fetchState : Oid Oid -> Msg [ctor msg format (b o)] .
+    op buildCx : Oid Oid -> Msg [ctor msg format (b o)] .
+    op counterexample : Oid Term -> Msg [ctor msg format (r o)] .
+    op clearApp : Oid Oid -> Msg [ctor msg format (b o)] .
 
     --- worker messages
     op handle : Oid Oid State -> Msg [ctor msg format (b o)] .
@@ -123,6 +127,3 @@ mod SOLVER-MESSAGE-CONVERTER is
         = downTerm(getTerm(metaParse(SM, stringQidList(S), 'State)), null) .
 
 endm
-
---- red state2string(( '`{_`}['__['queue:_['empq.Queue`{Pid`}],'cnt:_['s_^2['0.Zero]],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc]]], cx, 0, (< '2.Nat : 3 > nil) )) .
---- red string2state(state2string(( '`{_`}['__['queue:_['empq.Queue`{Pid`}],'cnt:_['s_^2['0.Zero]],'pc`[_`]:_['p1.Pid,'ss.Loc],'pc`[_`]:_['p2.Pid,'ss.Loc]]], cx, 0, (< '2.Nat : 3 > nil) ))) .

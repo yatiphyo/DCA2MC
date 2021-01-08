@@ -19,7 +19,7 @@ mod SERVER is
 
     op Server : -> Cid [ctor] .
 
-    vars O O' O'' LISTENER CLIENT : Oid .
+    vars O O' O'' LISTENER CLIENT CACHE APP : Oid .
     var  A : AttributeSet .
     var  N : Nat .
     vars IP DATA S : String .
@@ -33,8 +33,8 @@ mod SERVER is
     rl [StopClient] : < O : Server | workers : (CLIENT, SW), A > stopWorking(O, O')
         => CloseSocket(CLIENT, O) < O : Server | workers : SW, A > stopWorking(O, O') [print "[StopClient] " CLIENT] .
 
-    rl [StopClient] : < O : Server | workers : empty, A > stopWorking(O, O')
-        => < O : Server | workers : empty, A > [print "[StopClient]"] .
+    rl [StopClient] : < O : Server | workers : empty, app : APP, cache : CACHE, A > stopWorking(O, O')
+        => < O : Server | none > clearApp(APP, O) clearCache(CACHE, O) [print "[StopClient]"] .
 
     crl [CheckTermination] :
         < O : Server | workers : SW, jobs : J, waitingWorkers : W, A >
@@ -73,8 +73,8 @@ mod SERVER is
         Send(CLIENT, O, S) [print "[SendJob]"] .
 
     crl [MqReceived] :
-        < O : Server | cache : O', A > Received(O, CLIENT, DATA)
-        => < O : Server | cache : O', A > lookupReq(O', O, ST)
+        < O : Server | cache : CACHE, A > Received(O, CLIENT, DATA)
+        => < O : Server | cache : CACHE, A > lookupReq(CACHE, O, ST)
         if DATA =/= getJob
         /\ DATA =/= stop
         /\ ST := string2state(DATA) [print "[MqReceived] State "] .

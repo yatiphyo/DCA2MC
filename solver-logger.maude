@@ -25,13 +25,3 @@ mod SOLVER-LOGGER is
                             if STYPE == cx .
     eq logging(L, K, STYPE) = L [owise] .
 endm
-
---- mod TEST-SOLVER-LOGGER is
----     pr LOGGER .
-
----     op logger : -> Logger .
----     eq logger = empty .
---- endm
-
---- red logging(logging(logger, 1, all), 2, cx) .
---- red logging(logging(logger, 2, cx), 1, all) .

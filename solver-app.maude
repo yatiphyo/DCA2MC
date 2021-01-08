@@ -15,6 +15,7 @@ mod SOLVER-APP is
     vars NL : NatList .
     vars ST : State .
     vars R : Request .
+    vars L : Logger .
 
     crl [init] :
         < O : X@DatabaseClass |
@@ -63,6 +64,11 @@ mod SOLVER-APP is
             db : DB, input : TL, output : (QI QIL), default : ME, Atts >
         => < O : X@DatabaseClass |
             db : DB, input : TL, output : nil, default : ME, Atts > [print "[output] " QI " " QIL] .
-endm
 
---- rew in SOLVER-INIT : init .
+    rl [clearApp] :
+        < O : X@DatabaseClass | logger : L, Atts > clearApp(O, O')
+        => if L == empty
+        then < O : X@DatabaseClass | none >
+        else < O : X@DatabaseClass | logger : L >
+        fi .
+endm

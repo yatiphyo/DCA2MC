@@ -7,25 +7,16 @@ mod CLIENT is
 
     op Client : -> Cid .
 
-    vars O O' O'' CLIENT : Oid .
+    vars O O' O'' CLIENT APP CACHE : Oid .
     var  A : AttributeSet .
     vars DATA S : String .
     vars SERROR : [String] .
     vars ST : State .
     vars SS : StateSet .
 
-    --- crl [LookupReply] : < O : Client | socket : CLIENT, A > lookupReply(O, O', ST)
-    --- => < O : Client | socket : CLIENT, A > Send(CLIENT, O, S)
-    --- if S := state2string(ST) [print "[LookupReply] " S] .
-
-    --- crl [LookupReply] : < O : Client | app : O'', A > lookupReply(O, O', ST)
-    --- => < O : Client | app : O'', A >
-    --- error(O'', O, noParse, "Cannot convert state to string")
-    --- if SERROR := state2string(ST) [print "[LookupReply] Cannot convert state to string" SERROR] .
-
-    rl [LookupBatchReply] : < O : Client | socket : CLIENT, app : O', A > lookupBatchReply(O, O'', SS)
-    => < O : Client | socket : CLIENT, app : O', A >
-    resumeReq(O', O) produceMessages(CLIENT, O, SS) [print "[LookupBatchReply] States"] .
+    rl [LookupBatchReply] : < O : Client | socket : CLIENT, app : APP, A > lookupBatchReply(O, O', SS)
+    => < O : Client | socket : CLIENT, app : APP, A >
+    resumeReq(APP, O) produceMessages(CLIENT, O, SS) [print "[LookupBatchReply] States"] .
 
     op produceMessages : Oid Oid StateSet -> Configuration .
     eq produceMessages(CLIENT, O, empty) = none .
@@ -49,14 +40,14 @@ mod CLIENT is
         => < O : Client | A > [print "[MqSent]"] .
 
     crl [MqReceived] :
-        < O : Client | app : O', A > Received(O, CLIENT, DATA)
+        < O : Client | app : APP, A > Received(O, CLIENT, DATA)
         => if (ST == null)
-            then < O : Client | app : O',  A > error(O', O, noParse, DATA)
-            else < O : Client | app : O', A > handle(O', O, ST)
+            then < O : Client | app : APP, A > error(APP, O, noParse, DATA)
+            else < O : Client | app : APP, A > handle(APP, O, ST)
             fi
         if ST := string2state(DATA) [print "[MqReceived] State"] .
 
     rl [MqClosedSocket] :
-        < O : Client | A > ClosedSocket(O, CLIENT, S)
-        => < O : Client | A > [print "[MqClosedSocket]"] .
+        < O : Client | app : APP, cache : CACHE, A > ClosedSocket(O, CLIENT, S)
+        => < O : Client | none > clearApp(APP, O) clearCache(CACHE, O) [print "[MqClosedSocket]"] .
 endm
