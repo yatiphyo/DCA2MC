@@ -28,9 +28,9 @@ mod SOVLER-WORKER is
                 default : 'CONVERSION >
                 < aCache : Cache | CxState : empty, AllState : empty, server : aClient, app : o, logger : empty >
                 < aClient : Client | app : o, cache : aCache >
-                CreateClientTcpSocket(socketManager, aClient, "localhost", 8812)
+                CreateClientTcpSocket(socketManager, aClient, "localhost", 8811)
                 initialize(o, "initialize[QLOCK-CHECK, init5, lofree1, lofree2, OComp, Soup{OComp}]")
-                depthInfo(o, "depthInfo 2 2 2") .
+                depthInfo(o, "depthInfo 2 2") .
 endm
 
 erew <> init .
