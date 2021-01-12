@@ -5,7 +5,7 @@ endfm
 
 fmod PID is
   sort Pid .
-  ops p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 : -> Pid [ctor] .
+  ops p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 : -> Pid [ctor] .
 endfm
 
 fmod SOUP {D :: TRIV} is
@@ -41,10 +41,19 @@ fmod CONFIG is
   pr SOUP{OComp} .
   sort Config .
   op {_} : Soup{OComp} -> Config [ctor] .
-  ops init init10 : -> Config .
+  ops init init10 init13 init14 init15 : -> Config .
   eq init = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (cnt: 2) } .
   eq init10 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
               (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss) (cnt: 10) } .
+  eq init13 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
+              (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss) (pc[p11]: ss)
+              (pc[p12]: ss) (pc[p13]: ss) (cnt: 13) } .
+  eq init14 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
+              (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss) (pc[p11]: ss)
+              (pc[p12]: ss) (pc[p13]: ss) (pc[p14]: ss) (cnt: 14) } .
+  eq init15 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
+              (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss) (pc[p11]: ss)
+              (pc[p12]: ss) (pc[p13]: ss) (pc[p14]: ss) (pc[p15]: ss) (cnt: 15) } .
 endfm
 
 mod TAS is
