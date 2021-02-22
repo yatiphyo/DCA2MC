@@ -23,7 +23,6 @@ mod SOVLER-MASTER is
                 server : aServer,
                 cache : aCache,
                 status : idle,
-                logger : empty,
                 default : 'CONVERSION >
                 < aCache : Cache | CxState : empty, AllState : empty, server : aServer, app : o, logger : empty >
                 < aServer : Server | nWorkers : 4, app : o, cache : aCache >

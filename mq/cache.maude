@@ -113,9 +113,10 @@ mod CACHE is
     /\ MCX' := getCacheCxState(CR)
     /\ MAS' := getCacheAllState(CR) [print "[lookupBatchReq] States "] .
 
-    rl [clearCache] : < O : Cache | logger : L, Atts > clearCache(O, O')
-    => if L == empty
-    then < O : Cache | none >
-    else < O : Cache | logger : L >
-    fi .
+    rl [clearCache] : < O : Cache | Atts > clearCache(O, O')
+    =>  < O : Cache | getLogger(Atts) > .
+
+    op getLogger : AttributeSet -> AttributeSet .
+    eq getLogger(logger : L, Atts) = logger : L .
+    eq getLogger(Atts) = none [owise] .
 endm
