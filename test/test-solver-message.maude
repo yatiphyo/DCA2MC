@@ -1,3 +1,4 @@
+load ../solver-logger.maude .
 load ../solver-message.maude .
 load ../MUnit/mUnit.maude
 
