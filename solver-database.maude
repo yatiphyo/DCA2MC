@@ -163,6 +163,7 @@ endv
 fmod DATABASE-EXT is
     pr META-UTILS .
     pr STATE .
+    pr STATE-SET .
     pr 2TUPLE{ConfigExtSet,OCompExtSet} * (op `(_`,_`) to `{_;_`},
         op p1_ to getConfig,
         op p2_ to getState,
@@ -339,6 +340,21 @@ fmod CHECKER is
     vars CACHE : States&CxStates .
     vars NS&CACHE : NodeSet&Cache .
     vars Q : Qid .
+
+    --- NodeSet : [Node]+ , empty .
+    --- Node : < < ALLStates : ALLCxStates > : < Term : Depth > | nil > >
+    --- ALLStates :: TermSet : T1 | T2 | emptyTermSet
+    --- ALLCxStates :: TermSet : T1 | T2 | emptyTermSet
+    op buildStateSet : Nat NodeSet -> StateSet .
+    eq buildStateSet(D, empty) = empty .
+    eq buildStateSet(D, (ND , NS)) = $buildStateSet(D, ND), buildStateSet(D, NS) .
+
+    op $buildStateSet : Nat Node -> StateSet .
+    eq $buildStateSet(D, < < emptyTermSet : emptyTermSet > : LL >) = empty .
+    eq $buildStateSet(D, < < T | TS1 : TS2 > : LL >) =
+        (T, all, D, unbounded, LL), $buildStateSet(D, < < TS1 : TS2 > : LL >) .
+    eq $buildStateSet(D, < < emptyTermSet : T | TS2 > : LL >) =
+        (T, cx, D, unbounded, LL), $buildStateSet(D, < < emptyTermSet : TS2 > : LL >) .
 
     op collect : Module NodeSet NatList Nat ConfigExtSet -> NodeSet .
     eq collect(M, NS, L, D, Cs) = $collect(M, NS, L, D, Cs) .

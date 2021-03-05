@@ -13,7 +13,7 @@ mod SOLVER-DATABASE-HANDLING is
     var Atts : AttributeSet .
     var X@DatabaseClass : DatabaseClass .
     vars O O' O'' : Oid .
-    var DB-EXT : DatabaseExt .
+    var DB-EXT DB-EXT' : DatabaseExt .
     var QIL : QidList .
     var RES : Tuple{Database,QidList,DatabaseExt} .
     var ST : State .
@@ -28,6 +28,7 @@ mod SOLVER-DATABASE-HANDLING is
     vars TS : TermSet .
     vars R4C : Result4Checking? .
     vars L L' : Logger .
+    vars BL : Bool .
 
     crl [initialize] :
         < O : X@DatabaseClass | db : DB,
@@ -71,18 +72,34 @@ mod SOLVER-DATABASE-HANDLING is
             default : ME,
             status : initialized,
             server : O',
+            isAll : BL,
             cache : O'', Atts >
         => < O : X@DatabaseClass |
-            db : getDatabase(RES),
+            db : DB',
             input : nilTermList,
             output : getQidList(RES),
-            db-ext : getDatabaseExt(RES),
+            db-ext : DB-EXT',
             default : ME,
             status : waiting,
             server : O',
-            cache : O'', Atts >
-            lookupReq(O'', O, getInitialState(getDatabaseExt(RES)))
-            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT) .
+            cache : O'',
+            isAll : BL,
+            Atts >
+            if BL then
+                lookupReq(O'', O, getInitialState(DB-EXT'))
+            else
+                lookupBatchReply(O', O, buildStateSet(
+                    sum(depthList(OCs)),
+                    collect(M', nodeSet(OCs), depthList(OCs), currentDepth(OCs), Cs)
+                ))
+            fi
+            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT)
+            /\ DB' := getDatabase(RES)
+            /\ DB-EXT' := getDatabaseExt(RES)
+            /\ M := getFlatModule(ME, DB')
+            /\ Cs := getConfigExtSet(DB-EXT')
+            /\ OCs := getOCompExtSet(DB-EXT')
+            /\ M' := getFlatModule(reviseModule(Cs), DB') .
 
     crl [clientDepthInfo] :
         < O : X@DatabaseClass |
