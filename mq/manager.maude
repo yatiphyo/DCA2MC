@@ -1,0 +1,195 @@
+in metaInterpreter.maude
+load queue.maude
+
+view Job from TRIV to STATE is
+    sort Elt to State .
+endv
+
+mod MANAGER is
+    pr META-INTERPRETER .
+    pr IQUEUE{Job} .
+    pr IQUEUE{Worker} .
+    pr SET{Worker} .
+    pr SOLVER-MESSAGE .
+    pr SOLVER-MESSAGE-CONVERTER .
+    pr CHECKER-EXT .
+    pr META-UTILS .
+
+    op db-ext :_ : DatabaseExt -> Attribute .
+    op original :_ : Module -> Attribute .
+    op revise :_ : Module -> Attribute .
+    op mn :_ : Qid -> Attribute .
+    op jobs :_ : Queue{Job} -> Attribute [ctor format(! o o o)] .
+    op waitingWorkers :_ : Queue{Worker} -> Attribute [ctor format(! o o o)] .
+    op workers :_ : Set{Worker} -> Attribute [ctor format(! o o o)] .
+
+    vars J : Queue{Job} .
+    vars W : Queue{Worker} .
+    vars SW : Set{Worker} .
+
+    op Manager : -> Cid [ctor] .
+
+    vars O O' MI APP : Oid .
+    var  A : AttributeSet .
+    var  N : Nat .
+    var C : Configuration .
+    var S : State .
+    var SS : StateSet .
+    var db-ext : DatabaseExt .
+    var T T' : Term .
+    var RT : Type .
+    var M M' M'' : Module .
+    vars MN : Qid .
+
+    rl [lookupBatchReply] : < O : Manager | status : waiting, A > lookupBatchReply(O, O', SS)
+        => < O : Manager | status : working, jobs : enqueueFromSet(SS, emptyq), A > [print "[lookupBatchReply] States"] .
+
+    op enqueueFromSet : StateSet Queue{Job} -> Queue{Job} .
+    eq enqueueFromSet(empty, J) = J .
+    eq enqueueFromSet((S, SS), J) = enqueueFromSet(SS, J | S) .
+
+    rl [StopWorker] : < O : Manager | workers : (MI, SW), A > stopWorking(O, O')
+        => quit(MI, O) < O : Manager | workers : SW, A > stopWorking(O, O') [print "[StopWorker]" MI] .
+
+    rl [CleanAppReq] : < O : Manager | workers : empty, app : APP, A > stopWorking(O, O')
+        => < O : Manager | none > clearApp(APP, O) [print "[CleanAppReq]"] .
+
+    rl [CreateWorkers] : < O : Manager |
+        status : idle,
+        nWorkers : N,
+        A >
+    => < O : Manager |
+        status : initialized,
+        nWorkers : N,
+        workers : empty,
+        waitingWorkers : emptyq,
+        A >
+        produceInterpreter(O, N) .
+
+    op produceInterpreter : Oid Nat -> Configuration .
+    ceq produceInterpreter(O, N) = createInterpreter(interpreterManager, O, newProcess)
+        produceInterpreter(O, sd(N, 1)) if N > 0 .
+    eq produceInterpreter(O, N) = none [owise] .
+
+    rl [DbExt] : < O : Manager |
+        status : initialized,
+        A >
+        loadedDbExt(O, O', db-ext, M, M')
+    => < O : Manager |
+        status : initialized,
+        db-ext : db-ext,
+        original : M,
+        revise : M',
+        mn : 'CHECKER-EXT,
+        A >
+        [print "DbExt"] .
+
+    crl [CreatedWorker] : < O : Manager |
+        status : initialized,
+        workers : SW,
+        waitingWorkers : W,
+        db-ext : db-ext,
+        original : M,
+        revise : M',
+        mn : MN,
+        A >
+        createdInterpreter(O, O', MI)
+    => < O : Manager |
+        status : initialized,
+        workers : (MI, SW),
+        waitingWorkers : (W | MI),
+        db-ext : db-ext,
+        original : M,
+        revise : M',
+        mn : MN,
+        A >
+        insertModule(MI, O, M'')
+        if T := upTerm(upModule(originModule(getConfigExtSet(db-ext)), true))
+        /\ T' := upTerm(db-ext)
+        /\ M'' := addEquations(
+            (eq 'originModule.Module = upTerm(M) [none] . )
+            (eq 'reviseModule.Module = upTerm(M') [none] . )
+            (eq 'processDbExt.DatabaseExt = upTerm(db-ext) [none] . )
+            , upModule(MN, true)
+        )
+        [print "CreatedWorker " M] .
+
+    --- rl [InsertedModule] : < O : Manager |
+    ---     mn : MN,
+    ---     A >
+    ---     insertedModule(O, MI)
+    --- => < O : Manager |
+    ---     mn : MN,
+    ---     A >
+    ---     showModule(MI, O, MN, true)
+    ---     [print "InsertedModule"] .
+
+    crl [CreatedWorkersDone] : < O : Manager |
+        status : initialized,
+        nWorkers : N,
+        workers : SW,
+        waitingWorkers : W,
+        A >
+    => < O : Manager |
+        status : waiting,
+        nWorkers : N,
+        workers : SW,
+        waitingWorkers : W,
+        A >
+    if qsize(W) == N
+    /\ qsize(W) == | SW | [print "CreatedWorkersDone"] .
+
+    rl [AssignJob] : < O : Manager |
+        status : working,
+        jobs : (S | J),
+        waitingWorkers : (MI | W),
+        mn : MN,
+        A >
+    => < O : Manager |
+        status : working,
+        jobs : J,
+        waitingWorkers : W,
+        mn : MN,
+        A >
+        reduceTerm(MI, O, MN, upTerm(checkStateReq(S)))
+    [print "AssignJob"] .
+
+    rl [ReducedLastCheck] : < O : Manager |
+        status : working,
+        waitingWorkers : W,
+        A >
+        reducedTerm(O, MI, N, T, RT)
+    =>  if RT == 'Result4Checking
+        then
+            < O : Manager |
+            status : working,
+            waitingWorkers : (W | MI),
+            A >
+        else
+            < O : Manager |
+            status : working,
+            waitingWorkers : W,
+            A >
+            buildCx(O, O, T)
+            stopWorking(O, O)
+        fi
+    [print "ReducedLastCheck " RT] .
+
+    crl [CheckTermination] : < O : Manager |
+        status : working,
+        workers : SW,
+        jobs : J,
+        waitingWorkers : W,
+        A >
+    => < O : Manager |
+        status : stopping,
+        workers : SW,
+        jobs : J,
+        waitingWorkers : W,
+        A >
+        stopWorking(O, O)
+    if isEmpty(J)
+    /\ qsize(W) > 0
+    /\ qsize(W) == | SW | [print "[CheckTermination]"] .
+
+endm

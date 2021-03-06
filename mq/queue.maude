@@ -39,10 +39,6 @@ fmod JOB-MESSAGE is
     pr MQ-MESSAGE{Nat} .
 endfm
 
-view Job1 from TRIV to JOB-MESSAGE is
-    sort Elt to MqMsg{Nat} .
-endv
-
 view Job from TRIV to STRING is
     sort Elt to String .
 endv

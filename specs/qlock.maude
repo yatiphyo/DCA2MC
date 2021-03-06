@@ -54,7 +54,6 @@ view OComp from TRIV to OCOMP is
 endv
 
 fmod CONFIG is
-  pr META-LEVEL .
   pr SOUP{OComp} .
   sort Config .
   op {_} : Soup{OComp} -> Config [ctor] .

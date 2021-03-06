@@ -73,7 +73,8 @@ mod SOLVER-DATABASE-HANDLING is
             status : initialized,
             server : O',
             isAll : BL,
-            cache : O'', Atts >
+            cache : O'',
+            Atts >
         => < O : X@DatabaseClass |
             db : DB',
             input : nilTermList,
@@ -87,6 +88,44 @@ mod SOLVER-DATABASE-HANDLING is
             Atts >
             if BL then
                 lookupReq(O'', O, getInitialState(DB-EXT'))
+            else
+                lookupBatchReply(O', O, buildStateSet(
+                    sum(depthList(OCs)),
+                    collect(M', nodeSet(OCs), depthList(OCs), currentDepth(OCs), Cs)
+                ))
+            fi
+            if RES := procDepthInfoCommand('depthInfo_[T], ME, DB, DB-EXT)
+            /\ DB' := getDatabase(RES)
+            /\ DB-EXT' := getDatabaseExt(RES)
+            /\ M := getFlatModule(ME, DB')
+            /\ Cs := getConfigExtSet(DB-EXT')
+            /\ OCs := getOCompExtSet(DB-EXT')
+            /\ M' := getFlatModule(reviseModule(Cs), DB') .
+
+    crl [managerDepthInfo] :
+        < O : X@DatabaseClass |
+            db : DB,
+            input : ('depthInfo_[T]),
+            output : nil,
+            db-ext : DB-EXT,
+            default : ME,
+            status : initialized,
+            manager : O',
+            isAll : BL,
+            Atts >
+        => < O : X@DatabaseClass |
+            db : DB',
+            input : nilTermList,
+            output : getQidList(RES),
+            db-ext : DB-EXT',
+            default : ME,
+            status : waiting,
+            manager : O',
+            isAll : BL,
+            Atts >
+            loadedDbExt(O', O, DB-EXT', M, M')
+            if BL then
+                lookupReply(O', O, getInitialState(DB-EXT'))
             else
                 lookupBatchReply(O', O, buildStateSet(
                     sum(depthList(OCs)),

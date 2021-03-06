@@ -598,3 +598,37 @@ fmod CHECKER is
 
     eq $procGenCxStates(M, T, D, F, P, B, TS, N) = (TS, M) [owise] .
 endfm
+
+mod CHECKER-EXT is
+    pr CHECKER .
+
+    op originModule : -> Module .
+    op reviseModule : -> Module .
+    op processDbExt : -> DatabaseExt .
+
+    vars T : Term .
+    vars LL : LogList .
+    var ST : StateType .
+    var N : Nat .
+    var B : Bound .
+    var Cs : ConfigExtSet .
+
+    op checkStateReq : State -> Result4Checking? .
+    ceq checkStateReq((T, ST, N, B, LL)) = if ST == all
+                                          then
+                                                checkStates(
+                                                    originModule,
+                                                    T,
+                                                    LL,
+                                                    Cs
+                                                )
+                                          else
+                                                checkCxStates(
+                                                    originModule,
+                                                    T,
+                                                    LL,
+                                                    Cs
+                                                )
+                                          fi
+                                          if Cs := getConfigExtSet(processDbExt) .
+endm

@@ -2,6 +2,20 @@ fmod META-UTILS is
     pr FM-UNIT .
     pr CONVERSION .
 
+    --- Add equations
+    op addEquations : EquationSet SModule -> SModule .
+    op addEquations : EquationSet FModule -> FModule .
+    eq addEquations(ES:EquationSet,mod Q:Qid is IL:ImportList sorts S:SortSet .
+            S:SubsortDeclSet O:OpDeclSet M:MembAxSet E:EquationSet R:RuleSet endm)
+    = mod Q:Qid
+        is IL:ImportList sorts S:SortSet . S:SubsortDeclSet
+        O:OpDeclSet M:MembAxSet (E:EquationSet ES:EquationSet) R:RuleSet endm .
+    eq addEquations(ES:EquationSet,fmod Q:Qid is IL:ImportList sorts S:SortSet .
+            S:SubsortDeclSet O:OpDeclSet M:MembAxSet E:EquationSet endfm)
+    = fmod Q:Qid
+        is IL:ImportList sorts S:SortSet . S:SubsortDeclSet
+        O:OpDeclSet M:MembAxSet (E:EquationSet ES:EquationSet) endfm .
+
     --- Check existing Equation in EqutionSet by Qid
     op isExistEquationByQid : EquationSet Qid -> Bool .
     eq isExistEquationByQid(none, Q:Qid) = false .

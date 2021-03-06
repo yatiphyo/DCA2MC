@@ -1,3 +1,5 @@
+in file.maude .
+
 fmod VALIDATOR is
     pr CONVERSION .
 
@@ -34,10 +36,12 @@ fmod REQUEST is
 endfm
 
 mod SOLVER-MESSAGE is
+    pr STD-STREAM .
     pr META-LEVEL .
     pr FM-TERMSET .
     pr CONFIGURATION .
     pr REQUEST .
+    pr DATABASE-EXT .
     pr STATE .
     pr STATE-SET .
     pr SOLVER-LOGGER .
@@ -46,12 +50,14 @@ mod SOLVER-MESSAGE is
     op client :_ : Oid -> Attribute [ctor] .
     op cache :_ : Oid -> Attribute [ctor] .
     op app :_ : Oid -> Attribute [ctor] .
+    op manager :_ : Oid -> Attribute [ctor] .
     op isAll :_ : Bool -> Attribute [ctor] .
     op status :_ : Status -> Attribute [ctor format(m o o o)] .
     op logger :_ : Logger -> Attribute [ctor format(m o o o)] .
     op batchSize :_ : Bound -> Attribute [ctor format(! o o o)] .
     op socket :_ : Oid -> Attribute [ctor format(! o o o)] .
     op listener :_ : Oid -> Attribute [ctor] .
+    op nWorkers :_ : Nat -> Attribute [ctor format(! o o o)] .
 
     sort Status .
     ops idle initialized waiting suspending working stopping terminated : -> Status .
@@ -86,6 +92,10 @@ mod SOLVER-MESSAGE is
 
     --- error message
     op error : Oid Oid Request String -> Msg [ctor msg format (b o)] .
+
+    --- process messages
+    op loadedDbExt : Oid Oid DatabaseExt Module Module -> Msg [ctor msg format (b o)] .
+    op buildCx : Oid Oid Term -> Msg [ctor msg format (b o)] .
 endm
 
 mod SOLVER-MESSAGE-CONVERTER is
