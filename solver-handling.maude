@@ -383,7 +383,7 @@ mod SOLVER-DATABASE-HANDLING is
     /\ M := getFlatModule(reviseModule(Cs), DB)
     /\ R4C := result(OCs)
     /\ not R4C :: Result4Checking
-    /\ T := getCounterExample(M, R4C)
+    /\ T := getFullCounterExample(M, R4C)
     [print "[buildCxState] Counterexample = " T] .
 
     crl [lastCheck] :

@@ -40,6 +40,7 @@ mod MANAGER is
     var RT : Type .
     var M M' M'' : Module .
     vars MN : Qid .
+    vars R4C : Result4Checking? .
 
     rl [lookupBatchReply] : < O : Manager | status : waiting, A > lookupBatchReply(O, O', SS)
         => < O : Manager | status : working, jobs : enqueueFromSet(SS, emptyq), A > [print "[lookupBatchReply] States"] .
@@ -49,7 +50,7 @@ mod MANAGER is
     eq enqueueFromSet((S, SS), J) = enqueueFromSet(SS, J | S) .
 
     rl [StopWorker] : < O : Manager | workers : (MI, SW), A > stopWorking(O, O')
-        => quit(MI, O) < O : Manager | workers : SW, A > stopWorking(O, O') [print "[StopWorker]" MI] .
+        => quit(MI, O) < O : Manager | workers : SW, A > stopWorking(O, O') [print "[StopWorker] " MI] .
 
     rl [CleanAppReq] : < O : Manager | workers : empty, app : APP, A > stopWorking(O, O')
         => < O : Manager | none > clearApp(APP, O) [print "[CleanAppReq]"] .
@@ -82,7 +83,7 @@ mod MANAGER is
         revise : M',
         mn : 'CHECKER-EXT,
         A >
-        [print "DbExt"] .
+        [print "[DbExt]"] .
 
     crl [CreatedWorker] : < O : Manager |
         status : initialized,
@@ -112,17 +113,13 @@ mod MANAGER is
             (eq 'processDbExt.DatabaseExt = upTerm(db-ext) [none] . )
             , upModule(MN, true)
         )
-        [print "CreatedWorker " M] .
+        [print "[CreatedWorker] " M] .
 
-    --- rl [InsertedModule] : < O : Manager |
-    ---     mn : MN,
-    ---     A >
-    ---     insertedModule(O, MI)
-    --- => < O : Manager |
-    ---     mn : MN,
-    ---     A >
-    ---     showModule(MI, O, MN, true)
-    ---     [print "InsertedModule"] .
+    rl [InsertedModule] : < O : Manager | A >
+        insertedModule(O, MI)
+    => < O : Manager | A >
+        --- showModule(MI, O, MN, true)
+        [print "[InsertedModule]"] .
 
     crl [CreatedWorkersDone] : < O : Manager |
         status : initialized,
@@ -137,7 +134,7 @@ mod MANAGER is
         waitingWorkers : W,
         A >
     if qsize(W) == N
-    /\ qsize(W) == | SW | [print "CreatedWorkersDone"] .
+    /\ qsize(W) == | SW | [print "[CreatedWorkersDone]"] .
 
     rl [AssignJob] : < O : Manager |
         status : working,
@@ -152,7 +149,7 @@ mod MANAGER is
         mn : MN,
         A >
         reduceTerm(MI, O, MN, upTerm(checkStateReq(S)))
-    [print "AssignJob"] .
+    [print "[AssignJob]"] .
 
     rl [ReducedLastCheck] : < O : Manager |
         status : working,
@@ -167,13 +164,35 @@ mod MANAGER is
             A >
         else
             < O : Manager |
-            status : working,
+            status : stopping,
             waitingWorkers : W,
             A >
             buildCx(O, O, T)
             stopWorking(O, O)
         fi
-    [print "ReducedLastCheck " RT] .
+    [print "[ReducedLastCheck] " RT] .
+
+    rl [MultipleCX] : < O : Manager | status : stopping, A >
+        reducedTerm(O, MI, N, T, RT)
+    =>  < O : Manager | status : stopping, A >
+    [print "[MultipleCX] " RT] .
+
+    crl [BuildCx] : < O : Manager |
+        status : stopping,
+        original : M,
+        revise : M',
+        A >
+        buildCx(O, O, T)
+    =>  < O : Manager |
+        status : stopping,
+        original : M,
+        revise : M',
+        A >
+        counterexample(O, T')
+    if R4C := downTerm(T, nil)
+    /\ not R4C :: Result4Checking
+    /\ T' := getFullCounterExample(M', R4C)
+    [print "[BuildCx]"] .
 
     crl [CheckTermination] : < O : Manager |
         status : working,
@@ -192,4 +211,5 @@ mod MANAGER is
     /\ qsize(W) > 0
     /\ qsize(W) == | SW | [print "[CheckTermination]"] .
 
+    rl [Bye] : < O : Manager | none > bye(O, MI) => < O : Manager | none > [print "[Bye]"] .
 endm

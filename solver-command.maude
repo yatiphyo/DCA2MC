@@ -189,7 +189,7 @@ fmod SOLVER-COMMAND-PROCESSING is
                 ('\r 'LastCheck: '\s '\o 'failure '\n
                 'Formula: getFormula(R4C) '\n
                 --- get counterexample
-                'Cx: '\s eMetaPrettyPrint(M', getCounterExample(M', R4C)) '\n
+                'Cx: '\s eMetaPrettyPrint(M', getFullCounterExample(M', R4C)) '\n
                 ) ;
                 DB-EXT' >>
             fi
@@ -218,7 +218,7 @@ fmod SOLVER-COMMAND-PROCESSING is
                 '\r 'Check: '\s '\o 'failure '\n
                 'Formula: getFormula(R4C) '\n
                 --- get counterexample
-                'Cx: '\s eMetaPrettyPrint(M', getCounterExample(M', R4C)) '\n
+                'Cx: '\s eMetaPrettyPrint(M', getFullCounterExample(M', R4C)) '\n
                 ) ;
                 DB-EXT'' >>
             fi
@@ -256,15 +256,12 @@ fmod SOLVER-COMMAND-PROCESSING is
     eq procCheckCommand('check_[T], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
 
-    op getCounterExample : Module Result4Checking? -> Term .
-    eq getCounterExample(M, R4C) = combineCounterExample(reverse(buildCounterExample(M, reverse(getLogList(R4C)))), getCx(R4C)) .
-
     *** showCx command
     op procShowCxCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
     ceq procShowCxCommand('showCx.@Command@, ME, DB, DB-EXT)
         = << DB ;
             ('\r 'ShowCx: '\o '\n
-            eMetaPrettyPrint(M', getCounterExample(M', R4C)) '\n
+            eMetaPrettyPrint(M', getFullCounterExample(M', R4C)) '\n
             ) ;
             DB-EXT >>
         if not isEmptyDatabaseExt(DB-EXT)
