@@ -23,7 +23,6 @@ mod SERVER is
     var  A : AttributeSet .
     var  N : Nat .
     vars IP DATA S : String .
-    vars C : Configuration .
     var ST : State .
     var SS : StateSet .
 

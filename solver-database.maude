@@ -185,6 +185,7 @@ fmod DATABASE-EXT is
     vars B : Bool .
     vars ST : State .
     vars STYPE : StateType .
+    vars TS : TermSet .
 
     op sum : NatList -> Nat .
     eq sum(N NL) = N + sum(NL) .
@@ -294,6 +295,10 @@ fmod DATABASE-EXT is
     findNextDepth(getNextDepth(ST), depthList(getOCompExtSet(DB-EXT))),
     (< getState(ST) : getNextDepth(ST) > getLog(ST))
     ) .
+
+    op termSetToStates : DatabaseExt State TermSet StateType -> StateSet .
+    eq termSetToStates(DB-EXT, ST, emptyTermSet, STYPE) = empty .
+    eq termSetToStates(DB-EXT, ST, T | TS, STYPE) = buildState(DB-EXT, ST, T, STYPE), termSetToStates(DB-EXT, ST, TS, STYPE) .
 endfm
 
 view DatabaseExt from TRIV to DATABASE-EXT is
@@ -600,12 +605,24 @@ fmod CHECKER is
                                                 /\ N < B
                                                 /\ Cx := getCounterExample(M, 'modelCheck[T, F]) .
 
-    eq $procGenCxStates(M, T, D, F, P, B, TS, N) = (TS, M) [owise] .
+    ceq $procGenCxStates(M, T, D, F, P, B, TS, N) = (TS, M) if N >= B [print "OWISE " B " " N] .
 endfm
 
 mod CHECKER-EXT is
     pr CHECKER .
+    pr 3TUPLE{TermSet,Nat,State} * (
+        op p1_ to getStates,
+        op p2_ to getCount,
+        op p3_ to getState,
+        sort Tuple{TermSet,Nat,State} to GenStatesReply) .
+    pr 3TUPLE{TermSet,Module,State} * (
+        op p1_ to getCxStates,
+        op p2_ to getModule,
+        op p3_ to getState,
+        sort Tuple{TermSet,Module,State} to GenCxStatesReply) .
 
+    op errStateReply : -> GenStatesReply .
+    op errCxStateReply : -> GenCxStatesReply .
     op originModule : -> Module .
     op reviseModule : -> Module .
     op processDbExt : -> DatabaseExt .
@@ -613,26 +630,33 @@ mod CHECKER-EXT is
     vars T : Term .
     vars LL : LogList .
     var ST : StateType .
-    var N : Nat .
+    vars N C D1 D2 : Nat .
     var B : Bound .
     var Cs : ConfigExtSet .
+    var GS : GenState .
+    var GCxS : GenCxState .
+    var M : Module .
 
     op checkStateReq : State -> Result4Checking? .
     ceq checkStateReq((T, ST, N, B, LL)) = if ST == all
-                                          then
-                                                checkStates(
-                                                    originModule,
-                                                    T,
-                                                    LL,
-                                                    Cs
-                                                )
-                                          else
-                                                checkCxStates(
-                                                    originModule,
-                                                    T,
-                                                    LL,
-                                                    Cs
-                                                )
-                                          fi
-                                          if Cs := getConfigExtSet(processDbExt) .
+                                           then
+                                                checkStates(originModule, T, LL, Cs)
+                                           else
+                                                checkCxStates(originModule, T, LL, Cs)
+                                           fi
+                                           if Cs := getConfigExtSet(processDbExt) .
+
+    --- op procGenAllStates : Module Term Nat ConfigExtSet Nat Bound -> GenState .
+    op procGenAllStatesExt : State Nat Bound -> GenStatesReply .
+    ceq procGenAllStatesExt((T, all, D1, D2, LL), C, B) =
+        (getStates(GS), getCount(GS), (T, all, D1, D2, LL))
+    if Cs := getConfigExtSet(processDbExt)
+    /\ GS := procGenAllStates(reviseModule, T, D2, Cs, C, B) .
+
+    --- op procGenCxStates : Module Term Nat ConfigExtSet Bound StateType -> GenCxState .
+    op procGenCxStatesExt : State Module Bound -> GenCxStatesReply .
+    ceq procGenCxStatesExt((T, ST, D1, D2, LL), M, B) =
+        (getCxState(GCxS), getModule(GCxS), (T, ST, D1, D2, LL))
+    if Cs := getConfigExtSet(processDbExt)
+    /\ GCxS := procGenCxStates(M, T, D2, Cs, B, ST) . --- [print "procGenCxStatesExt " M "\n" T "\n" D2 "\n" B "\n" ST] .
 endm

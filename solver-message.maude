@@ -59,6 +59,12 @@ mod SOLVER-MESSAGE is
     op listener :_ : Oid -> Attribute [ctor] .
     op nWorkers :_ : Nat -> Attribute [ctor format(! o o o)] .
 
+    var L : Logger .
+    var Atts : AttributeSet .
+    op getLogger : AttributeSet -> AttributeSet .
+    eq getLogger(logger : L, Atts) = logger : L .
+    eq getLogger(Atts) = none [owise] .
+
     sort Status .
     ops idle initialized waiting suspending working stopping terminated : -> Status .
 

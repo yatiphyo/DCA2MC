@@ -29,20 +29,26 @@ mod MANAGER is
 
     op Manager : -> Cid [ctor] .
 
-    vars O O' MI APP : Oid .
+    vars O O' MI APP CACHE : Oid .
     var  A : AttributeSet .
-    var  N : Nat .
-    var C : Configuration .
+    var  N C : Nat .
+    var B BS : Bound .
     var S : State .
     var SS : StateSet .
+    var ST : StateType .
+    var LL : LogList .
     var db-ext : DatabaseExt .
     var T T' : Term .
     var RT : Type .
     var M M' M'' : Module .
     vars MN : Qid .
     vars R4C : Result4Checking? .
+    vars GSR : GenStatesReply .
+    var GCxSR : GenCxStatesReply .
+    vars TS : TermSet .
+    var L : Logger .
 
-    rl [lookupBatchReply] : < O : Manager | status : waiting, A > lookupBatchReply(O, O', SS)
+    rl [lookupBatchReply] : < O : Manager | status : working, A > lookupBatchReply(O, O', SS)
         => < O : Manager | status : working, jobs : enqueueFromSet(SS, emptyq), A > [print "[lookupBatchReply] States"] .
 
     op enqueueFromSet : StateSet Queue{Job} -> Queue{Job} .
@@ -52,8 +58,8 @@ mod MANAGER is
     rl [StopWorker] : < O : Manager | workers : (MI, SW), A > stopWorking(O, O')
         => quit(MI, O) < O : Manager | workers : SW, A > stopWorking(O, O') [print "[StopWorker] " MI] .
 
-    rl [CleanAppReq] : < O : Manager | workers : empty, app : APP, A > stopWorking(O, O')
-        => < O : Manager | none > clearApp(APP, O) [print "[CleanAppReq]"] .
+    rl [CleanAppReq] : < O : Manager | workers : empty, app : APP, cache : CACHE, A > stopWorking(O, O')
+        => < O : Manager | getLogger(A) > clearApp(APP, O) clearCache(CACHE, O) [print "[CleanAppReq]"] .
 
     rl [CreateWorkers] : < O : Manager |
         status : idle,
@@ -87,8 +93,6 @@ mod MANAGER is
 
     crl [CreatedWorker] : < O : Manager |
         status : initialized,
-        workers : SW,
-        waitingWorkers : W,
         db-ext : db-ext,
         original : M,
         revise : M',
@@ -97,8 +101,6 @@ mod MANAGER is
         createdInterpreter(O, O', MI)
     => < O : Manager |
         status : initialized,
-        workers : (MI, SW),
-        waitingWorkers : (W | MI),
         db-ext : db-ext,
         original : M,
         revise : M',
@@ -115,10 +117,17 @@ mod MANAGER is
         )
         [print "[CreatedWorker] " M] .
 
-    rl [InsertedModule] : < O : Manager | A >
+    rl [InsertedModule] : < O : Manager |
+        status : initialized,
+        workers : SW,
+        waitingWorkers : W,
+        A >
         insertedModule(O, MI)
-    => < O : Manager | A >
-        --- showModule(MI, O, MN, true)
+    => < O : Manager |
+        status : initialized,
+        workers : (MI, SW),
+        waitingWorkers : (W | MI),
+        A >
         [print "[InsertedModule]"] .
 
     crl [CreatedWorkersDone] : < O : Manager |
@@ -128,7 +137,7 @@ mod MANAGER is
         waitingWorkers : W,
         A >
     => < O : Manager |
-        status : waiting,
+        status : working,
         nWorkers : N,
         workers : SW,
         waitingWorkers : W,
@@ -141,36 +150,138 @@ mod MANAGER is
         jobs : (S | J),
         waitingWorkers : (MI | W),
         mn : MN,
+        original : M,
+        revise : M',
+        batchSize : BS,
+        logger : L,
         A >
     => < O : Manager |
         status : working,
         jobs : J,
         waitingWorkers : W,
         mn : MN,
+        original : M,
+        revise : M',
+        batchSize : BS,
+        logger : logging(L, getDepth(S), getType(S)),
         A >
-        reduceTerm(MI, O, MN, upTerm(checkStateReq(S)))
+        handleJob(O, MI, MN, M', S, BS)
     [print "[AssignJob]"] .
 
-    rl [ReducedLastCheck] : < O : Manager |
+    op handleJob : Oid Oid Qid Module State Bound -> Configuration .
+    eq handleJob(O, MI, MN, M, (T, ST, N, B, LL), BS) = if B == unbounded
+                                                   then
+                                                        reduceTerm(MI, O, MN, upTerm(checkStateReq((T, ST, N, B, LL))))
+                                                   else
+                                                        if ST == all
+                                                        then
+                                                            reduceTerm(MI, O, MN, upTerm(procGenAllStatesExt((T, ST, N, B, LL), 0, BS)))
+                                                        else
+                                                            reduceTerm(MI, O, MN, upTerm(procGenCxStatesExt((T, ST, N, B, LL), M, BS)))
+                                                        fi
+                                                   fi .
+
+    crl [LastCheck] : < O : Manager |
         status : working,
         waitingWorkers : W,
         A >
         reducedTerm(O, MI, N, T, RT)
-    =>  if RT == 'Result4Checking
+    => < O : Manager |
+        status : working,
+        waitingWorkers : (W | MI),
+        A >
+    if RT == 'Result4Checking [print "[LastCheck] " RT] .
+
+    crl [LastCheck] : < O : Manager |
+        status : working,
+        waitingWorkers : W,
+        A >
+        reducedTerm(O, MI, N, T, RT)
+    => < O : Manager |
+        status : stopping,
+        waitingWorkers : W,
+        A >
+        buildCx(O, O, T)
+        stopWorking(O, O)
+    if RT == 'Result4Checking? [print "[LastCheck] " RT] .
+
+    crl [GenAllStates] : < O : Manager |
+        cache : O',
+        status : working,
+        waitingWorkers : W,
+        db-ext : db-ext,
+        mn : MN,
+        original : M,
+        revise : M',
+        batchSize : BS,
+        A >
+        reducedTerm(O, MI, N, T, RT)
+    => < O : Manager |
+        cache : O',
+        status : working,
+        waitingWorkers : W,
+        db-ext : db-ext,
+        mn : MN,
+        original : M,
+        revise : M',
+        batchSize : BS,
+        A >
+        if | TS | > 0
         then
-            < O : Manager |
-            status : working,
-            waitingWorkers : (W | MI),
-            A >
+            reduceTerm(MI, O, MN, upTerm(procGenAllStatesExt(S, C, BS)))
+            lookupBatchReq(O', O, termSetToStates(db-ext, S, TS, all))
         else
-            < O : Manager |
-            status : stopping,
-            waitingWorkers : W,
-            A >
-            buildCx(O, O, T)
-            stopWorking(O, O)
+            reduceTerm(MI, O, MN, upTerm(procGenCxStatesExt(S, M', BS)))
         fi
-    [print "[ReducedLastCheck] " RT] .
+    if RT == 'GenStatesReply
+    /\ GSR := downTerm(T, errStateReply)
+    /\ GSR =/= errStateReply
+    /\ TS := getStates(GSR)
+    /\ C := getCount(GSR)
+    /\ S := getState(GSR)
+    [print "[GenAllStates]"] .
+
+    crl [GenCxStates] : < O : Manager |
+        cache : O',
+        status : working,
+        waitingWorkers : W,
+        db-ext : db-ext,
+        mn : MN,
+        batchSize : BS,
+        A >
+        reducedTerm(O, MI, N, T, RT)
+    => < O : Manager |
+        cache : O',
+        status : working,
+        waitingWorkers : W,
+        db-ext : db-ext,
+        mn : MN,
+        batchSize : BS,
+        A >
+        if | TS | > 0
+        then
+            reduceTerm(MI, O, MN, upTerm(procGenCxStatesExt(S, M'', BS)))
+            lookupBatchReq(O', O, termSetToStates(db-ext, S, TS, cx))
+        else
+            fetchState(O, MI)
+        fi
+    if RT == 'GenCxStatesReply
+    /\ GCxSR := downTerm(T, errCxStateReply)
+    /\ GCxSR =/= errCxStateReply
+    /\ TS := getCxStates(GCxSR)
+    /\ M'' := getModule(GCxSR)
+    /\ S := getState(GCxSR)
+    [print "[GenCxStates]"] .
+
+    rl [FetchState] : < O : Manager |
+        status : working,
+        waitingWorkers : W,
+        A >
+        fetchState(O, MI)
+    => < O : Manager |
+        status : working,
+        waitingWorkers : (W | MI),
+        A > [print "[FetchState]"] .
 
     rl [MultipleCX] : < O : Manager | status : stopping, A >
         reducedTerm(O, MI, N, T, RT)
@@ -211,5 +322,5 @@ mod MANAGER is
     /\ qsize(W) > 0
     /\ qsize(W) == | SW | [print "[CheckTermination]"] .
 
-    rl [Bye] : < O : Manager | none > bye(O, MI) => < O : Manager | none > [print "[Bye]"] .
+    rl [Bye] : < O : Manager | A > bye(O, MI) => < O : Manager | A > [print "[Bye]"] .
 endm

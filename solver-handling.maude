@@ -111,6 +111,7 @@ mod SOLVER-DATABASE-HANDLING is
             default : ME,
             status : initialized,
             manager : O',
+            cache : O'',
             isAll : BL,
             Atts >
         => < O : X@DatabaseClass |
@@ -121,11 +122,12 @@ mod SOLVER-DATABASE-HANDLING is
             default : ME,
             status : waiting,
             manager : O',
+            cache : O'',
             isAll : BL,
             Atts >
             loadedDbExt(O', O, DB-EXT', M, M')
             if BL then
-                lookupReply(O', O, getInitialState(DB-EXT'))
+                lookupBatchReq(O'', O, getInitialState(DB-EXT'))
             else
                 lookupBatchReply(O', O, buildStateSet(
                     sum(depthList(OCs)),
@@ -243,10 +245,6 @@ mod SOLVER-DATABASE-HANDLING is
         /\ GS := procGenAllStates(M, getState(ST), getNextDepth(ST), Cs, C, B)
         /\ C' := getCount(GS)
         /\ TS := getStates(GS) [print "[genAllStates]"] .
-
-    op termSetToStates : DatabaseExt State TermSet StateType -> StateSet .
-    eq termSetToStates(DB-EXT, ST, emptyTermSet, STYPE) = empty .
-    eq termSetToStates(DB-EXT, ST, T | TS, STYPE) = buildState(DB-EXT, ST, T, STYPE), termSetToStates(DB-EXT, ST, TS, STYPE) .
 
     crl [genCxStates] :
         < O : X@DatabaseClass |

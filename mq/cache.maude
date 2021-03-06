@@ -113,10 +113,16 @@ mod CACHE is
     /\ MCX' := getCacheCxState(CR)
     /\ MAS' := getCacheAllState(CR) [print "[lookupBatchReq] States "] .
 
+    crl [lookupBatchReq] : < O : Cache | CxState : MCX, AllState : MAS, manager : O', Atts > lookupBatchReq(O, O'', SS)
+    => if SS' == empty
+        then < O : Cache | CxState : MCX', AllState : MAS', manager : O', Atts >
+        else < O : Cache | CxState : MCX', AllState : MAS', manager : O', Atts > lookupBatchReply(O', O, SS')
+        fi
+    if CR := lookupStates(MCX, MAS, SS)
+    /\ SS' := getStates(CR)
+    /\ MCX' := getCacheCxState(CR)
+    /\ MAS' := getCacheAllState(CR) [print "[lookupBatchReq] States "] .
+
     rl [clearCache] : < O : Cache | Atts > clearCache(O, O')
     =>  < O : Cache | getLogger(Atts) > .
-
-    op getLogger : AttributeSet -> AttributeSet .
-    eq getLogger(logger : L, Atts) = logger : L .
-    eq getLogger(Atts) = none [owise] .
 endm
