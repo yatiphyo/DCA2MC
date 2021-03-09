@@ -66,7 +66,7 @@ mod SOLVER-MESSAGE is
     eq getLogger(Atts) = none [owise] .
 
     sort Status .
-    ops idle initialized waiting suspending working stopping terminated : -> Status .
+    ops idle initializing initialized waiting suspending working stopping terminated : -> Status .
 
     --- cache messages
     op lookupReq : Oid Oid State -> Msg [ctor msg format (b o)] .

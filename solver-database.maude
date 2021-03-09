@@ -621,8 +621,8 @@ mod CHECKER-EXT is
         op p3_ to getState,
         sort Tuple{TermSet,Module,State} to GenCxStatesReply) .
 
-    op errStateReply : -> GenStatesReply .
-    op errCxStateReply : -> GenCxStatesReply .
+    op errStateReply : -> GenStatesReply [ctor] .
+    op errCxStateReply : -> GenCxStatesReply [ctor] .
     op originModule : -> Module .
     op reviseModule : -> Module .
     op processDbExt : -> DatabaseExt .
