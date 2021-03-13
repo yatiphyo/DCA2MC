@@ -1,8 +1,8 @@
 # L+1 Layers Divide and Conquer Approach to Leads-To and Eventually Model Checking
 
-The tool is developed in **Full Maude** supported by **Maude 2.7.1** version.
+The tool has been developed in **Full Maude** powered by **Maude 3.1** version.
 
-## How to use
+## 1. How to use
 We have 2 case studies **QLOCK** and **TAS** under the **specs** folder for demo.
 
 The following shows how to interact with the tool to do model checking with our approach.
@@ -117,38 +117,9 @@ For example: `(solver-help)`
 
 (lastCheck)
 
-## Problem
+## 2. How to measure model checking time
 
-We cannot print exactly the elapsed time of each command. However, we can two ways to mitigate the problem.
+You can measure how much time it taken by running the `test-command.sh` file where the start and end time are recorded.
 
-**1./ Using command line and output to a log file. (should use when experiment)**
+`./test-command`
 
-Prepare a maude file and load all command being fed to Maude program. For example you can see `test.maude` file. Then using the following command:
-
-`maude test.maude > out.log 2>&1`
-
-When the program finishes, you can see the `out.log` file information, such as created date, modified data. From that you can calculate the elapsed time of the program.
-
-**2./ Using another tool called `druss`, however this tool make the program slower (should use when debugging)**
-
-`dtruss -a -t write -p <PID>`
-
-In `RELATIVE` column, we get the value of a line which is executing your command and the value of the succeeding line.
-
-That is relative timestamps in microsecond. The latter value substracts the former value and then dividing to 10^6.
-
-You can get the elapsed time of your command in second.
-
-**Note that:** you need to enable **dtrace** beforehand as following with Mac OS
-
-```
-Reboot the mac
-
-Hold ⌘R during reboot
-
-From the Utilities menu, run Terminal
-
-Enter the following command
-
-csrutil enable --without dtrace
-```
