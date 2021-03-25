@@ -119,7 +119,7 @@ For example: `(solver-help)`
 
 ## 2. How to measure model checking time
 
-You can measure how much time it taken by running the `test-command.sh` file where the start and end time are recorded.
+You can measure how much time it taken by running the `test-command.sh` file.
 
 `./test-command`
 
