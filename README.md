@@ -1,8 +1,10 @@
 # L+1 Layers Divide and Conquer Approach to Leads-To and Eventually Model Checking
 
-The tool is developed in **Full Maude** supported by **Maude 2.7.1** version.
+The tool has been developed in **Full Maude** powered by **Maude 3.1** version.
 
-## How to use
+We support two versions of the tool: sequential and parallel versions.
+
+## 1. How to use the sequential version
 We have 2 case studies **QLOCK** and **TAS** under the **specs** folder for demo.
 
 The following shows how to interact with the tool to do model checking with our approach.
@@ -117,38 +119,73 @@ For example: `(solver-help)`
 
 (lastCheck)
 
-## Problem
+*__How to measure model checking time__*
 
-We cannot print exactly the elapsed time of each command. However, we can two ways to mitigate the problem.
+You can measure how much time it taken by running the `test-command.sh` file.
 
-**1./ Using command line and output to a log file. (should use when experiment)**
+`./test-command`
 
-Prepare a maude file and load all command being fed to Maude program. For example you can see `test.maude` file. Then using the following command:
+## 2. How to use the parallel version (with socket implementation)
 
-`maude test.maude > out.log 2>&1`
+We develop a parallel version of the tool based on a master-worker model, where a master and workers communicate to each other by using sockets powered by Maude.
 
-When the program finishes, you can see the `out.log` file information, such as created date, modified data. From that you can calculate the elapsed time of the program.
+**Notice:** you can decide to run the parallel version in two modes: all layers and sole final layer parallelized.
 
-**2./ Using another tool called `druss`, however this tool make the program slower (should use when debugging)**
+In addition, the tool also can be deployed in a distributed environment as well as on a share-memory machine.
 
-`dtruss -a -t write -p <PID>`
+**Master**
 
-In `RELATIVE` column, we get the value of a line which is executing your command and the value of the succeeding line.
-
-That is relative timestamps in microsecond. The latter value substracts the former value and then dividing to 10^6.
-
-You can get the elapsed time of your command in second.
-
-**Note that:** you need to enable **dtrace** beforehand as following with Mac OS
+Master configuration resides in the `solver-master.maude` file. For example, as follows:
 
 ```
-Reboot the mac
-
-Hold ⌘R during reboot
-
-From the Utilities menu, run Terminal
-
-Enter the following command
-
-csrutil enable --without dtrace
+< o : Database |
+                db : initialDatabase,
+                input : nilTermList, output : nil,
+                db-ext : emptyDatabaseExt,
+                server : aServer,
+                cache : aCache,
+                status : idle,
+                isAll : true,
+                default : 'CONVERSION >
+                < aCache : Cache | CxState : empty, AllState : empty, server : aServer, app : o, logger : empty >
+                < aServer : Server | app : o, cache : aCache >
+                CreateServerTcpSocket(socketManager, aServer, 8811, 10)
+                --- initialize(o, "initialize[QLOCK-CHECK, init10, lofree1, lofree2, OComp, Soup{OComp}]")
+                initialize(o, "initialize[QLOCK-CHECK, init10, null, halt, OComp, Soup{OComp}]")
+                depthInfo(o, "depthInfo 2 2") .
 ```
+
+Some parameters need to take into account such as:
+
+`isAll` : choose one of the two modes described above. `true` value is for the former and `false` value otherwise.
+
+`8811` and `10` : the port used for socket server and the maximum number of acceptable workers.
+
+`initialize` and `depthInfo` : similar to the sequential version. We have one line commented with the `initialize` command that specifies for **eventually** model checking.
+
+**Workers**
+
+Each worker configuration resides in the `solver-worker.maude` file. For example, as follows:
+
+```
+< o : Database |
+                db : initialDatabase,
+                input : nilTermList, output : nil,
+                db-ext : emptyDatabaseExt,
+                client : aClient,
+                cache : aCache,
+                status : idle,
+                batchSize : 1,
+                logger : empty,
+                default : 'CONVERSION >
+                < aCache : Cache | CxState : empty, AllState : empty, server : aClient, app : o >
+                < aClient : Client | app : o, cache : aCache >
+                CreateClientTcpSocket(socketManager, aClient, "localhost", 8811)
+                --- initialize(o, "initialize[QLOCK-CHECK, init10, lofree1, lofree2, OComp, Soup{OComp}]")
+                initialize(o, "initialize[QLOCK-CHECK, init10, null, halt, OComp, Soup{OComp}]")
+                depthInfo(o, "depthInfo 3") .
+```
+
+`batchSize` : the number of accumulated jobs before sending them to the master.
+
+You can use as many workers as possible provided that each worker runs independently on different machines or processes and not exceeding the maximum number of acceptable workers.
