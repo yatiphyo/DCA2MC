@@ -87,11 +87,12 @@ mod QLOCK-PREDS is
   pr QLOCK .
   inc SATISFACTION .
   subsort Config < State .
-  ops inWs1 inCs1 : -> Prop .
+  ops inWs1 inCs1 inFs1 : -> Prop .
   var OCs : Soup{OComp} .
   var PROP : Prop .
   eq {(pc[p1]: ws) OCs} |= inWs1 = true .
   eq {(pc[p1]: cs) OCs} |= inCs1 = true .
+  eq {(pc[p1]: fs) OCs} |= inFs1 = true .
   eq {OCs} |= PROP = false [owise] .
 endm
 
@@ -103,6 +104,8 @@ mod QLOCK-CHECK is
   eq lofree1 = inWs1 |-> inCs1 .
   op lofree2 : -> Formula .
   eq lofree2 = <> inCs1 .
+  op halt : -> Formula .
+  eq halt = <> inFs1 .
 endm
 
 ***(

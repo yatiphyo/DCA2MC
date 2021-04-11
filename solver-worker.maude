@@ -30,6 +30,7 @@ mod SOVLER-WORKER is
                 < aClient : Client | app : o, cache : aCache >
                 CreateClientTcpSocket(socketManager, aClient, "localhost", 8811)
                 initialize(o, "initialize[QLOCK-CHECK, init10, lofree1, lofree2, OComp, Soup{OComp}]")
+                --- initialize(o, "initialize[QLOCK-CHECK, init10, null, halt, OComp, Soup{OComp}]")
                 depthInfo(o, "depthInfo 2 2") .
 endm
 

@@ -27,7 +27,7 @@ mod CLIENT is
         Send(CLIENT, O, getJob) [print "[FetchStateReq]"] .
 
     rl [StopWorking] : < O : Client | socket : CLIENT, A > stopWorking(O, O')
-        => < O : Client | socket : CLIENT, A > Send(CLIENT, O, stop) [print "[StopWorkingReq]"] .
+        => < O : Client | socket : CLIENT, A > Send(CLIENT, O, stop) CloseSocket(CLIENT, O) [print "[StopWorkingReq]"] .
 
     rl [MqCreatedSocket] :
         < O : Client | A > CreatedSocket(O, socketManager, CLIENT)

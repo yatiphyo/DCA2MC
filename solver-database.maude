@@ -105,7 +105,6 @@ endv
 
 fmod DATABASE-EXT-DECL is
     pr NODESET .
-
     sorts ConfigExt OCompExt .
     --- Prepare the sort of the result that be retured by checking
     sorts Result4Checking Result4Checking? .
@@ -176,6 +175,7 @@ fmod DATABASE-EXT is
     vars DB-EXT : DatabaseExt .
     vars ME : ModuleExpression .
     vars T : Term .
+    vars T' : [Term] .
     vars S : Sort .
     vars NL NL' : NatList .
     vars N N' N'' : Nat .
@@ -204,6 +204,7 @@ fmod DATABASE-EXT is
     op reviseModule : ConfigExtSet -> ModuleExpression .
     op initState : ConfigExtSet -> Term .
     op leadsToFormula : ConfigExtSet -> Term .
+    op isLeadsTo : ConfigExtSet -> Bool .
     op eventuallyFormula : ConfigExtSet -> Term .
     op eventuallyProp : ConfigExtSet -> Term .
     op eleSort : ConfigExtSet -> Sort .
@@ -213,6 +214,8 @@ fmod DATABASE-EXT is
     eq reviseModule(((reviseModule: ME), Cs)) = ME .
     eq initState(((initState: T), Cs)) = T .
     eq leadsToFormula(((leadsToFormula: T) , Cs)) = T .
+    eq isLeadsTo(((leadsToFormula: T) , Cs)) = true .
+    eq isLeadsTo(Cs) = false [owise] .
     eq eventuallyFormula(((eventuallyFormula: T) , Cs)) = T .
     eq eventuallyProp(((eventuallyProp: T) , Cs)) = T .
     eq eleSort(((eleSort: S) , Cs)) = S .
@@ -281,11 +284,13 @@ fmod DATABASE-EXT is
 
     op getInitialState : DatabaseExt -> State .
     ceq getInitialState(DB-EXT) = ( addDepthToTerm(initState(getConfigExtSet(DB-EXT))),
-    all,
-    0,
-    findNextDepth(0, depthList(getOCompExtSet(DB-EXT))),
-    nil) if not isEmptyDatabaseExt(DB-EXT) .
-    eq getInitialState(DB-EXT) = null .
+        if isLeadsTo(Cs) then all else cx fi,
+        0,
+        findNextDepth(0, depthList(getOCompExtSet(DB-EXT))),
+        nil)
+    if not isEmptyDatabaseExt(DB-EXT)
+    /\ Cs := getConfigExtSet(DB-EXT) .
+    eq getInitialState(DB-EXT) = null [owise] .
 
     op buildState : DatabaseExt State Term StateType -> State .
     eq buildState(DB-EXT, ST, T, STYPE) = (T,
