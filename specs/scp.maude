@@ -24,13 +24,13 @@ fmod ILIST {D :: TRIV} is
   op nil : -> IList{D} [ctor] .
   op _|_ : IList{D} IList{D} -> IList{D} [ctor assoc id: nil] .
   op _\in_ : D$Elt IList{D} -> Bool .
-  op # : IList{D} -> Nat .
+  op size : IList{D} -> Nat .
   var E : D$Elt .
   vars L L1 L2 : IList{D} .
   eq E \in (L1 | E | L2)  = true .
   eq E \in L = false [owise] .
-  eq #(nil) = 0 .
-  eq #(E | L) = #(L) + 1 .
+  eq size(nil) = 0 .
+  eq size(E | L) = size(L) + 1 .
 endfm
 
 fmod CELL {D :: TRIV} is
@@ -61,10 +61,10 @@ fmod OCOMP is
   op (buf:_) : IList{Data} -> OComp [ctor] .
   op (dc:_) : Cell{DB-Pair} -> OComp [ctor] .
   op (ac:_) : Cell{Bool} -> OComp [ctor] .
-  op (#ddrp:_) : Nat -> OComp [ctor] .
-  op (#ddup:_) : Nat -> OComp [ctor] .
-  op (#adrp:_) : Nat -> OComp [ctor] .
-  op (#adup:_) : Nat -> OComp [ctor] .
+  op (sizeddrp:_) : Nat -> OComp [ctor] .
+  op (sizeddup:_) : Nat -> OComp [ctor] .
+  op (sizeadrp:_) : Nat -> OComp [ctor] .
+  op (sizeadup:_) : Nat -> OComp [ctor] .
   op (rsw:_) : Bool -> OComp [ctor] .
 endfm
 
@@ -82,12 +82,12 @@ fmod CONFIG is
   op {_} : Soup{OComp} -> Config [ctor] .
   op init : -> Config .
   --- parameters ---
-  ops #Drp #Dup : -> Nat .
-  eq #Drp = 3 .
-  eq #Dup = 3 .
+  ops sizeDrp sizeDup : -> Nat .
+  eq sizeDrp = 3 .
+  eq sizeDup = 3 .
   ---
   eq init = {(sb: true) (data: d(0)) (rb: true) (buf: nil) (dc: empc) (ac: empc)
-                   (#ddrp: #Drp) (#adrp: #Drp) (rsw: true) } .
+                   (sizeddrp: sizeDrp) (sizeadrp: sizeDrp) (rsw: true) } .
 endfm
 
 mod SCP is
@@ -100,35 +100,35 @@ mod SCP is
   var Ds : IList{Data} .
   var OCs : Soup{OComp} .
 --- parameters ---
-  op #Data : -> Nat .
+  op sizeData : -> Nat .
   op CCap : -> Nat .
-  eq #Data = 50000 .
-  --- eq #Data = 10000 .
-  --- eq #Data = 5000 .
-  --- eq #Data = 500 .
+  eq sizeData = 50000 .
+  --- eq sizeData = 10000 .
+  --- eq sizeData = 5000 .
+  --- eq sizeData = 500 .
   eq CCap = 3 .
 ---
   crl [d-snd] : {(sb: B) (data: d(N)) (dc: empc) OCs}
     => {(sb: B) (data: d(N)) (dc: (c(< d(N),B >))) OCs}
-  if N < #Data .
-  crl [a-rec1] : {(sb: B) (data: d(N)) (ac: (c(B'))) (#adrp: X) OCs}
-    => {(sb: (not B)) (data: d(N + 1)) (ac: empc) (#adrp: #Drp) OCs}
+  if N < sizeData .
+  crl [a-rec1] : {(sb: B) (data: d(N)) (ac: (c(B'))) (sizeadrp: X) OCs}
+    => {(sb: (not B)) (data: d(N + 1)) (ac: empc) (sizeadrp: sizeDrp) OCs}
   if B =/= B' .
   crl [a-rec2] : {(sb: B) (data: D) (ac: (c(B'))) OCs}
     => {(sb: B) (data: D) (ac: empc) OCs}
   if B = B' .
   rl [a-snd] : {(rb: B) (ac: empc) (rsw: false) OCs}
     => {(rb: B) (ac: (c(B))) (rsw: true) OCs} .
-  crl [d-rec1] : {(rb: B) (buf: Ds) (dc: (c(< D,B' >))) (#ddrp: X) (rsw: true) OCs}
-    => {(rb: (not B)) (buf: (Ds | D)) (dc: empc) (#ddrp: #Drp) (rsw: false) OCs}
+  crl [d-rec1] : {(rb: B) (buf: Ds) (dc: (c(< D,B' >))) (sizeddrp: X) (rsw: true) OCs}
+    => {(rb: (not B)) (buf: (Ds | D)) (dc: empc) (sizeddrp: sizeDrp) (rsw: false) OCs}
   if B = B' .
   crl [d-rec2] : {(rb: B) (buf: Ds) (dc: (c(< D,B' >))) (rsw: true) OCs}
     => {(rb: B) (buf: Ds) (dc: empc) (rsw: false) OCs}
   if B =/= B' .
-  rl [d-drp] : {(dc: (c(P))) (#ddrp: NzN) OCs}
-    => {(dc: empc) (#ddrp: sd(NzN,1)) OCs} .
-  rl [a-drp] : {(ac: (c(B))) (#adrp: NzN) OCs}
-    => {(ac: empc) (#adrp: sd(NzN,1)) OCs} .
+  rl [d-drp] : {(dc: (c(P))) (sizeddrp: NzN) OCs}
+    => {(dc: empc) (sizeddrp: sd(NzN,1)) OCs} .
+  rl [a-drp] : {(ac: (c(B))) (sizeadrp: NzN) OCs}
+    => {(ac: empc) (sizeadrp: sd(NzN,1)) OCs} .
 endm
 
 in model-checker .
