@@ -17,16 +17,16 @@ fmod DB-PAIR is
   pr PAIR{Data,Bool} .
 endfm
 
-fmod LIST {D :: TRIV} is
+fmod ILIST {D :: TRIV} is
   pr NAT .
-  sort List{D} .
-  subsort D$Elt < List{D} .
-  op nil : -> List{D} [ctor] .
-  op _|_ : List{D} List{D} -> List{D} [ctor assoc id: nil] .
-  op _\in_ : D$Elt List{D} -> Bool .
-  op # : List{D} -> Nat .
+  sort IList{D} .
+  subsort D$Elt < IList{D} .
+  op nil : -> IList{D} [ctor] .
+  op _|_ : IList{D} IList{D} -> IList{D} [ctor assoc id: nil] .
+  op _\in_ : D$Elt IList{D} -> Bool .
+  op # : IList{D} -> Nat .
   var E : D$Elt .
-  vars L L1 L2 : List{D} .
+  vars L L1 L2 : IList{D} .
   eq E \in (L1 | E | L2)  = true .
   eq E \in L = false [owise] .
   eq #(nil) = 0 .
@@ -53,12 +53,12 @@ endfm
 fmod OCOMP is
   pr CELL{DB-Pair} .
   pr CELL{Bool} .
-  pr LIST{Data} .
+  pr ILIST{Data} .
   sort OComp .
   op (sb:_) : Bool -> OComp [ctor] .
   op (data:_) : Data -> OComp [ctor] .
   op (rb:_) : Bool -> OComp [ctor] .
-  op (buf:_) : List{Data} -> OComp [ctor] .
+  op (buf:_) : IList{Data} -> OComp [ctor] .
   op (dc:_) : Cell{DB-Pair} -> OComp [ctor] .
   op (ac:_) : Cell{Bool} -> OComp [ctor] .
   op (#ddrp:_) : Nat -> OComp [ctor] .
@@ -97,12 +97,14 @@ mod SCP is
   var P : Pair{Data,Bool} .
   vars N X Y : Nat .
   var NzN : NzNat .
-  var Ds : List{Data} .
+  var Ds : IList{Data} .
   var OCs : Soup{OComp} .
 --- parameters ---
   op #Data : -> Nat .
   op CCap : -> Nat .
   eq #Data = 50000 .
+  --- eq #Data = 10000 .
+  --- eq #Data = 5000 .
   --- eq #Data = 500 .
   eq CCap = 3 .
 ---
@@ -137,7 +139,7 @@ mod SCP-PREDS is
   subsort Config < State .
   ops sndX recX : -> Prop .
   var OCs : Soup{OComp} .
-  vars Ds1 Ds2 : List{Data} .
+  vars Ds1 Ds2 : IList{Data} .
   var PROP : Prop .
   eq {(data: d(100)) OCs} |= sndX = true .
   eq {(buf: (Ds1 | d(100) | Ds2)) OCs} |= recX = true .
