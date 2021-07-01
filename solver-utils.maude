@@ -68,21 +68,31 @@ fmod META-UTILS is
         O:OpDeclSet M:MembAxSet E:EquationSet transform(R:RuleSet, T:Term) endm .
 
     op transform : RuleSet Term -> RuleSet .
-    eq transform(none, T:Term) = (crl '`{_`}['__[T:Term,'depth:_['D:Nat]]] => '`{_`}['__[T:Term,'depth:_['D:Nat]]] if '_>=_['D:Nat,'Bound.Nat] = 'true.Bool [label('stutter)] .) .
-    eq transform(R:Rule RS:RuleSet, T:Term) = $transform(R:Rule) transform(RS:RuleSet, T:Term) .
+    ceq transform(R:Rule RS:RuleSet, T:Term) = transform*(R:Rule RS:RuleSet, T:Term, Q:Qid)
+    if Q:Qid := extractOidFromTerm(extractTermFromRule(R:Rule)) .
+
+    op transform* : RuleSet Term Qid -> RuleSet .
+    eq transform*(none, T:Term, Q:Qid) = (crl Q:Qid['__[T:Term,'depth:_['D:Nat]]] => Q:Qid['__[T:Term,'depth:_['D:Nat]]] if '_>=_['D:Nat,'Bound.Nat] = 'true.Bool [label('stutter)] .) .
+    eq transform*(R:Rule RS:RuleSet, T:Term, Q:Qid) = $transform(R:Rule) transform*(RS:RuleSet, T:Term, Q:Qid) .
 
     op $transform : Rule -> Rule .
-    eq $transform(rl '`{_`}['__[TL1:TermList]] => '`{_`}['__[TL2:TermList]] [label(q:Qid)] .)
-        = (crl '`{_`}['__[TL1:TermList, 'depth:_['D:Nat]]] => '`{_`}['__[TL2:TermList,'depth:_['s_['D:Nat]]]] if '_<_['D:Nat,'Bound.Nat] = 'true.Bool [label(q:Qid)] .) .
-    eq $transform(crl '`{_`}['__[TL1:TermList]] => '`{_`}['__[TL2:TermList]] if C:Condition [label(q:Qid)] .)
-        = (crl '`{_`}['__[TL1:TermList, 'depth:_['D:Nat]]] => '`{_`}['__[TL2:TermList,'depth:_['s_['D:Nat]]]] if '_<_['D:Nat,'Bound.Nat] = 'true.Bool /\ C:Condition [label(q:Qid)] .) .
+    eq $transform(rl Q:Qid['__[TL1:TermList]] => Q:Qid['__[TL2:TermList]] [label(q:Qid)] .)
+        = (crl Q:Qid['__[TL1:TermList, 'depth:_['D:Nat]]] => Q:Qid['__[TL2:TermList,'depth:_['s_['D:Nat]]]] if '_<_['D:Nat,'Bound.Nat] = 'true.Bool [label(q:Qid)] .) .
+    eq $transform(crl Q:Qid['__[TL1:TermList]] => Q:Qid['__[TL2:TermList]] if C:Condition [label(q:Qid)] .)
+        = (crl Q:Qid['__[TL1:TermList, 'depth:_['D:Nat]]] => Q:Qid['__[TL2:TermList,'depth:_['s_['D:Nat]]]] if '_<_['D:Nat,'Bound.Nat] = 'true.Bool /\ C:Condition [label(q:Qid)] .) .
+
+    op extractTermFromRule : Rule -> Term .
+    eq extractTermFromRule(rl T1:Term => T2:Term [A:AttrSet] .) = T1:Term .
+    eq extractTermFromRule(crl T1:Term => T2:Term if C:Condition [A:AttrSet] .) = T1:Term .
+    op extractOidFromTerm : Term -> Qid .
+    eq extractOidFromTerm(Q:Qid[TL:TermList]) = Q:Qid .
 
     --- remove depth information from a Term
     op getQidFromTerm : Term -> Qid .
     eq getQidFromTerm(Q:Qid[TL:TermList]) = Q:Qid .
 
     op removeDepthFromTerm : Term -> Term .
-    eq removeDepthFromTerm('`{_`}['__[TL:TermList]]) = '`{_`}['__[ $removeDepthFromTerm(TL:TermList) ]] .
+    eq removeDepthFromTerm(Q:Qid['__[TL:TermList]]) = Q:Qid['__[ $removeDepthFromTerm(TL:TermList) ]] .
     op $removeDepthFromTerm : TermList -> TermList .
     eq $removeDepthFromTerm((T:Term, TL:TermList)) = if (getQidFromTerm(T:Term) == 'depth:_)
                                             then TL:TermList
@@ -92,7 +102,7 @@ fmod META-UTILS is
 
     --- add depth information to the a Term
     op addDepthToTerm : Term -> Term .
-    eq addDepthToTerm('`{_`}['__[TL:TermList]]) = '`{_`}['__[$removeDepthFromTerm(TL:TermList), 'depth:_['0.Zero]]] .
+    eq addDepthToTerm(Q:Qid['__[TL:TermList]]) = Q:Qid['__[$removeDepthFromTerm(TL:TermList), 'depth:_['0.Zero]]] .
 
     op getVarTerm : Sort -> Term .
     eq getVarTerm(S:Sort) = qid("VAR-" + string(S:Sort) + ":" + string(S:Sort)) .

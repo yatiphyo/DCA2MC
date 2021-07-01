@@ -431,25 +431,27 @@ fmod CHECKER is
     op genTermSet : Module Term Nat ConfigExtSet -> TermSet .
     eq genTermSet(M, empty, D, Cs) = emptyTermSet .
     eq genTermSet(M, T, 0, Cs) = emptyTermSet .
-    eq genTermSet(M, T, D, Cs) = $genTermSet(
-        metaSearch(M, T, '`{_`}['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, 0),
+    ceq genTermSet(M, T, D, Cs) = $genTermSet(
+        metaSearch(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, 0),
         M,
         T,
         D,
         0,
         Cs
-    ) .
+    )
+    if Q := extractOidFromTerm(T) .
 
     op $genTermSet : ResultTriple? Module Term Nat Nat ConfigExtSet -> TermSet .
     eq $genTermSet(failure, M, T, D, N, Cs) = emptyTermSet .
-    eq $genTermSet(RT, M, T, D, N, Cs) = getTerm(RT) | $genTermSet(
-        metaSearch(M, T, '`{_`}['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, N + 1),
+    ceq $genTermSet(RT, M, T, D, N, Cs) = getTerm(RT) | $genTermSet(
+        metaSearch(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, N + 1),
         M,
         T,
         D,
         N + 1,
         Cs
-    ) .
+    )
+    if Q := extractOidFromTerm(T) .
 
     ************ GET ALL COUNTEREXAMPLE STATES AT A DEPTH ************
     --- Build Equations to add to Module to ignore in next finding counterexample
@@ -577,7 +579,8 @@ fmod CHECKER is
     eq $procGenAllStates(M, T, D, Cs, C, B, TS, N) = (TS, C) [owise] .
 
     op genState : Module Term Nat ConfigExtSet Nat -> ResultTriple? .
-    eq genState(M, T, D, Cs, C) = metaSearch(M, T, '`{_`}['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, C) .
+    ceq genState(M, T, D, Cs, C) = metaSearch(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, C)
+    if Q := extractOidFromTerm(T) .
 
 
     --- process counterexample states with batch
