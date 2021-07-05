@@ -156,10 +156,6 @@ mod ABP-CHECK is
   inc LTL-SIMPLIFIER .
   op progCommX : -> Formula .
   eq progCommX = sndX |-> recX .
-  op lofree1 : -> Formula .
-  eq lofree1 = sndX |-> recX .
-  op lofree2 : -> Formula .
-  eq lofree2 = <> recX .
 endm
 
 ***(

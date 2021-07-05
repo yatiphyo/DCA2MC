@@ -3,11 +3,12 @@ fmod SOLVER-HELP is
   op solver-help : -> QidList .
   eq solver-help
     = '\b string2qidList("SOLVER - Additional commands available:") '\o '\n
-      '\t string2qidList("(initialize[<module>, <initState>, <leadsToFormula>, <eventuallyFormula>, <elementSort>, <soupSort>])") '\n
-      '\t '\t string2qidList("- LeadsTo property : set <leadsToFormula> to LeadsTo formula") '\n
-      '\t '\t string2qidList("- Eventually property : ignore <leadsToFormula> by setting it to  ") '\n
+      '\t string2qidList("(initialize[<module>, <initState>, <formula>, <elementSort>, <soupSort>])") '\n
+      '\t '\t string2qidList("- LeadsTo Formula") '\n
+      '\t '\t string2qidList("- Eventually Formula") '\n
+      '\t '\t string2qidList("- Stable Conditional Formula") '\n
       '\t string2qidList("(layerCheck <NatList>)") '\s string2qidList("- given a list of depth at each layer for exploring") '\n
-      '\t string2qidList("(lastCheck)") '\s string2qidList("- checking at the last layer")  '\n
+      '\t string2qidList("(lastCheck)") '\s string2qidList("- checking at the final layer")  '\n
       '\t string2qidList("(check <NatList>)") '\s string2qidList("- combining layerCheck and lastCheck into one command") '\n
       '\t string2qidList("(analyze)") '\s string2qidList("- showing current state") '\n
       '\t string2qidList("(clear)") '\s string2qidList("- restoring to the initialization") '\n

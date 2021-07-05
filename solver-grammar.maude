@@ -10,7 +10,7 @@ fmod SOLVER-SIGN is
     op check : -> @Command@ .
     op showCx : -> @Command@ .
     op clear : -> @Command@ .
-    op initialize`[_`,_`,_`,_`,_`,_`] : @ModExp@ @Token@ @Token@ @Token@ @Sort@ @Sort@ -> @Command@ .
+    op initialize`[_`,_`,_`,_`,_`] : @ModExp@ @Token@ @Token@ @Sort@ @Sort@ -> @Command@ .
 endfm
 
 *** Step 2: Include into grammar

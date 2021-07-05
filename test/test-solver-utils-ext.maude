@@ -1,0 +1,11 @@
+in ../solver-utils .
+in ../specs/tas.maude .
+
+mod TAS-CHECK-EXT is
+    inc SOLVER-UTILS .
+    pr TAS-CHECK .
+endm
+
+red in TAS-CHECK-EXT : | genStateSeqs(upModule('TAS-CHECK-EXT, true), upTerm(init), 1) | == 2 .
+red in TAS-CHECK-EXT : | genStateSeqs(upModule('TAS-CHECK-EXT, true), upTerm(init), 2) | == 4 .
+red in TAS-CHECK-EXT : | genStateSeqs(upModule('TAS-CHECK-EXT, true), upTerm(init), 3) | == 8 .

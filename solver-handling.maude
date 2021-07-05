@@ -25,14 +25,14 @@ mod SOLVER-DATABASE-HANDLING is
     vars B : Bound .
     vars GS : GenState .
     vars GCxS : GenCxState .
-    vars TS : TermSet .
+    vars TS TS1 TS2 : TermSet .
     vars R4C : Result4Checking? .
     vars L L' : Logger .
     vars BL : Bool .
 
     crl [initialize] :
         < O : X@DatabaseClass | db : DB,
-            input : ('initialize`[_`,_`,_`,_`,_`,_`][T, T1, T2, T3, T4, T5]),
+            input : ('initialize`[_`,_`,_`,_`,_`][T, T1, T2, T3, T4]),
             output : nil,
             db-ext : DB-EXT,
             default : ME,
@@ -46,7 +46,7 @@ mod SOLVER-DATABASE-HANDLING is
             default : parseHeader(T),
             status : initialized,
             Atts >
-            if RES := procInitializeCommand('initialize`[_`,_`,_`,_`,_`,_`][T, T1, T2, T3, T4, T5], ME, DB, DB-EXT) .
+            if RES := procInitializeCommand('initialize`[_`,_`,_`,_`,_`][T, T1, T2, T3, T4], ME, DB, DB-EXT) .
 
     crl [layerCheck] :
         < O : X@DatabaseClass |
@@ -145,14 +145,22 @@ mod SOLVER-DATABASE-HANDLING is
         then
             if getNextDepth(ST) =/= unbounded
             then
-                genAllStates(O, ST, M, 0)
+                if type(Cs) == cstable then
+                    genStatesForStable(O, ST, M, 0)
+                else
+                    genAllStates(O, ST, M, 0)
+                fi
             else
                 lastCheckAllState(O, ST)
             fi
         else
             if getNextDepth(ST) =/= unbounded
             then
-                genCxStates(O, ST, M)
+                if type(Cs) == cstable then
+                    genCxStatesForStable(O, ST, M, 0)
+                else
+                    genCxStates(O, ST, M)
+                fi
             else
                 lastCheckCxState(O, ST)
             fi
@@ -163,6 +171,85 @@ mod SOLVER-DATABASE-HANDLING is
         /\ N := getDepth(ST)
         /\ B := getNextDepth(ST)
         [print "[handle] State at Depth = " N " nextDepth = " B " Logger = " L'] .
+
+    --- for conditional stable properties
+    crl [genStatesForStable] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            batchSize : B,
+            cache : O',
+            client : O'',
+            Atts >
+        genStatesForStable(O, ST, M, C)
+        =>  if C' > C
+            then
+                < O : X@DatabaseClass |
+                    db : DB,
+                    db-ext : DB-EXT,
+                    status : suspending,
+                    batchSize : B,
+                    cache : O',
+                    client : O'',
+                    Atts >
+                genStatesForStable(O, ST, M, C')
+                lookupBatchReq(O', O, (termSetToStates(DB-EXT, ST, TS1, all), termSetToStates(DB-EXT, ST, TS2, cx)))
+            else
+                < O : X@DatabaseClass |
+                    db : DB,
+                    db-ext : DB-EXT,
+                    status : waiting,
+                    batchSize : B,
+                    cache : O',
+                    client : O'',
+                    Atts >
+                fetchState(O'', O)
+            fi
+        if Cs := getConfigExtSet(DB-EXT)
+        /\ < < TS1 : TS2 > : C' > := procGenStatesForStable(M, getState(ST), getNextDepth(ST), Cs, C, B)
+        /\ N := | TS1 |
+        /\ N' := | TS2 |
+        [print "[genStatesForStable] |TS1| = " N " |TS2| = " N'] .
+
+    crl [genCxStatesForStable] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            batchSize : B,
+            cache : O',
+            client : O'',
+            Atts >
+        genCxStatesForStable(O, ST, M, C)
+    =>  if C' > C
+        then
+            < O : X@DatabaseClass |
+                db : DB,
+                db-ext : DB-EXT,
+                status : suspending,
+                batchSize : B,
+                cache : O',
+                client : O'',
+                Atts >
+            genCxStatesForStable(O, ST, M, C')
+            lookupBatchReq(O', O, termSetToStates(DB-EXT, ST, TS, cx))
+        else
+            < O : X@DatabaseClass |
+                    db : DB,
+                    db-ext : DB-EXT,
+                    status : waiting,
+                    batchSize : B,
+                    cache : O',
+                    client : O'',
+                    Atts >
+            fetchState(O'', O)
+        fi
+    if  Cs := getConfigExtSet(DB-EXT)
+    /\ GS := procGenAllStates(M, getState(ST), getNextDepth(ST), Cs, C, B) --- generate all states given a state
+    /\ C' := getCount(GS)
+    /\ TS := getStates(GS) [print "[genCxStatesForStable]"] .
+    --- end for conditional stable properties
 
     crl [genAllStates] :
         < O : X@DatabaseClass |

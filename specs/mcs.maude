@@ -177,10 +177,8 @@ mod MCS-CHECK is
   inc MCS-PREDS .
   inc MODEL-CHECKER .
   inc LTL-SIMPLIFIER .
-  op lofree1 : -> Formula .
-  eq lofree1 = inWs1 |-> inCs1 .
-  op lofree2 : -> Formula .
-  eq lofree2 = <> inCs1 .
+  op lofree : -> Formula .
+  eq lofree = inWs1 |-> inCs1 .
 endm
 
 ***(

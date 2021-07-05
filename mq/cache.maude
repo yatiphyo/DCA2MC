@@ -31,6 +31,7 @@ mod CACHE is
     vars CR : CacheResult .
     vars L L' : Logger .
 
+    --- lookup request for master
     crl [lookupReq] : < O : Cache | CxState : MCX, AllState : MAS, server : O', logger : L, Atts  > lookupReq(O, O'', S)
     => if getType(S) == cx
     then (
@@ -40,7 +41,7 @@ mod CACHE is
             AllState : MAS, server : O', logger : L', Atts > lookupReply(O', O, S)
         else (
             if getState(S) in MCX[getDepth(S)]
-            then < O : Cache | CxState : MCX, AllState : MAS, server : O', logger : L', Atts >
+            then < O : Cache | CxState : MCX, AllState : MAS, server : O', logger : L, Atts > lookupReplyEmpty(O', O)
             else < O : Cache |
                 CxState : insert(getDepth(S), getState(S) | MCX[getDepth(S)], MCX),
                 AllState : MAS, server : O', logger : L', Atts > lookupReply(O', O, S)
@@ -55,7 +56,7 @@ mod CACHE is
             CxState : MCX, server : O', logger : L', Atts > lookupReply(O', O, S)
         else (
             if getState(S) in MAS[getDepth(S)]
-            then < O : Cache | CxState : MCX, AllState : MAS, server : O', logger : L', Atts >
+            then < O : Cache | CxState : MCX, AllState : MAS, server : O', logger : L, Atts > lookupReplyEmpty(O', O)
             else
             < O : Cache |
                 AllState : insert(getDepth(S), getState(S) | MAS[getDepth(S)], MAS),
@@ -72,6 +73,7 @@ mod CACHE is
     crl [lookupReq] : < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > lookupReq(O, O'', S)
     => < O : Cache | CxState : MCX, AllState : MAS, server : O', Atts > if S == null [print "[lookupReq] Null"] .
 
+    --- lookup request for workers
     op lookupStates : Map{Nat,TermSet} Map{Nat,TermSet} StateSet -> CacheResult .
     eq lookupStates(MCX, MAS, SS) = $lookupStates(MCX, MAS, SS, empty) .
 

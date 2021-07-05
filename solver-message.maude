@@ -52,6 +52,7 @@ mod SOLVER-MESSAGE is
     op batchSize :_ : Bound -> Attribute [ctor format(! o o o)] .
     op socket :_ : Oid -> Attribute [ctor format(! o o o)] .
     op listener :_ : Oid -> Attribute [ctor] .
+    op nReq :_ : Nat -> Attribute [ctor] .
 
     sort Status .
     ops idle initialized waiting suspending working stopping terminated : -> Status .
@@ -60,6 +61,7 @@ mod SOLVER-MESSAGE is
     op lookupReq : Oid Oid State -> Msg [ctor msg format (b o)] .
     op lookupBatchReq : Oid Oid StateSet -> Msg [ctor msg format (b o)] .
     op lookupReply : Oid Oid State -> Msg [ctor msg format (b o)] .
+    op lookupReplyEmpty : Oid Oid -> Msg [ctor msg format (b o)] .
     op lookupBatchReply : Oid Oid StateSet -> Msg [ctor msg format (b o)] .
     op allStates : Oid Oid State TermSet -> Msg [ctor msg format (b o)] .
     op cxStates : Oid Oid State TermSet -> Msg [ctor msg format (b o)] .
@@ -80,6 +82,8 @@ mod SOLVER-MESSAGE is
     op handle : Oid Oid State -> Msg [ctor msg format (b o)] .
     op genAllStates : Oid State Module Nat -> Msg [ctor msg format (b o)] .
     op genCxStates : Oid State Module -> Msg [ctor msg format (b o)] .
+    op genStatesForStable : Oid State Module Nat -> Msg [ctor msg format (b o)] .
+    op genCxStatesForStable : Oid State Module Nat -> Msg [ctor msg format (b o)] .
     op lastCheckAllState : Oid State -> Msg [ctor msg format (b o)] .
     op lastCheckCxState : Oid State -> Msg [ctor msg format (b o)] .
     op stopWorking : Oid Oid -> Msg [ctor msg format (b o)] .

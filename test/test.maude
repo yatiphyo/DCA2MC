@@ -1,4 +1,7 @@
 load full-maude.maude
-in test-utils.maude
+in test-solver-utils.maude
 in test-solver-database.maude
 in test-solver-message.maude
+
+*************** custom test cases ***************
+in test-solver-utils-ext.maude

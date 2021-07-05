@@ -78,10 +78,8 @@ mod TICKET-CHECK is
     inc TICKET-PREDS .
     inc MODEL-CHECKER .
     inc LTL-SIMPLIFIER .
-    op lofree1 : -> Formula .
-    eq lofree1 = inWs1 |-> inCs1 .
-    op lofree2 : -> Formula .
-    eq lofree2 = <> inCs1 .
+    op cstable : -> Formula .
+    eq cstable = inWs1 |-> <> inFs1 .
 endm
 
 ***(

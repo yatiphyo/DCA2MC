@@ -27,12 +27,16 @@ mod SERVER is
     var ST : State .
     var SS : StateSet .
 
-    crl [lookupReply] : < O : Server | jobs : J, A > lookupReply(O, O', ST)
-        => < O : Server | jobs : (J | S), A >
-        if S := state2string(ST) [print "[lookupReply] State"] .
+    crl [LookupReply] : < O : Server | jobs : J, nReq : N, A > lookupReply(O, O', ST)
+    =>  < O : Server | jobs : (J | S), nReq : if N == 0 then N else sd(N, 1) fi, A >
+    if ST =/= null
+    /\ S := state2string(ST) [print "[LookupReply] State"] .
 
-    rl [lookupBatchReply] : < O : Server | jobs : J, A > lookupBatchReply(O, O', SS)
-        => < O : Server | jobs : enqueueFromSet(SS, J), A > [print "[lookupBatchReply] States"] .
+    rl [LookupReplyEmpty] : < O : Server | jobs : J, nReq : N, A > lookupReplyEmpty(O, O')
+    =>  < O : Server | jobs : J, nReq : if N == 0 then N else sd(N, 1) fi, A > [print "[LookupReplyEmpty]"] .
+
+    rl [LookupBatchReply] : < O : Server | jobs : J, A > lookupBatchReply(O, O', SS)
+        => < O : Server | jobs : enqueueFromSet(SS, J), A > [print "[LookupBatchReply] States"] .
 
     op enqueueFromSet : StateSet Queue{Job} -> Queue{Job} .
     eq enqueueFromSet(empty, J) = J .
@@ -41,19 +45,20 @@ mod SERVER is
     rl [StopClient] : < O : Server | workers : (CLIENT, SW), A > stopWorking(O, O')
         => CloseSocket(CLIENT, O) < O : Server | workers : SW, A > stopWorking(O, O') [print "[StopClient] " CLIENT] .
 
-    rl [StopClient] : < O : Server | workers : empty, app : APP, cache : CACHE, listener : LISTENER, A > stopWorking(O, O')
-        => < O : Server | none > CloseSocket(LISTENER, O) clearApp(APP, O) clearCache(CACHE, O) [print "[StopClient]"] .
+    rl [StopListener] : < O : Server | workers : empty, app : APP, cache : CACHE, listener : LISTENER, A > stopWorking(O, O')
+        => < O : Server | none > CloseSocket(LISTENER, O) clearApp(APP, O) clearCache(CACHE, O) [print "[StopListener]"] .
 
     crl [CheckTermination] :
-        < O : Server | workers : SW, jobs : J, waitingWorkers : W, A >
-        => < O : Server | workers : SW, jobs : J, waitingWorkers : W, A > stopWorking(O, O)
-        if isEmpty(J)
+        < O : Server | workers : SW, jobs : J, waitingWorkers : W, nReq : N, A >
+        => < O : Server | workers : SW, jobs : J, waitingWorkers : W, nReq : N, A > stopWorking(O, O)
+        if N == 0
+        /\ isEmpty(J)
         /\ qsize(W) > 0
         /\ qsize(W) == | SW | [print "[CheckTermination]"] .
 
     rl [MqCreatedSocket] :
         < O : Server | A > CreatedSocket(O, socketManager, LISTENER)
-        => < O : Server | listener : LISTENER, workers : empty, jobs : emptyq, waitingWorkers : emptyq, A >
+        => < O : Server | listener : LISTENER, workers : empty, jobs : emptyq, waitingWorkers : emptyq, nReq : 0, A >
         AcceptClient(LISTENER, O) [print "[MqCreatedSocket]"] .
 
     rl [MqAcceptedClient] :
@@ -76,8 +81,8 @@ mod SERVER is
         Send(CLIENT, O, S) [print "[SendJob]"] .
 
     crl [MqReceived] :
-        < O : Server | cache : CACHE, A > Received(O, CLIENT, DATA)
-        => < O : Server | cache : CACHE, A > lookupReq(CACHE, O, ST)
+        < O : Server | cache : CACHE, nReq : N, A > Received(O, CLIENT, DATA)
+        => < O : Server | cache : CACHE, nReq : (N + 1), A > lookupReq(CACHE, O, ST)
         if DATA =/= getJob
         /\ DATA =/= stop
         /\ ST := string2state(DATA) [print "[MqReceived] State "] .

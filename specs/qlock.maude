@@ -59,9 +59,11 @@ fmod CONFIG is
   sort Config .
   op {_} : Soup{OComp} -> Config [ctor] .
   op init : -> Config .
+  op init3 : -> Config .
   op init5 : -> Config .
   op init10 : -> Config .
   eq init = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (cnt: 2)} .
+  eq init3 = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (cnt: 3)} .
   eq init5 = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss)
                      (pc[p4]: ss) (pc[p5]: ss) (cnt: 5) } .
   eq init10 = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss)
@@ -100,16 +102,16 @@ mod QLOCK-CHECK is
   inc QLOCK-PREDS .
   inc MODEL-CHECKER .
   inc LTL-SIMPLIFIER .
-  op lofree1 : -> Formula .
-  eq lofree1 = inWs1 |-> inCs1 .
-  op lofree2 : -> Formula .
-  eq lofree2 = <> inCs1 .
+  op lofree : -> Formula .
+  eq lofree = inWs1 |-> inCs1 .
   op halt : -> Formula .
   eq halt = <> inFs1 .
+  op cstable : -> Formula .
+  eq cstable = inWs1 |-> <> inFs1 .
 endm
 
 ***(
-  red in QLOCK-CHECK : modelCheck(init,lofree1) .
-  red in QLOCK-CHECK : modelCheck(init5,lofree1) .
-  red in QLOCK-CHECK : modelCheck(init10,lofree1) .
+  red in QLOCK-CHECK : modelCheck(init,lofree) .
+  red in QLOCK-CHECK : modelCheck(init5,lofree) .
+  red in QLOCK-CHECK : modelCheck(init10,lofree) .
 )

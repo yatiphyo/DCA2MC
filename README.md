@@ -1,4 +1,4 @@
-# L+1 Layers Divide and Conquer Approach to Leads-To and Eventually Model Checking
+# L+1 Layers Divide and Conquer Approach to Leads-To, Eventually and Conditional Stable Model Checking
 
 The tool has been developed in **Full Maude** powered by **Maude 3.1** version.
 
@@ -8,8 +8,6 @@ We support two versions of the tool: sequential and parallel versions.
 We have 2 case studies **QLOCK** and **TAS** under the **specs** folder for demo.
 
 The following shows how to interact with the tool to do model checking with our approach.
-
-**Note that:** For **LeadsTo** property, you need to define **LeadsTo** and **Eventually** formula in the specfication. For **Eventually** property, you only need to define **Eventually** formula in the specfication.
 
 **Step1:** Start up Maude and load your specfication.
 
@@ -29,7 +27,7 @@ in solver.maude
 
 Let us briefly explain one by one as follows:
 
-1./ `(initialize[<module>,<initState>,<leadsToFormula>,<eventuallyFormula>,<elementSort>,<soupSort>])`
+1./ `(initialize[<module>,<initState>,<formula>,<elementSort>,<soupSort>])`
 
 This command initializes some information from which the tool can know
 and do model checking with your specfication.
@@ -38,9 +36,7 @@ and do model checking with your specfication.
 
 `<initState>` : initial state
 
-`<leadsToFormula>` : your LeadsTo formula
-
-`<eventuallyFormula>` : your Eventulally formula
+`<formula>` : your formula such as leadsTo, eventually and conditional stable formulas
 
 `<elementSort>` : sort of your observable components
 
@@ -48,11 +44,7 @@ and do model checking with your specfication.
 
 For QLOCK example with **LeadsTo** property, the following is the correct format:
 
-`(initialize[QLOCK-CHECK, init, lofree1, lofree2, OComp, Soup{OComp}])`
-
-For **Eventually** property, you set the `<leadsToFormula>` to `null`. The following is the correct format:
-
-`(initialize[QLOCK-CHECK, init, null, lofree2, OComp, Soup{OComp}])`
+`(initialize[QLOCK-CHECK, init, lofree, OComp, Soup{OComp}])`
 
 2./ `(layerCheck <NatList>)`
 
@@ -95,7 +87,7 @@ For example: `(solver-help)`
 
 **Full running for QLOCK:**
 
-(initialize[QLOCK-CHECK, init5, lofree1, lofree2, OComp, Soup{OComp}])
+(initialize[QLOCK-CHECK, init5, lofree, OComp, Soup{OComp}])
 
 (layerCheck 2 2)
 
@@ -107,7 +99,7 @@ For example: `(solver-help)`
 
 **Full running for TAS:**
 
-(initialize[TAS-CHECK, init, lofree1, lofree2, OComp, Soup{OComp}])
+(initialize[TAS-CHECK, init, lofree, OComp, Soup{OComp}])
 
 (check 2 2)
 
@@ -150,8 +142,9 @@ Master configuration resides in the `solver-master.maude` file. For example, as 
                 < aCache : Cache | CxState : empty, AllState : empty, server : aServer, app : o, logger : empty >
                 < aServer : Server | app : o, cache : aCache >
                 CreateServerTcpSocket(socketManager, aServer, 8811, 10)
-                --- initialize(o, "initialize[QLOCK-CHECK, init10, lofree1, lofree2, OComp, Soup{OComp}]")
-                initialize(o, "initialize[QLOCK-CHECK, init10, null, halt, OComp, Soup{OComp}]")
+                --- initialize(o, "initialize[QLOCK-CHECK, init10, lofree, OComp, Soup{OComp}]")
+                --- initialize(o, "initialize[QLOCK-CHECK, init10, cstable, OComp, Soup{OComp}]")
+                initialize(o, "initialize[QLOCK-CHECK, init10, halt, OComp, Soup{OComp}]")
                 depthInfo(o, "depthInfo 2 2") .
 ```
 
@@ -181,8 +174,9 @@ Each worker configuration resides in the `solver-worker.maude` file. For example
                 < aCache : Cache | CxState : empty, AllState : empty, server : aClient, app : o >
                 < aClient : Client | app : o, cache : aCache >
                 CreateClientTcpSocket(socketManager, aClient, "localhost", 8811)
-                --- initialize(o, "initialize[QLOCK-CHECK, init10, lofree1, lofree2, OComp, Soup{OComp}]")
-                initialize(o, "initialize[QLOCK-CHECK, init10, null, halt, OComp, Soup{OComp}]")
+                --- initialize(o, "initialize[QLOCK-CHECK, init10, lofree, OComp, Soup{OComp}]")
+                --- initialize(o, "initialize[QLOCK-CHECK, init10, cstable, OComp, Soup{OComp}]")
+                initialize(o, "initialize[QLOCK-CHECK, init10, halt, OComp, Soup{OComp}]")
                 depthInfo(o, "depthInfo 3") .
 ```
 

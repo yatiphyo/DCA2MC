@@ -105,10 +105,14 @@ endv
 
 fmod DATABASE-EXT-DECL is
     pr NODESET .
-    sorts ConfigExt OCompExt .
+    sorts ConfigExt OCompExt FormulaType .
+
     --- Prepare the sort of the result that be retured by checking
     sorts Result4Checking Result4Checking? .
     subsort Result4Checking < Result4Checking? .
+
+    --- supported formulas
+    ops leadsTo eventual cstable : -> FormulaType [ctor] .
 
     --- Define structure of message error as well as success
     op nil : -> Result4Checking [ctor] .
@@ -126,11 +130,13 @@ fmod DATABASE-EXT-DECL is
     op (originModule:_) : ModuleExpression -> ConfigExt [ctor format (! o o)] .
     op (reviseModule:_) : ModuleExpression -> ConfigExt [ctor format (! o o)] .
     op (initState:_) : Term -> ConfigExt [ctor format (! o o)] .
-    op (leadsToFormula:_) : Term -> ConfigExt [ctor format (! o o)] .
-    op (eventuallyFormula:_) : Term -> ConfigExt [ctor format (! o o)] .
     op (eleSort:_) : Sort -> ConfigExt [ctor format (! o o)] .
     op (soupSort:_) : Sort -> ConfigExt [ctor format (! o o)] .
     op (eventuallyProp:_) : Term -> ConfigExt [ctor format (! o o)] .
+    op (type:_) : FormulaType -> ConfigExt [ctor format (! o o)] .
+    op (cxFormula:_) : Term -> ConfigExt [ctor format (! o o)] .
+    op (ncxFormula:_) : Term -> ConfigExt [ctor format (! o o)] .
+    op (midFormula:_) : Term -> ConfigExt [ctor format (! o o)] .
 
     op (depthList:_) : NatList -> OCompExt [ctor format (! o o)] .
     op (currentDepth:_) : Nat -> OCompExt [ctor format (! o o)] .
@@ -160,7 +166,7 @@ view OCompExtSet from TRIV to CONFIG-EXT&STATE-EXT is
 endv
 
 fmod DATABASE-EXT is
-    pr META-UTILS .
+    pr SOLVER-COMMON .
     pr STATE .
     pr STATE-SET .
     pr 2TUPLE{ConfigExtSet,OCompExtSet} * (op `(_`,_`) to `{_;_`},
@@ -174,7 +180,7 @@ fmod DATABASE-EXT is
     vars OCs OCs' : OCompExtSet .
     vars DB-EXT : DatabaseExt .
     vars ME : ModuleExpression .
-    vars T : Term .
+    vars T T1 T2 : Term .
     vars T' : [Term] .
     vars S : Sort .
     vars NL NL' : NatList .
@@ -185,6 +191,7 @@ fmod DATABASE-EXT is
     vars B : Bool .
     vars ST : State .
     vars STYPE : StateType .
+    vars FT : FormulaType .
 
     op sum : NatList -> Nat .
     eq sum(N NL) = N + sum(NL) .
@@ -203,23 +210,24 @@ fmod DATABASE-EXT is
     op originModule : ConfigExtSet -> ModuleExpression .
     op reviseModule : ConfigExtSet -> ModuleExpression .
     op initState : ConfigExtSet -> Term .
-    op leadsToFormula : ConfigExtSet -> Term .
-    op isLeadsTo : ConfigExtSet -> Bool .
-    op eventuallyFormula : ConfigExtSet -> Term .
     op eventuallyProp : ConfigExtSet -> Term .
     op eleSort : ConfigExtSet -> Sort .
     op soupSort : ConfigExtSet -> Sort .
+    op cxFormula : ConfigExtSet -> Term .
+    op ncxFormula : ConfigExtSet -> Term .
+    op midFormula : ConfigExtSet -> Term .
+    op type : ConfigExtSet -> FormulaType .
 
     eq originModule(((originModule: ME), Cs)) = ME .
     eq reviseModule(((reviseModule: ME), Cs)) = ME .
     eq initState(((initState: T), Cs)) = T .
-    eq leadsToFormula(((leadsToFormula: T) , Cs)) = T .
-    eq isLeadsTo(((leadsToFormula: T) , Cs)) = true .
-    eq isLeadsTo(Cs) = false [owise] .
-    eq eventuallyFormula(((eventuallyFormula: T) , Cs)) = T .
     eq eventuallyProp(((eventuallyProp: T) , Cs)) = T .
     eq eleSort(((eleSort: S) , Cs)) = S .
     eq soupSort(((soupSort: S) , Cs)) = S .
+    eq cxFormula(((cxFormula: T) , Cs)) = T .
+    eq ncxFormula(((ncxFormula: T) , Cs)) = T .
+    eq midFormula(((midFormula: T) , Cs)) = T .
+    eq type(((type: FT) , Cs)) = FT .
 
     op depthList : OCompExtSet -> NatList .
     op currentDepth : OCompExtSet -> Nat .
@@ -232,7 +240,7 @@ fmod DATABASE-EXT is
     eq result(((result: R4C), OCs)) = R4C .
 
     op clearDatabase : DatabaseExt -> DatabaseExt .
-    eq clearDatabase({ Cs ; OCs }) = { Cs ; buildInitialOCompExtSet(initState(Cs), isCheckingLeadsTo(Cs)) } .
+    eq clearDatabase({ Cs ; OCs }) = { Cs ; buildInitialOCompExtSet(initState(Cs), type(Cs)) } .
 
     op evalOCompExtSet : DatabaseExt OCompExtSet -> DatabaseExt .
 
@@ -250,20 +258,14 @@ fmod DATABASE-EXT is
     eq $evalOCompExtSet({ Cs ; ((result: R4C), OCs) }, (result: R4C'))
     = { Cs ; ((result: R4C'), OCs) } .
 
-    op isCheckingLeadsTo : ConfigExt -> Bool .
-    eq isCheckingLeadsTo(((leadsToFormula: T), Cs)) = true .
-    eq isCheckingLeadsTo(Cs) = false [owise] .
-    op isCheckingEventually : ConfigExt -> Bool .
-    eq isCheckingEventually(Cs) = not isCheckingLeadsTo(Cs) .
-
-    op buildInitialOCompExtSet : Term Bool -> OCompExtSet .
-    ceq buildInitialOCompExtSet(T, B)
-        = (depthList: nil), (currentDepth: 0),
-        ( nodeSet: < < addDepthToTerm(T) : emptyTermSet > : nil > ), (result: nil) if B .
-
-    eq buildInitialOCompExtSet(T, B)
-        = (depthList: nil), (currentDepth: 0),
-        ( nodeSet: < < emptyTermSet : addDepthToTerm(T) > : nil > ), (result: nil) [owise] .
+    op buildInitialOCompExtSet : Term FormulaType -> OCompExtSet .
+    eq buildInitialOCompExtSet(T, FT)
+    = (depthList: nil), (currentDepth: 0), (result: nil),
+    if FT == eventual then
+        ( nodeSet: < < emptyTermSet : addDepthToTerm(T) > : nil > )
+    else
+        ( nodeSet: < < addDepthToTerm(T) : emptyTermSet > : nil > )
+    fi .
 
     op getNumberOfStates : NodeSet -> Nat .
     op getNumberOfCxStates : NodeSet -> Nat .
@@ -284,7 +286,7 @@ fmod DATABASE-EXT is
 
     op getInitialState : DatabaseExt -> State .
     ceq getInitialState(DB-EXT) = ( addDepthToTerm(initState(getConfigExtSet(DB-EXT))),
-        if isLeadsTo(Cs) then all else cx fi,
+        if type(Cs) == eventual then cx else all fi,
         0,
         findNextDepth(0, depthList(getOCompExtSet(DB-EXT))),
         nil)
@@ -299,6 +301,31 @@ fmod DATABASE-EXT is
     findNextDepth(getNextDepth(ST), depthList(getOCompExtSet(DB-EXT))),
     (< getState(ST) : getNextDepth(ST) > getLog(ST))
     ) .
+
+    op extractFormula : EquationSet Term -> Term .
+    ceq extractFormula(((eq T1 = T2 [ A:AttrSet ] .) EQS:EquationSet), T) = T2 if T1 == T .
+    eq extractFormula(EQS:EquationSet, T) = 'nil [owise] .
+
+    op buildFormulaConfig : Term -> ConfigExtSet [memo] .
+    --- for conditional stable model checking
+    eq buildFormulaConfig('_|->_[Prop1:Constant, '<>_[Prop2:Constant]])
+    =   (type: cstable),
+        (ncxFormula: ('_|->_[Prop1:Constant, '<>_[Prop2:Constant]])),
+        (cxFormula: ('<>_['`[`]_[Prop2:Constant]])),
+        (midFormula: Prop1:Constant) .
+
+    --- for leadsTo model checking
+    eq buildFormulaConfig('_|->_[Prop1:Constant, Prop2:Constant])
+    =   (type: leadsTo),
+        (ncxFormula: ('_|->_[Prop1:Constant, Prop2:Constant])),
+        (cxFormula: ('<>_[Prop2:Constant])),
+        (eventuallyProp: Prop2:Constant) .
+
+    --- for eventual model checking
+    eq buildFormulaConfig('<>_[Prop:Constant])
+    =   (type: eventual),
+        (cxFormula: ('<>_[Prop:Constant])),
+        (eventuallyProp: Prop:Constant) .
 endfm
 
 view DatabaseExt from TRIV to DATABASE-EXT is
@@ -323,6 +350,12 @@ fmod CHECKER is
         op p1_ to getCxState,
         op p2_ to getModule,
         sort Tuple{TermSet,Module} to GenCxState) .
+
+    pr 2TUPLE{States&CxStates,Nat} * (
+        op `(_`,_`) to <_:_>,
+        op p1_ to states&CxStates,
+        op p2_ to getCount,
+        sort Tuple{States&CxStates,Nat} to GenAll&CxState) .
 
     pr TRANSITION-TERM-LIST .
 
@@ -366,26 +399,41 @@ fmod CHECKER is
 
     --- update depth in module by stack up depth at each layer before execution
     op $collect : Module NodeSet NatList Nat ConfigExtSet -> NodeSet .
-    eq $collect(M, NS, N L, D, Cs) = $collect(M, layerCheck(changeDepth(M, D + N), NS, D + N, Cs), L, D + N, Cs) [print "Depth = " D ", N = " N] .
-    eq $collect(M, NS, nil, D, Cs) = NS [print "Depth = " D ", N = nil"] .
+    eq $collect(M, NS, N L, D, Cs) = $collect(M, layerCheck(changeDepth(M, D + N), NS, D + N, N, Cs), L, D + N, Cs) .
+    eq $collect(M, NS, nil, D, Cs) = NS .
 
     --- Node : < < ALLStates : ALLCxStates > : < Term : Depth > | nil > >
     --- ALLStates :: TermSet : T1 | T2 | emptyTermSet
     --- NodeSet : [Node]+ , empty .
-    op layerCheck : Module NodeSet Nat ConfigExtSet  -> NodeSet .
-    eq layerCheck(M, NS, N, Cs) = $layerCheck(M, NS, N, empty, < emptyTermSet : emptyTermSet >, Cs) .
+    op layerCheck : Module NodeSet Nat Nat ConfigExtSet  -> NodeSet .
+    eq layerCheck(M, NS, D, N, Cs) = $layerCheck(M, NS, D, N, empty, < emptyTermSet : emptyTermSet >, Cs) .
 
-    op $layerCheck : Module NodeSet Nat NodeSet States&CxStates ConfigExtSet -> NodeSet .
-    eq $layerCheck(M, empty, N, NS, CACHE, Cs) = NS .
-    ceq $layerCheck(M, (ND , NS1), N, NS2, CACHE, Cs) = $layerCheck(
+    op $layerCheck : Module NodeSet Nat Nat NodeSet States&CxStates ConfigExtSet -> NodeSet .
+    eq $layerCheck(M, empty, D, N, NS, CACHE, Cs) = if type(Cs) == cstable then
+                                                        filterValidNode(filterByCxStates(NS, cxStates(CACHE)))
+                                                    else
+                                                        NS
+                                                    fi .
+    ceq $layerCheck(M, (ND , NS1), D, N, NS2, CACHE, Cs) = $layerCheck(
                                                 M,
                                                 NS1,
+                                                D,
                                                 N,
                                                 union(NS2, ns(NS&CACHE)),
                                                 cache(NS&CACHE),
                                                 Cs
-                                            ) if NS&CACHE := $$layerCheck(M, ND, N, empty, CACHE, Cs) .
+                                            ) if NS&CACHE := layerCheck*(M, ND, D, N, CACHE, Cs) .
 
+    ************** apply for each kind of property **************
+    op layerCheck* : Module Node Nat Nat States&CxStates ConfigExtSet -> NodeSet&Cache .
+    eq layerCheck*(M, ND, D, N, CACHE, Cs) = if type(Cs) == cstable
+                                            then
+                                                layerCheckForStable(M, ND, D, N, empty, CACHE, Cs)
+                                            else
+                                                $$layerCheck(M, ND, D, empty, CACHE, Cs)
+                                            fi .
+
+    ************** layer check for leadsTo and eventual model checking **************
     op $$layerCheck : Module Node Nat NodeSet States&CxStates ConfigExtSet -> NodeSet&Cache .
     eq $$layerCheck(M, < < emptyTermSet : emptyTermSet > : LL >, N, NS, CACHE, Cs) = < NS : CACHE > .
     ceq $$layerCheck(M, < < T | TS1 : TS2 > : LL >, N, NS, CACHE, Cs) = $$layerCheck(
@@ -400,8 +448,9 @@ fmod CHECKER is
                                                                 ),
                                                                 < (STATES | states(CACHE)) : (CxSTATES | cxStates(CACHE)) >,
                                                                 Cs
-                                                            ) if STATES := genTermSet(M, T, N, Cs)
-                                                            /\ CxSTATES := allCounterExample(M, T, leadsToFormula(Cs), eventuallyProp(Cs)) [print "Never come here if you are checking for eventually property"] .
+                                                            )
+                                                            if STATES := genTermSet(M, T, N, Cs)
+                                                            /\ CxSTATES := allCounterExample(M, T, ncxFormula(Cs), eventuallyProp(Cs)) .
 
     ceq $$layerCheck(M, < < emptyTermSet : T | TS2 > : LL >, N, NS, CACHE, Cs) = $$layerCheck(
                                                                 M,
@@ -414,18 +463,55 @@ fmod CHECKER is
                                                                 ),
                                                                 < states(CACHE) : (CxSTATES | cxStates(CACHE)) >,
                                                                 Cs
-                                                            ) if CxSTATES := allCounterExample(M, T, eventuallyFormula(Cs), eventuallyProp(Cs)) .
+                                                            ) if CxSTATES := allCounterExample(M, T, cxFormula(Cs), eventuallyProp(Cs)) .
+
+    ************** layer check for conditional stable model checking **************
+    op layerCheckForStable : Module Node Nat Nat NodeSet States&CxStates ConfigExtSet -> NodeSet&Cache .
+    eq layerCheckForStable(M, < < emptyTermSet : emptyTermSet > : LL >, D, N, NS, CACHE, Cs) = < NS : CACHE > .
+    ceq layerCheckForStable(M, < < T | TS1 : TS2 > : LL >, D, N, NS, CACHE, Cs) = layerCheckForStable(
+                                                                M,
+                                                                < < TS1 : TS2 > : LL >,
+                                                                D,
+                                                                N,
+                                                                union(
+                                                                    NS,
+                                                                    filterValidNode(
+                                                                        < < (STATES except states(CACHE)) : (CxSTATES except cxStates(CACHE)) > : (< T : D > LL) >
+                                                                    )
+                                                                ),
+                                                                < (STATES | states(CACHE)) : (CxSTATES | cxStates(CACHE)) >,
+                                                                Cs
+                                                            )
+                                                            if < STATES : CxSTATES > := genStatesForStable(M, T, D, N, Cs) .
+
+    ceq layerCheckForStable(M, < < emptyTermSet : T | TS2 > : LL >, D, N, NS, CACHE, Cs) = layerCheckForStable(
+                                                                M,
+                                                                < < emptyTermSet : TS2 > : LL >,
+                                                                D,
+                                                                N,
+                                                                union(NS,
+                                                                    filterValidNode(
+                                                                        < < emptyTermSet : (CxSTATES except cxStates(CACHE)) > : (< T : D > LL) >
+                                                                    )
+                                                                ),
+                                                                < states(CACHE) : (CxSTATES | cxStates(CACHE)) >,
+                                                                Cs
+                                                            ) if CxSTATES := genTermSet(M, T, D, Cs) .
 
     --- Accept only either ALLStates or ALLCxStates are not empty
     op filterValidNode : NodeSet -> NodeSet .
     eq filterValidNode(empty) = empty .
-    eq filterValidNode((< < TS1 : TS2 > : LL > , NS)) = if (size(TS1) == 0 and size(TS2) == 0)
+    eq filterValidNode((< < TS1 : TS2 > : LL > , NS)) = if (| TS1 | == 0 and | TS2 | == 0)
                                                     then
                                                         filterValidNode(NS)
                                                     else
                                                         (< < TS1 : TS2 > : LL > , filterValidNode(NS))
                                                     fi .
 
+    --- filter Non-CxStates by CxStates in NodeSet
+    op filterByCxStates : NodeSet TermSet -> NodeSet .
+    eq filterByCxStates(empty, TS) = empty .
+    eq filterByCxStates((< < TS1 : TS2 > : LL > , NS), TS) = < < TS1 except TS : TS2 > : LL >,  filterByCxStates(NS, TS) .
 
     ************ GET ALL STATES AT A DEPTH ************
     op genTermSet : Module Term Nat ConfigExtSet -> TermSet .
@@ -468,7 +554,7 @@ fmod CHECKER is
                                     else
                                         getCounterExampleState(Cx) | $allCounterExample(addEqs(buildEqs(getCounterExampleState(Cx), P), M), T, F, P)
                                     fi
-                                    if Cx := getCounterExample(M, 'modelCheck[T, F]) .
+                                    if Cx := getReducedTerm(M, 'modelCheck[T, F]) .
     eq $allCounterExample(M, T, F, P) = emptyTermSet [owise] .
 
     op getCounterExampleState : Term -> TermList .
@@ -494,8 +580,8 @@ fmod CHECKER is
                                         {formula: F, term: T', trace: (< T : 0 > LL), cx: Cx}
                                     fi
                                     if T' := removeDepthFromTerm(T)
-                                    /\ F := leadsToFormula(Cs)
-                                    /\ Cx := getCounterExample(M, 'modelCheck[T', F]) .
+                                    /\ F := ncxFormula(Cs)
+                                    /\ Cx := getReducedTerm(M, 'modelCheck[T', F]) .
 
     --- Check counterexample in ALLCxStates one by one
     op checkCxStates : Module TermSet LogList ConfigExtSet -> Result4Checking? .
@@ -505,8 +591,8 @@ fmod CHECKER is
                                         else {formula: F, term: T', trace: (< T : 0 > LL), cx: Cx}
                                         fi
                                         if T' := removeDepthFromTerm(T)
-                                        /\ F := eventuallyFormula(Cs)
-                                        /\ Cx := getCounterExample(M, 'modelCheck[T', F]) .
+                                        /\ F := cxFormula(Cs)
+                                        /\ Cx := getReducedTerm(M, 'modelCheck[T', F]) .
 
     --- Check counterexample in a Node one by one in order, including both ALLStates and ALLCxStates
     op checkNode : Module Node ConfigExtSet -> Result4Checking? .
@@ -517,9 +603,102 @@ fmod CHECKER is
                     if R4C := checkStates(M, states(states&CxStates(ND)), logList(ND), Cs) .
     eq checkNode(M, ND, Cs) = success [owise] .
 
-    --- Building counterexample
+    ************ FOR STABLE MODEL CHECKING ************
+    vars STL : Set{TermList} .
+    vars TL : TermList .
+
+    op genStatesForStable : Module Term Nat Nat ConfigExtSet -> States&CxStates .
+    eq genStatesForStable(M, T, D, N, Cs) = genStatesForStable*(M, Cs, genStateSeqs(M, T, N), < emptyTermSet : emptyTermSet >) .
+
+    op genStatesForStable* : Module ConfigExtSet Set{TermList} States&CxStates -> States&CxStates .
+    op genStatesForStable** : Module ConfigExtSet TermList States&CxStates -> States&CxStates .
+
+    eq genStatesForStable*(M, Cs, emp, < TS1 : TS2 >) = < TS1 : TS2 > .
+    eq genStatesForStable*(M, Cs, (TL || STL), < TS1 : TS2 >) = genStatesForStable*(M, Cs, STL, genStatesForStable**(M, Cs, TL, < TS1 : TS2 >)) .
+
+    eq genStatesForStable**(M, Cs, empty, < TS1 : TS2 >) = < TS1 : TS2 > .
+    eq genStatesForStable**(M, Cs, (T, TL), < TS1 : TS2 >)
+    =   if checkStateSeq(M, Cs, (T, TL)) then
+            < TS1 except T : TS2 | T >
+            --- < TS1 : TS2 | T >
+        else
+            if T in TS2 then < TS1 : TS2 > else < T | TS1 : TS2 > fi
+            --- < T | TS1 : TS2 >
+        fi
+    .
+
+    op checkStateSeq : Module ConfigExtSet TermList -> Bool .
+    eq checkStateSeq(M, Cs, empty) = false .
+
+    ceq checkStateSeq(M, Cs, (T, TL))
+    = if B:Bool
+        then true
+        else checkStateSeq(M, Cs, TL)
+        fi
+    if B:Bool := downTerm(getTerm(metaReduce(M, '_|=_[T:Term, midFormula(Cs)])), b-error) .
+
+    --- vars Tr : Trace .
+    --- vars TrS : TraceStep .
+    --- op genStatesForStable* : Module Term Nat ConfigExtSet States&CxStates -> States&CxStates .
+    --- eq genStatesForStable*(M, empty, D, Cs, < TS1 : TS2 >) = < TS1 : TS2 > .
+    --- eq genStatesForStable*(M, T, 0, Cs, < TS1 : TS2 >) = < TS1 : TS2 > .
+    --- ceq genStatesForStable*(M, T, D, Cs, < TS1 : TS2 >) = genStatesForStable**(
+    ---     metaSearch(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, 0),
+    ---     metaSearchPath(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, 0),
+    ---     M,
+    ---     T,
+    ---     D,
+    ---     0,
+    ---     Cs,
+    ---     < TS1 : TS2 >
+    --- )
+    --- if Q := extractOidFromTerm(T) .
+
+    --- op genStatesForStable** : ResultTriple? Trace? Module Term Nat Nat ConfigExtSet States&CxStates -> States&CxStates .
+    --- eq genStatesForStable**(failure, failure, M, T, D, N, Cs, < TS1 : TS2 >) = < TS1 : TS2 > [print "[GenStatesForStable] Finished"] .
+    --- ceq genStatesForStable**(RT, Tr, M, T, D, N, Cs, < TS1 : TS2 >)
+    --- =   genStatesForStable**(
+    ---         metaSearch(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, N + 1),
+    ---         metaSearchPath(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, N + 1),
+    ---         M,
+    ---         T,
+    ---         D,
+    ---         N + 1,
+    ---         Cs,
+    ---         if B:Bool then
+    ---             < TS1 : TS2 | T' > --- counterexample state
+    ---         else
+    ---             < T' | TS1 : TS2 > --- non-counterexample state
+    ---         fi
+    ---     )
+    --- if Q := extractOidFromTerm(T)
+    --- /\ T' := getTerm(RT)
+    --- /\ RT :: ResultTriple
+    --- /\ Tr :: Trace
+    --- /\ B:Bool := checkStateSequence(M, Cs, Tr, T')
+    --- [print "Trace = " Tr "\nLastState = " T' "\nResult = " B:Bool]
+    --- .
+
+    --- op checkStateSequence : Module ConfigExtSet Trace Term -> Bool .
+    --- eq checkStateSequence(M, Cs, nil, T)
+    --- =   if downTerm(getTerm(metaReduce(M, '_|=_[T:Term, midFormula(Cs)])), b-error)
+    ---     then true
+    ---     else false
+    ---     fi .
+
+    --- ceq checkStateSequence(M, Cs, {T:Term, Tp:Type, R:Rule} Tr:Trace, T')
+    --- = if B:Bool == true
+    ---     then true
+    ---     else checkStateSequence(M, Cs, Tr:Trace, T')
+    ---     fi
+    --- if B:Bool := downTerm(getTerm(metaReduce(M, '_|=_[T:Term, midFormula(Cs)])), b-error) .
+
+    ************ BUILDING GLOBAL COUNTEREXAMPLE ************
     vars TTL : TransitionTermList .
     vars TT : TransitionTerm .
+
+    op getCounterExample : Module Result4Checking? -> Term .
+    eq getCounterExample(M, R4C) = combineCounterExample(reverse(buildCounterExample(M, reverse(getLogList(R4C)))), getCx(R4C)) .
 
     op traceStepTerm : TraceStep -> Term .
     op traceStepRule : TraceStep -> Rule .
@@ -543,7 +722,7 @@ fmod CHECKER is
                             then nil
                             else T:Trace?
                             fi
-                            if T:Trace? := metaSearchPath(M, T1, T2, nil, '*, unbounded, 0) [print "\n Trace " T:Trace? ] .
+                            if T:Trace? := metaSearchPath(M, T1, T2, nil, '*, unbounded, 0) [print "\nTrace " T:Trace? ] .
 
     op buildCounterExample : Module LogList -> TransitionTermList .
     eq buildCounterExample(M, nil) = nil .
@@ -555,7 +734,7 @@ fmod CHECKER is
         M, T2, LL,
         reverse(getTransitionList(getTrace(changeDepth(M, D), T1, T2, D))) TTL,
         D + N
-    ) [print "\n T1 = " T1 "\n T2" T2 "\n D " D].
+    ) [print "\nT1 = " T1 "\n T2" T2 "\n D " D].
 
     op transformTransitionTermList : TransitionTermList -> TermList .
     eq transformTransitionTermList(nil) = empty .
@@ -585,16 +764,17 @@ fmod CHECKER is
 
     --- process counterexample states with batch
     op procGenCxStates : Module Term Nat ConfigExtSet Bound StateType -> GenCxState .
-    eq procGenCxStates(M, T, D, Cs, B, all) = $procGenCxStates(changeDepth(M, D), T, D, leadsToFormula(Cs), eventuallyProp(Cs), B, emptyTermSet, 0) .
-    eq procGenCxStates(M, T, D, Cs, B, cx) = $procGenCxStates(changeDepth(M, D), T, D, eventuallyFormula(Cs), eventuallyProp(Cs), B, emptyTermSet, 0) .
+    eq procGenCxStates(M, T, D, Cs, B, all) = $procGenCxStates(changeDepth(M, D), T, D, ncxFormula(Cs), eventuallyProp(Cs), B, emptyTermSet, 0) .
+    eq procGenCxStates(M, T, D, Cs, B, cx) = $procGenCxStates(changeDepth(M, D), T, D, cxFormula(Cs), eventuallyProp(Cs), B, emptyTermSet, 0) .
 
+    --- processes for leadsTo and eventual properties
     op $procGenCxStates : Module Term Nat Term Term Bound TermSet Nat -> GenCxState .
     ceq $procGenCxStates(M, T, D, F, P, B, TS, N) = if Cx :: Constant
                                                 then (TS, M)
                                                 else $procGenCxStates(addEqs(buildEqs(getCounterExampleState(Cx), P), M), T, D, F, P, B, getCounterExampleState(Cx) | TS, N + 1)
                                                 fi
                                             if B == unbounded
-                                            /\ Cx := getCounterExample(M, 'modelCheck[T, F]) .
+                                            /\ Cx := getReducedTerm(M, 'modelCheck[T, F]) .
 
     ceq $procGenCxStates(M, T, D, F, P, B, TS, N) = if Cx :: Constant
                                                     then (TS, M)
@@ -602,7 +782,38 @@ fmod CHECKER is
                                                     fi
                                                 if B =/= unbounded
                                                 /\ N < B
-                                                /\ Cx := getCounterExample(M, 'modelCheck[T, F]) .
+                                                /\ Cx := getReducedTerm(M, 'modelCheck[T, F]) .
 
     eq $procGenCxStates(M, T, D, F, P, B, TS, N) = (TS, M) [owise] .
+
+    --- processes for conditional stable conditional properties
+    op procGenStatesForStable : Module Term Nat ConfigExtSet Nat Bound -> GenAll&CxState .
+    --- eq procGenStatesForStable(M, T, D, Cs, C, B) = $procGenStatesForStable(changeDepth(M, D), T, D, Cs, C, B, < emptyTermSet : emptyTermSet >, 0) [print "procGenStatesForStable"] .
+
+    --- op $procGenStatesForStable : Module Term Nat ConfigExtSet Nat Bound States&CxStates Nat -> GenAll&CxState .
+    --- ceq $procGenStatesForStable(M, T, D, Cs, C, B, < TS1 : TS2 >, N)
+    --- = $procGenStatesForStable(M, T, D, Cs, C + 1, B,
+    ---     if isCxState:Bool then < TS1 : TS2 | T' > else <  T' | TS1 : TS2 > fi,
+    ---     N + 1)
+    --- if B == unbounded
+    --- /\ RT := genState(M, T, D, Cs, C)
+    --- /\ Tr := genTrace(M, T, D, Cs, C)
+    --- /\ T' := getTerm(RT)
+    --- /\ isCxState:Bool := checkStateSequence(M, Cs, Tr, T') .
+
+    --- ceq $procGenStatesForStable(M, T, D, Cs, C, B, < TS1 : TS2 >, N)
+    --- = $procGenStatesForStable(M, T, D, Cs, C + 1, B,
+    ---     if isCxState:Bool then < TS1 : TS2 | T' > else <  T' | TS1 : TS2 > fi,
+    ---     N + 1)
+    --- if B =/= unbounded /\ N < B
+    --- /\ RT := genState(M, T, D, Cs, C)
+    --- /\ Tr := genTrace(M, T, D, Cs, C)
+    --- /\ T' := getTerm(RT)
+    --- /\ isCxState:Bool := checkStateSequence(M, Cs, Tr, T') .
+
+    --- eq $procGenStatesForStable(M, T, D, Cs, C, B, < TS1 : TS2 >, N) = < < TS1 : TS2 > : C > [owise] .
+
+    --- op genTrace : Module Term Nat ConfigExtSet Nat -> Trace? .
+    --- ceq genTrace(M, T, D, Cs, C) = metaSearchPath(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, C)
+    --- if Q := extractOidFromTerm(T) .
 endfm

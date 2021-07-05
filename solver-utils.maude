@@ -1,4 +1,4 @@
-fmod META-UTILS is
+fmod SOLVER-UTILS is
     pr FM-UNIT .
     pr CONVERSION .
 
@@ -19,8 +19,11 @@ fmod META-UTILS is
     eq isEquationByQid(E:Equation, Q:Qid) = false [owise] .
 
     *** Get counterexample from red modelCheck(...) *******************************
-    op getCounterExample : Module Term -> Term .
-    eq getCounterExample(M:Module, T:Term) = getTerm(metaReduce(M:Module, T:Term)) .
+    op getReducedTerm : Module Term -> Term .
+    eq getReducedTerm(M:Module, T:Term) = getTerm(metaReduce(M:Module, T:Term)) .
+
+    op getReducedTermSort : Module Term -> Sort .
+    eq getReducedTermSort(M:Module, T:Term) = getType(metaReduce(M:Module, T:Term)) .
 
     --- Extract TermList from a Term
     op extractTL : Term -> TermList .
@@ -110,10 +113,79 @@ fmod META-UTILS is
     op downQidList : NatList -> QidList .
     eq downQidList((N:Nat L:NatList)) = qid(string(N:Nat, 10)) downQidList(L:NatList) .
     eq downQidList(nil) = nil .
+
+    --- get term from token and bubble
+    op solveBubbleAndToken : Term -> Term .
+    eq solveBubbleAndToken('token[T:Term]) = T:Term .
+    eq solveBubbleAndToken('bubble[T:Term]) = T:Term .
+
+    --- generate all state sequences from a state up to a depth
+    sort Set{TermList} .
+    subsort TermList < Set{TermList} .
+
+    vars M : Module .
+    vars T T' T'' : Term .
+    vars TL TL' : TermList .
+    vars N D : Nat .
+    vars S : Sort .
+    vars RT : ResultTriple .
+    vars STL : Set{TermList} .
+
+    op emp : -> Set{TermList} [ctor] .
+    op _||_ : Set{TermList} Set{TermList} -> Set{TermList} [ctor assoc comm id: emp] .
+    eq STL || STL = STL .
+
+    op |_| : Set{TermList} -> Nat .
+    eq | emp | = 0 .
+    eq | TL || STL | = | STL | + 1 .
+
+    op genStateSeqs : Module Term Nat -> Set{TermList} .
+    op genStateSeqs* : Module Term Term Nat -> Set{TermList} .
+    ceq genStateSeqs(M, T, D) = genStateSeqs**(M, T, T', D, T, emp)
+    if S := getReducedTermSort(M, T)
+    /\ T' := getVarTerm(S) .
+
+    op genStateSeqs* : Module Term Term Nat TermList Set{TermList} TermList -> Set{TermList} .
+    eq genStateSeqs*(M, T, T', D, TL, STL, empty) = STL .
+    eq genStateSeqs*(M, T, T', D, TL, STL, (T'', TL'))
+    = genStateSeqs*(M, T, T', D, TL, genStateSeqs**(M, T'', T', D, (T'', TL), STL), TL') .
+
+    op genStateSeqs** : Module Term Term Nat TermList Set{TermList} -> Set{TermList} .
+    eq genStateSeqs**(M, T, T', D, TL, STL)
+    =   if D == 0 then
+            TL || STL
+        else
+            genStateSeqs*(M, T, T', sd(D, 1), TL, STL, genSuccessors(M, T, T'))
+        fi .
+
+    op genSuccessors : Module Term Term -> TermList .
+    eq genSuccessors(M, T, T') = genSuccessors*(
+        metaSearch(M, T, T', nil, '+, 1, 0),
+        M,
+        T,
+        T',
+        0
+    ) .
+    op genSuccessors* : ResultTriple? Module Term Term Nat -> TermList .
+    eq genSuccessors*(failure, M, T, T', N) = empty .
+    eq genSuccessors*(RT, M, T, T', N) = getTerm(RT), genSuccessors*(
+        metaSearch(M, T, T', nil, '+, 1, N + 1),
+        M,
+        T,
+        T',
+        N + 1
+    ) .
+endfm
+
+fmod SOLVER-COMMON is
+    pr SOLVER-UTILS .
+
+    op b-error : -> [Bool] [ctor] .
+    op nil : -> [Term] [ctor] .
 endfm
 
 fmod REVISE-MODULE is
-    pr META-UTILS .
+    pr SOLVER-COMMON .
     vars M : Module .
     vars S S' : Sort .
 

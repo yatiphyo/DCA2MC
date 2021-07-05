@@ -10,7 +10,7 @@ fmod SOLVER-COMMAND-PROCESSING is
 
     vars T T' T'' : Term .
     vars T1 T2 T3 T4 T5 : Term .
-    vars T1' T2' T3' T4' T5' : [Term] .
+    vars T1' T2' T2'' T3' T4' T5' : [Term] .
     vars T1'' : [Term] .
     vars S S' S1 S2 : Sort .
     vars S1' S2' : [Sort] .
@@ -25,20 +25,11 @@ fmod SOLVER-COMMAND-PROCESSING is
     vars NS NS' : NodeSet .
     vars R4C : Result4Checking? .
 
-    op extractEventuallyPropTerm : EquationSet Term -> Term .
-    ceq extractEventuallyPropTerm(((eq T1 = '<>_[T2] [ A:AttrSet ] .) EQS:EquationSet), T) = T2 if T1 == T .
-    eq extractEventuallyPropTerm(EQS:EquationSet, T) = 'nil [owise] .
-
-    op solveBubbleAndToken : Term -> Term .
-    eq solveBubbleAndToken('token[T]) = T .
-    eq solveBubbleAndToken('bubble[T]) = T .
-
     *** initialize command
     op procInitializeCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
-    ceq procInitializeCommand('initialize`[_`,_`,_`,_`,_`,_`][T, T1, T2, T3, T4, T5], ME, DB, DB-EXT)
+    ceq procInitializeCommand('initialize`[_`,_`,_`,_`,_`][T, T1, T2, T3, T4], ME, DB, DB-EXT)
         = if T1' :: Term
         and T2' :: Term
-        and T3' :: Term
         and S1' :: Sort
         and S2' :: Sort
             then << DB3 ;
@@ -46,11 +37,10 @@ fmod SOLVER-COMMAND-PROCESSING is
                 '\o '\s 'originModule: ME' '\n
                 '\o '\s 'reviseModule: header2Qid(ME'') '\n
                 '\o '\s 'initialState: downQidList(T1') '\n
-                '\o '\s 'leadsToFormula: downQidList(T2') '\n
-                '\o '\s 'eventuallyFormula: downQidList(T3') '\n
+                '\o '\s 'formula: downQidList(T2') '\n
                 '\o '\s 'eleSort: S1' '\n
                 '\o '\s 'soupSort: S2' '\n
-                ) ; initializeDatabaseExt(ME', ME'', T1', T2', T3', S1', S2', DB3, DB-EXT) >>
+                ) ; initializeDatabaseExt(ME', ME'', T1', T2', S1', S2', DB3, DB-EXT) >>
             else << DB ; ('\r 'Error: '\o 'Incorrect 'input. '\n) ; DB-EXT >>
             fi
         if DB1 := database(evalModExp(ME, DB))
@@ -58,9 +48,8 @@ fmod SOLVER-COMMAND-PROCESSING is
             /\ M := getFlatModule(ME', DB2)
             /\ T1' := solveBubbleAndToken(T1)
             /\ T2' := solveBubbleAndToken(T2)
-            /\ T3' := solveBubbleAndToken(T3)
-            /\ S1' := parseSort(T4)
-            /\ S2' := parseSort(T5)
+            /\ S1' := parseSort(T3)
+            /\ S2' := parseSort(T4)
             /\ ME'' := (addsufix '-REVISE To ME')
             /\ DB3 := if unitInDb(ME'', DB2)
                 then DB2
@@ -69,44 +58,32 @@ fmod SOLVER-COMMAND-PROCESSING is
                     revise-module(M, S1', S2'),
                     ME''),
                     none, DB2)
-                fi . --- [print ME' " " T1' " " T2' " " T3' " " S1' " " S2'] .
+                fi
+                [print ME' " " T1' " " T2' " " S1' " " S2']
+                .
 
-    op initializeDatabaseExt : ModuleExpression ModuleExpression Term Term Term Sort Sort Database DatabaseExt -> DatabaseExt .
-    ceq initializeDatabaseExt(ME, ME', T1, T2, T3, S, S', DB, DB-EXT) =
-        if T1' :: Term and T1'' :: Term and T3' :: Term and T4' :: Term
+    op initializeDatabaseExt : ModuleExpression ModuleExpression Term Term Sort Sort Database DatabaseExt -> DatabaseExt .
+    ceq initializeDatabaseExt(ME, ME', T1, T2, S, S', DB, DB-EXT) =
+        if T1' :: Term and T1'' :: Term and T2' :: Term
         then
-            if T2' :: Term
-            then    --- checking leads to property
-                {
-                    (originModule: ME),
-                    (reviseModule: ME'),
-                    (initState: T1''),
-                    (leadsToFormula: T2'),
-                    (eventuallyFormula: T3'),
-                    (eventuallyProp: T4'),
-                    (eleSort: S),
-                    (soupSort: S')
-                ; buildInitialOCompExtSet(T1'', true) }
-            else    --- checking eventually property
-                {
-                    (originModule: ME),
-                    (reviseModule: ME'),
-                    (initState: T1''),
-                    (eventuallyFormula: T3'),
-                    (eventuallyProp: T4'),
-                    (eleSort: S),
-                    (soupSort: S')
-                ; buildInitialOCompExtSet(T1'', false) }
-            fi
+            {
+                (originModule: ME),
+                (reviseModule: ME'),
+                (initState: T1''),
+                buildFormulaConfig(T2''),
+                (eleSort: S),
+                (soupSort: S')
+                ; buildInitialOCompExtSet(T1'', type(buildFormulaConfig(T2'')))
+            }
         else
             DB-EXT
         fi
         if T1' := getTerm(metaParse(upModule(ME, false), downQid(T1), anyType))
         /\ T1'' := getTerm(metaReduce(upModule(ME, true), T1'))
         /\ T2' := getTerm(metaParse(upModule(ME, false), downQid(T2), anyType))
-        /\ T3' := getTerm(metaParse(upModule(ME, false), downQid(T3), anyType))
-        /\ T4' := extractEventuallyPropTerm(getEqs(upModule(ME, false)), T3') .
-        --- [print ME " " T1 " " T2 " " T3 " " T1' " " T2' " " T3' " " T1''] .
+        /\ T2'' := extractFormula(getEqs(upModule(ME, false)), T2')
+        [print "T1 = " T1'' " T2 = " T2'']
+        .
 
     *** layerCheck command
     op procLayerCheckCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
@@ -187,7 +164,7 @@ fmod SOLVER-COMMAND-PROCESSING is
                 DB-EXT' >>
             else << DB ;
                 ('\r 'LastCheck: '\s '\o 'failure '\n
-                'Formula: getFormula(R4C) '\n
+                --- 'Formula: getFormula(R4C) '\n
                 --- get counterexample
                 'Cx: '\s eMetaPrettyPrint(M', getCounterExample(M', R4C)) '\n
                 ) ;
@@ -255,9 +232,6 @@ fmod SOLVER-COMMAND-PROCESSING is
 
     eq procCheckCommand('check_[T], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
-
-    op getCounterExample : Module Result4Checking? -> Term .
-    eq getCounterExample(M, R4C) = combineCounterExample(reverse(buildCounterExample(M, reverse(getLogList(R4C)))), getCx(R4C)) .
 
     *** showCx command
     op procShowCxCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .

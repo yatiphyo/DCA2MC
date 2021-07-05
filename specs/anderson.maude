@@ -76,7 +76,7 @@ fmod CONFIG is
   eq init = {(pc[p1]: rs) (pc[p2]: rs)
             (place[p1]: 0) (place[p2]: 0)
             (next: 0)
-            (array[0]: true) (array[1]: false) 
+            (array[0]: true) (array[1]: false)
             (cnt: 2)} .
   eq init5 = {(pc[p1]: rs) (pc[p2]: rs) (pc[p3]: rs) (pc[p4]: rs) (pc[p5]: rs)
             (place[p1]: 0) (place[p2]: 0) (place[p3]: 0) (place[p4]: 0) (place[p5]: 0)
@@ -152,44 +152,11 @@ mod ANDERSON-CHECK is
     inc ANDERSON-PREDS .
     inc MODEL-CHECKER .
     inc LTL-SIMPLIFIER .
-    op lofree1 : -> Formula .
-    eq lofree1 = inWs1 |-> inCs1 .
-    op lofree2 : -> Formula .
-    eq lofree2 = <> inCs1 .
+    op lofree : -> Formula .
+    eq lofree = inWs1 |-> inCs1 .
 endm
 
 ***
-*** red in ANDERSON-CHECK : modelCheck(init, lofree1) .
-*** red in ANDERSON-CHECK : modelCheck(init5, lofree1) .
-***
-
---- in model-checker .
-
---- fmod ANDERSON-PREDS is
----     pr ANDERSON .
----     inc SATISFACTION .
----     subsort Sys < State .
----     op wait : Pid -> Prop .
----     op crit : Pid -> Prop .
----     var P : Pid .
----     var S : Sys .
----     var PROP : Prop .
----     eq (pc[P] : ws) S |= wait(P) = true .
----     eq (pc[P] : cs) S |= crit(P) = true .
----     eq S |= PROP = false [owise] .
---- endfm
-
---- fmod ANDERSON-CHECK is
----     inc ANDERSON-PREDS .
----     inc MODEL-CHECKER .
----     inc LTL-SIMPLIFIER .
----     op lofree1 : -> Formula .
----     eq lofree1 = inWs1 |-> inCs1 .
----     op lofree2 : -> Formula .
----     eq lofree2 = <> inCs1 .
---- endfm
-
-***
-*** red in ANDERSON-CHECK : modelCheck(init,mutex) .
-*** red in ANDERSON-CHECK : modelCheck(init,lofree) .
+*** red in ANDERSON-CHECK : modelCheck(init, lofree) .
+*** red in ANDERSON-CHECK : modelCheck(init5, lofree) .
 ***

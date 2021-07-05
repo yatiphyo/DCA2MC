@@ -31,6 +31,7 @@ fmod OCOMP is
   op (locked:_) : Bool -> OComp [ctor] .
   op (pc[_]:_) :  Pid Loc -> OComp [ctor] .
   op (cnt:_) :  Nat -> OComp [ctor] .
+  op (depth:_) :  Nat -> OComp [ctor] .
 endfm
 
 view OComp from TRIV to OCOMP is
@@ -42,7 +43,7 @@ fmod CONFIG is
   sort Config .
   op {_} : Soup{OComp} -> Config [ctor] .
   ops init init3 init5 init10 init13 init14 init15 : -> Config .
-  eq init = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (cnt: 2) } .
+  eq init = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (cnt: 2) (depth: 0)} .
   eq init3 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (cnt: 3) } .
   eq init5 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss) (cnt: 5) } .
   eq init10 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
@@ -62,12 +63,17 @@ mod TAS is
   inc CONFIG .
   var B : Bool .
   var I : Pid .
-  var N :  Nat .
+  vars N D :  Nat .
   var OCs : Soup{OComp} .
-  rl [start] : {(pc[I]: ss) OCs} => {(pc[I]: ws) OCs} .
-  rl [wait] : {(locked: false) (pc[I]: ws) OCs} => {(locked: true) (pc[I]: cs) OCs} .
-  rl [exit] : {(locked: B) (pc[I]: cs) (cnt: N) OCs} => {(locked: false) (pc[I]: fs) (cnt: dec(N)) OCs} .
-  rl [fin] : {(cnt: 0) OCs} => {(cnt: 0) OCs} .
+
+  op Bound : -> Nat .
+  eq Bound = 2 .
+
+  crl [start] : {(pc[I]: ss) (depth: D) OCs} => {(pc[I]: ws) (depth: (D + 1)) OCs} if D < Bound .
+  crl [wait] : {(locked: false) (pc[I]: ws) (depth: D) OCs} => {(locked: true) (pc[I]: cs) (depth: (D + 1)) OCs} if D < Bound .
+  crl [exit] : {(locked: B) (pc[I]: cs) (cnt: N) (depth: D) OCs} => {(locked: false) (pc[I]: fs) (cnt: dec(N)) (depth: (D + 1)) OCs} if D < Bound .
+  rl [fin] : {(cnt: 0) (depth: D) OCs} => {(cnt: 0) (depth: (D + 1)) OCs} .
+  crl [stutter] : {(depth: D) OCs} => {(depth: D) OCs} if D >= Bound .
 endm
 
 in model-checker .
@@ -83,6 +89,10 @@ mod TAS-PREDS is
   eq {(pc[p2]: cs) OCs} |= inCs1 = true .
   eq {(pc[p2]: fs) OCs} |= inFs1 = true .
   eq {OCs} |= PROP = false [owise] .
+
+  eq {(locked: false) (pc[p1]: ws) (pc[p2]: ws) (cnt: 2) (depth: 2)} |= inWs1 = false .
+  eq {(locked: false) (pc[p1]: ws) (pc[p2]: ws) (cnt: 2) (depth: 2)} |= inWs1 = false .
+
 endm
 
 mod TAS-CHECK is
@@ -92,7 +102,9 @@ mod TAS-CHECK is
   op lofree : -> Formula .
   eq lofree = inWs1 |-> inCs1 .
   op cstable : -> Formula .
-  eq cstable = inWs1 |-> <> inFs1 .
+  eq cstable = inCs1 |-> <> inFs1 .
+  op test : -> Formula .
+  eq test = [] ~ inWs1 .
 endm
 
 ***(
@@ -100,4 +112,5 @@ search [1] in TAS : init =>! {OCs} .
 search in TAS : init =>* {OCs} such that false .
 red in TAS-CHECK : modelCheck(init, lofree) .
 red in TAS-CHECK : modelCheck(init10, lofree) .
+red in TAS-CHECK : modelCheck(init, test) .
 )***
