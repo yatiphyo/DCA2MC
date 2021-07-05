@@ -21,7 +21,7 @@ mod SOLVER-DATABASE-HANDLING is
     vars M M' : Module .
     vars OCs OCs' : OCompExtSet .
     vars Cs Cs' : ConfigExtSet .
-    vars N N' C C' : Nat .
+    vars D N N' C C' : Nat .
     vars B : Bound .
     vars GS : GenState .
     vars GCxS : GenCxState .
@@ -146,7 +146,7 @@ mod SOLVER-DATABASE-HANDLING is
             if getNextDepth(ST) =/= unbounded
             then
                 if type(Cs) == cstable then
-                    genStatesForStable(O, ST, M, 0)
+                    genStatesForStable(O, ST, M)
                 else
                     genAllStates(O, ST, M, 0)
                 fi
@@ -178,39 +178,41 @@ mod SOLVER-DATABASE-HANDLING is
             db : DB,
             db-ext : DB-EXT,
             status : working,
-            batchSize : B,
             cache : O',
             client : O'',
             Atts >
-        genStatesForStable(O, ST, M, C)
-        =>  if C' > C
-            then
-                < O : X@DatabaseClass |
-                    db : DB,
-                    db-ext : DB-EXT,
-                    status : suspending,
-                    batchSize : B,
-                    cache : O',
-                    client : O'',
-                    Atts >
-                genStatesForStable(O, ST, M, C')
-                lookupBatchReq(O', O, (termSetToStates(DB-EXT, ST, TS1, all), termSetToStates(DB-EXT, ST, TS2, cx)))
-            else
-                < O : X@DatabaseClass |
-                    db : DB,
-                    db-ext : DB-EXT,
-                    status : waiting,
-                    batchSize : B,
-                    cache : O',
-                    client : O'',
-                    Atts >
-                fetchState(O'', O)
-            fi
+        genStatesForStable(O, ST, M)
+        =>
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : suspending,
+            cache : O',
+            client : O'',
+            Atts >
+        genStatesForStableDone(O, ST, M)
+        lookupBatchReq(O', O, (termSetToStates(DB-EXT, ST, TS1, all), termSetToStates(DB-EXT, ST, TS2, cx)))
         if Cs := getConfigExtSet(DB-EXT)
-        /\ < < TS1 : TS2 > : C' > := procGenStatesForStable(M, getState(ST), getNextDepth(ST), Cs, C, B)
-        /\ N := | TS1 |
-        /\ N' := | TS2 |
-        [print "[genStatesForStable] |TS1| = " N " |TS2| = " N'] .
+        /\ D := getNextDepth(ST)
+        /\ N := sd(D, getDepth(ST))
+        /\ < TS1 : TS2 > := genStatesForStable(changeDepth(M, D) , getState(ST), D, N, Cs)
+        /\ C := | TS1 |
+        /\ C' := | TS2 |
+        [print "[genStatesForStable] |TS1| = " C " |TS2| = " C'] .
+
+    rl [genStatesForStableDone] :
+        < O : X@DatabaseClass |
+            status : working,
+            client : O'',
+            Atts >
+        genStatesForStableDone(O, ST, M)
+        =>
+        < O : X@DatabaseClass |
+            status : waiting,
+            client : O'',
+            Atts >
+        fetchState(O'', O)
+        [print "[genStatesForStableDone]"] .
 
     crl [genCxStatesForStable] :
         < O : X@DatabaseClass |
@@ -236,13 +238,13 @@ mod SOLVER-DATABASE-HANDLING is
             lookupBatchReq(O', O, termSetToStates(DB-EXT, ST, TS, cx))
         else
             < O : X@DatabaseClass |
-                    db : DB,
-                    db-ext : DB-EXT,
-                    status : waiting,
-                    batchSize : B,
-                    cache : O',
-                    client : O'',
-                    Atts >
+                db : DB,
+                db-ext : DB-EXT,
+                status : waiting,
+                batchSize : B,
+                cache : O',
+                client : O'',
+                Atts >
             fetchState(O'', O)
         fi
     if  Cs := getConfigExtSet(DB-EXT)
@@ -322,14 +324,14 @@ mod SOLVER-DATABASE-HANDLING is
             lookupBatchReq(O', O, termSetToStates(DB-EXT, ST, TS, cx))
         else
             < O : X@DatabaseClass |
-                    db : DB,
-                    db-ext : DB-EXT,
-                    input : nilTermList,
-                    status : waiting,
-                    batchSize : B,
-                    cache : O',
-                    client : O'',
-                    Atts >
+                db : DB,
+                db-ext : DB-EXT,
+                input : nilTermList,
+                status : waiting,
+                batchSize : B,
+                cache : O',
+                client : O'',
+                Atts >
             fetchState(O'', O)
         fi
     if  Cs := getConfigExtSet(DB-EXT)

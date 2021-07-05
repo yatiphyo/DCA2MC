@@ -10,6 +10,7 @@ mod SOLVER-LOGGER is
     vars L : Logger .
     vars K : Nat .
     vars STYPE : StateType .
+    vars Cx All : Nat .
 
     op logging : Logger Nat StateType -> Logger .
 
@@ -24,4 +25,7 @@ mod SOLVER-LOGGER is
                             fi
                             if STYPE == cx .
     eq logging(L, K, STYPE) = L [owise] .
+
+    op updateLogger : Logger Nat Counter -> Logger .
+    eq updateLogger(L, K, (All, Cx)) = insert(K, (All, Cx), L) .
 endm

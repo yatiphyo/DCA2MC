@@ -13,6 +13,7 @@ view Map`{Nat`,TermSet`} from TRIV to CACHE-INTERFACE is
 endv
 
 mod CACHE is
+    pr TERMSET-EXT .
     pr CACHE-INTERFACE .
     pr 3TUPLE{Map{Nat,TermSet},Map{Nat,TermSet},StateSet} * (
                  op p1_ to getCacheCxState,
@@ -21,16 +22,50 @@ mod CACHE is
                  sort Tuple{Map{Nat,TermSet},Map{Nat,TermSet},StateSet} to CacheResult) .
 
     vars O O' O'' : Oid .
-    vars MCX MCX' MAS MAS' : Map{Nat,TermSet} .
+    vars MCX MCX' MAS MAS' M : Map{Nat,TermSet} .
     vars Atts : AttributeSet .
-    vars N : Nat .
+    vars N D : Nat .
     vars T T' : Term .
     vars AS CX TS : TermSet .
     vars S : State .
     vars SS SS' : StateSet .
     vars CR : CacheResult .
     vars L L' : Logger .
+    vars J : Queue{State} .
 
+    --- filter states for conditional stable model checking
+    crl [filterStatesReq] : < O : Cache | AllState : MAS, CxState : MCX, server : O', logger : L, Atts >
+        filterStatesReq(O, O'', S | J)
+    => < O : Cache | AllState : MAS', CxState : MCX, server : O', logger : L', Atts >
+        filterStatesReply(O', O,
+            if MCX[D] == undefined then (S | J) else filterStates(MCX[D], S | J) fi
+        )
+    if D := getDepth(S)
+    /\ MAS' := updateAllState(MAS, MCX, D)
+    /\ L' := updateLogger(L, D, (getNumStates(MAS', D), getNumStates(MCX, D)))
+    /\ B:Bool := L == L'
+    [print "[filterStatesReq] L == L' = " B:Bool]
+    .
+
+    op updateAllState : Map{Nat,TermSet} Map{Nat,TermSet} Nat -> Map{Nat,TermSet} .
+    eq updateAllState(MAS, MCX, D) = if MAS[D] == undefined or-else MCX[D] == undefined
+                                     then MAS
+                                     else insert(D, (MAS[D] except MCX[D]), MAS)
+                                     fi .
+    op getNumStates : Map{Nat,TermSet} Nat -> Nat .
+    eq getNumStates(M, D) = if M[D] == undefined then 0 else | M[D] | fi .
+
+    op filterStates : TermSet Queue{State} -> Queue{State} .
+    eq filterStates(CX, emptyq) = emptyq .
+    eq filterStates(CX, S | J) = if getType(S) == cx
+                                 then
+                                    S | filterStates(CX, J)
+                                 else
+                                    if getState(S) in CX
+                                    then filterStates(CX, J)
+                                    else S | filterStates(CX, J)
+                                    fi
+                                 fi .
     --- lookup request for master
     crl [lookupReq] : < O : Cache | CxState : MCX, AllState : MAS, server : O', logger : L, Atts  > lookupReq(O, O'', S)
     => if getType(S) == cx

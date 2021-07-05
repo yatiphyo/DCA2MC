@@ -1,5 +1,4 @@
 load buffered-socket.maude
-load queue.maude
 
 mod SERVER is
     pr BUFFERED-SOCKET .

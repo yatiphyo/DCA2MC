@@ -1,3 +1,5 @@
+load mq/queue.maude
+
 fmod VALIDATOR is
     pr CONVERSION .
 
@@ -41,6 +43,7 @@ mod SOLVER-MESSAGE is
     pr STATE .
     pr STATE-SET .
     pr SOLVER-LOGGER .
+    pr IQUEUE{State} .
 
     op server :_ : Oid -> Attribute [ctor] .
     op client :_ : Oid -> Attribute [ctor] .
@@ -53,6 +56,7 @@ mod SOLVER-MESSAGE is
     op socket :_ : Oid -> Attribute [ctor format(! o o o)] .
     op listener :_ : Oid -> Attribute [ctor] .
     op nReq :_ : Nat -> Attribute [ctor] .
+    op nWorkers :_ : Nat -> Attribute [ctor] .
 
     sort Status .
     ops idle initialized waiting suspending working stopping terminated : -> Status .
@@ -63,6 +67,8 @@ mod SOLVER-MESSAGE is
     op lookupReply : Oid Oid State -> Msg [ctor msg format (b o)] .
     op lookupReplyEmpty : Oid Oid -> Msg [ctor msg format (b o)] .
     op lookupBatchReply : Oid Oid StateSet -> Msg [ctor msg format (b o)] .
+    op filterStatesReq : Oid Oid Queue{State} -> Msg [ctor msg format (b o)] .
+    op filterStatesReply : Oid Oid Queue{State} -> Msg [ctor msg format (b o)] .
     op allStates : Oid Oid State TermSet -> Msg [ctor msg format (b o)] .
     op cxStates : Oid Oid State TermSet -> Msg [ctor msg format (b o)] .
     op clearCache : Oid Oid -> Msg [ctor msg format (b o)] .
@@ -82,7 +88,8 @@ mod SOLVER-MESSAGE is
     op handle : Oid Oid State -> Msg [ctor msg format (b o)] .
     op genAllStates : Oid State Module Nat -> Msg [ctor msg format (b o)] .
     op genCxStates : Oid State Module -> Msg [ctor msg format (b o)] .
-    op genStatesForStable : Oid State Module Nat -> Msg [ctor msg format (b o)] .
+    op genStatesForStable : Oid State Module -> Msg [ctor msg format (b o)] .
+    op genStatesForStableDone : Oid State Module -> Msg [ctor msg format (b o)] .
     op genCxStatesForStable : Oid State Module Nat -> Msg [ctor msg format (b o)] .
     op lastCheckAllState : Oid State -> Msg [ctor msg format (b o)] .
     op lastCheckCxState : Oid State -> Msg [ctor msg format (b o)] .

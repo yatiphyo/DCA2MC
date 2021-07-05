@@ -637,62 +637,6 @@ fmod CHECKER is
         fi
     if B:Bool := downTerm(getTerm(metaReduce(M, '_|=_[T:Term, midFormula(Cs)])), b-error) .
 
-    --- vars Tr : Trace .
-    --- vars TrS : TraceStep .
-    --- op genStatesForStable* : Module Term Nat ConfigExtSet States&CxStates -> States&CxStates .
-    --- eq genStatesForStable*(M, empty, D, Cs, < TS1 : TS2 >) = < TS1 : TS2 > .
-    --- eq genStatesForStable*(M, T, 0, Cs, < TS1 : TS2 >) = < TS1 : TS2 > .
-    --- ceq genStatesForStable*(M, T, D, Cs, < TS1 : TS2 >) = genStatesForStable**(
-    ---     metaSearch(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, 0),
-    ---     metaSearchPath(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, 0),
-    ---     M,
-    ---     T,
-    ---     D,
-    ---     0,
-    ---     Cs,
-    ---     < TS1 : TS2 >
-    --- )
-    --- if Q := extractOidFromTerm(T) .
-
-    --- op genStatesForStable** : ResultTriple? Trace? Module Term Nat Nat ConfigExtSet States&CxStates -> States&CxStates .
-    --- eq genStatesForStable**(failure, failure, M, T, D, N, Cs, < TS1 : TS2 >) = < TS1 : TS2 > [print "[GenStatesForStable] Finished"] .
-    --- ceq genStatesForStable**(RT, Tr, M, T, D, N, Cs, < TS1 : TS2 >)
-    --- =   genStatesForStable**(
-    ---         metaSearch(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, N + 1),
-    ---         metaSearchPath(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, N + 1),
-    ---         M,
-    ---         T,
-    ---         D,
-    ---         N + 1,
-    ---         Cs,
-    ---         if B:Bool then
-    ---             < TS1 : TS2 | T' > --- counterexample state
-    ---         else
-    ---             < T' | TS1 : TS2 > --- non-counterexample state
-    ---         fi
-    ---     )
-    --- if Q := extractOidFromTerm(T)
-    --- /\ T' := getTerm(RT)
-    --- /\ RT :: ResultTriple
-    --- /\ Tr :: Trace
-    --- /\ B:Bool := checkStateSequence(M, Cs, Tr, T')
-    --- [print "Trace = " Tr "\nLastState = " T' "\nResult = " B:Bool]
-    --- .
-
-    --- op checkStateSequence : Module ConfigExtSet Trace Term -> Bool .
-    --- eq checkStateSequence(M, Cs, nil, T)
-    --- =   if downTerm(getTerm(metaReduce(M, '_|=_[T:Term, midFormula(Cs)])), b-error)
-    ---     then true
-    ---     else false
-    ---     fi .
-
-    --- ceq checkStateSequence(M, Cs, {T:Term, Tp:Type, R:Rule} Tr:Trace, T')
-    --- = if B:Bool == true
-    ---     then true
-    ---     else checkStateSequence(M, Cs, Tr:Trace, T')
-    ---     fi
-    --- if B:Bool := downTerm(getTerm(metaReduce(M, '_|=_[T:Term, midFormula(Cs)])), b-error) .
-
     ************ BUILDING GLOBAL COUNTEREXAMPLE ************
     vars TTL : TransitionTermList .
     vars TT : TransitionTerm .
@@ -785,35 +729,4 @@ fmod CHECKER is
                                                 /\ Cx := getReducedTerm(M, 'modelCheck[T, F]) .
 
     eq $procGenCxStates(M, T, D, F, P, B, TS, N) = (TS, M) [owise] .
-
-    --- processes for conditional stable conditional properties
-    op procGenStatesForStable : Module Term Nat ConfigExtSet Nat Bound -> GenAll&CxState .
-    --- eq procGenStatesForStable(M, T, D, Cs, C, B) = $procGenStatesForStable(changeDepth(M, D), T, D, Cs, C, B, < emptyTermSet : emptyTermSet >, 0) [print "procGenStatesForStable"] .
-
-    --- op $procGenStatesForStable : Module Term Nat ConfigExtSet Nat Bound States&CxStates Nat -> GenAll&CxState .
-    --- ceq $procGenStatesForStable(M, T, D, Cs, C, B, < TS1 : TS2 >, N)
-    --- = $procGenStatesForStable(M, T, D, Cs, C + 1, B,
-    ---     if isCxState:Bool then < TS1 : TS2 | T' > else <  T' | TS1 : TS2 > fi,
-    ---     N + 1)
-    --- if B == unbounded
-    --- /\ RT := genState(M, T, D, Cs, C)
-    --- /\ Tr := genTrace(M, T, D, Cs, C)
-    --- /\ T' := getTerm(RT)
-    --- /\ isCxState:Bool := checkStateSequence(M, Cs, Tr, T') .
-
-    --- ceq $procGenStatesForStable(M, T, D, Cs, C, B, < TS1 : TS2 >, N)
-    --- = $procGenStatesForStable(M, T, D, Cs, C + 1, B,
-    ---     if isCxState:Bool then < TS1 : TS2 | T' > else <  T' | TS1 : TS2 > fi,
-    ---     N + 1)
-    --- if B =/= unbounded /\ N < B
-    --- /\ RT := genState(M, T, D, Cs, C)
-    --- /\ Tr := genTrace(M, T, D, Cs, C)
-    --- /\ T' := getTerm(RT)
-    --- /\ isCxState:Bool := checkStateSequence(M, Cs, Tr, T') .
-
-    --- eq $procGenStatesForStable(M, T, D, Cs, C, B, < TS1 : TS2 >, N) = < < TS1 : TS2 > : C > [owise] .
-
-    --- op genTrace : Module Term Nat ConfigExtSet Nat -> Trace? .
-    --- ceq genTrace(M, T, D, Cs, C) = metaSearchPath(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, C)
-    --- if Q := extractOidFromTerm(T) .
 endfm

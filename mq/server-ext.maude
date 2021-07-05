@@ -1,0 +1,185 @@
+load buffered-socket.maude
+load queue.maude
+
+mod SERVER is
+    pr BUFFERED-SOCKET .
+    pr IQUEUE{Worker} .
+    pr SET{Worker} .
+    pr SOLVER-MESSAGE .
+    pr SOLVER-MESSAGE-CONVERTER .
+
+    op jobs :_ : Queue{State} -> Attribute [ctor format(! o o o)] .
+    op nextJobs :_ : Queue{State} -> Attribute [ctor format(! o o o)] .
+    op waitingWorkers :_ : Queue{Worker} -> Attribute [ctor format(! o o o)] .
+    op workers :_ : Set{Worker} -> Attribute [ctor format(! o o o)] .
+
+    vars J J' : Queue{State} .
+    vars W : Queue{Worker} .
+    vars SW : Set{Worker} .
+
+    op Server : -> Cid [ctor] .
+
+    vars O O' O'' LISTENER CLIENT CACHE APP : Oid .
+    var  A : AttributeSet .
+    var  N : Nat .
+    vars IP DATA : String .
+    vars C : Configuration .
+    var S : State .
+    var SS : StateSet .
+
+    crl [LookupReply] : < O : Server | nextJobs : J, nReq : N, A > lookupReply(O, O', S)
+    =>  < O : Server | nextJobs : (J | S), nReq : if N == 0 then N else sd(N, 1) fi, A >
+    if S =/= null
+    [print "[LookupReply] State"] .
+
+    rl [LookupReplyEmpty] : < O : Server | nReq : N, A > lookupReplyEmpty(O, O')
+    =>  < O : Server | nReq : if N == 0 then N else sd(N, 1) fi, A > [print "[LookupReplyEmpty]"] .
+
+    rl [LookupBatchReply] : < O : Server | nextJobs : J, A > lookupBatchReply(O, O', SS)
+        => < O : Server | nextJobs : enqueueFromSet(SS, J), A > [print "[LookupBatchReply] States"] .
+
+    op enqueueFromSet : StateSet Queue{State} -> Queue{State} .
+    eq enqueueFromSet(empty, J) = J .
+    eq enqueueFromSet((S, SS), J) = enqueueFromSet(SS, J | S) .
+
+    rl [MqCreatedSocket] :
+        < O : Server | A > CreatedSocket(O, socketManager, LISTENER)
+        =>
+        < O : Server |
+            status : initialized,
+            listener : LISTENER,
+            workers : empty,
+            jobs : emptyq,
+            nextJobs : emptyq,
+            waitingWorkers : emptyq,
+            nReq : 0,
+            A >
+        AcceptClient(LISTENER, O) [print "[MqCreatedSocket]"] .
+
+    rl [MqAcceptedClient] :
+        < O : Server | status : initialized, workers : SW, A > AcceptedClient(O, LISTENER, IP, CLIENT)
+        => < O : Server | status : initialized, workers : (CLIENT, SW), A > Receive(CLIENT, O)
+        AcceptClient(LISTENER, O) [print "[MqAcceptedClient]"] .
+
+    crl [MqInitialized] :
+        < O : Server | status : initialized, workers : SW, nWorkers : N, A >
+        => < O : Server | status : working, workers : SW, nWorkers : N, A >
+        if | SW | == N [print "[MqInitialized]"] .
+
+    rl [SendJob] : < O : Server | status : working, jobs : (S | J), waitingWorkers : (CLIENT | W), A >
+        => < O : Server | status : working, jobs : J, waitingWorkers : W, A >
+        Send(CLIENT, O, state2string(S)) [print "[SendJob]"] .
+
+    rl [MqSent] :
+        < O : Server | A > Sent(O, CLIENT)
+        => < O : Server | A > [print "[MqSent]"] .
+
+    crl [MqReceived] :
+        < O : Server | status : working, waitingWorkers : W, A > Received(O, CLIENT, DATA)
+        => < O : Server | status : working, waitingWorkers : (W | CLIENT), A >
+        if DATA == getJob [print "[MqReceived] " DATA] .
+
+    crl [MqReceived] :
+        < O : Server | status : working, A > Received(O, CLIENT, DATA)
+        => < O : Server | status : stopping, A > stopWorking(O, CLIENT)
+        if DATA == stop [print "[MqReceived] " DATA] .
+
+    crl [MqReceived] :
+        < O : Server | status : working, cache : CACHE, nReq : N, A > Received(O, CLIENT, DATA)
+        => < O : Server | status : working, cache : CACHE, nReq : (N + 1), A > lookupReq(CACHE, O, S)
+        if DATA =/= getJob
+        /\ DATA =/= stop
+        /\ S := string2state(DATA) [print "[MqReceived] State"] .
+
+    crl [MqSwitching] :
+        < O : Server |
+            status : working,
+            workers : SW,
+            jobs : emptyq,
+            nReq : 0,
+            waitingWorkers : W,
+            nextJobs : J,
+            cache : CACHE,
+            A >
+        =>
+        < O : Server |
+            status : suspending,
+            workers : SW,
+            jobs : emptyq,
+            nReq : 0,
+            waitingWorkers : W,
+            nextJobs : emptyq,
+            cache : CACHE,
+            A >
+        filterStatesReq(CACHE, O, J)
+        if qsize(W) > 0
+        /\ qsize(W) == | SW |
+        /\ qsize(J) > 0
+        [print "[MqSwitching]"] .
+
+    crl [MqSwitched] :
+        < O : Server |
+            status : suspending,
+            workers : SW,
+            jobs : emptyq,
+            nReq : 0,
+            waitingWorkers : W,
+            nextJobs : emptyq,
+            cache : CACHE,
+            A >
+        filterStatesReply(O, CACHE, J)
+        =>
+        < O : Server |
+            status : working,
+            workers : SW,
+            jobs : J,
+            nReq : 0,
+            waitingWorkers : W,
+            nextJobs : emptyq,
+            cache : CACHE,
+            A >
+        if qsize(W) > 0
+        /\ qsize(W) == | SW |
+        [print "[MqSwitched]"] .
+
+    crl [CheckTermination] :
+        < O : Server |
+            status : working,
+            workers : SW,
+            jobs : J,
+            nextJobs : J',
+            waitingWorkers : W,
+            nReq : N,
+            A >
+        =>
+        < O : Server |
+            status : stopping,
+            workers : SW,
+            jobs : J,
+            nextJobs : J',
+            waitingWorkers : W,
+            nReq : N,
+            A >
+        stopWorking(O, O)
+        if N == 0
+        /\ isEmpty(J)
+        /\ isEmpty(J')
+        /\ qsize(W) > 0
+        /\ qsize(W) == | SW | [print "[CheckTermination]"] .
+
+    rl [StopClient] : < O : Server | workers : (CLIENT, SW), A > stopWorking(O, O')
+        => CloseSocket(CLIENT, O) < O : Server | workers : SW, A > stopWorking(O, O')
+        [print "[StopClient] " CLIENT] .
+
+    rl [StopListener] : < O : Server | workers : empty, app : APP, cache : CACHE, listener : LISTENER, A >
+        stopWorking(O, O')
+        => < O : Server | workers : empty, app : APP, cache : CACHE, listener : LISTENER, A >
+        CloseSocket(LISTENER, O)
+        clearApp(APP, O)
+        clearCache(CACHE, O)
+        [print "[StopListener]"] .
+
+    rl [MqClosedSocket] :
+        < O : Server | A > ClosedSocket(O, CLIENT, DATA)
+        => < O : Server | A > [print "[MqClosedSocket]"] .
+endm
