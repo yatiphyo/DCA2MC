@@ -79,7 +79,7 @@ mod TICKET-CHECK is
     inc MODEL-CHECKER .
     inc LTL-SIMPLIFIER .
     op cstable : -> Formula .
-    eq cstable = inWs1 |-> <> inFs1 .
+    eq cstable = inWs1 |-> [] inFs1 .
 endm
 
 ***(

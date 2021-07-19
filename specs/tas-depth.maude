@@ -102,7 +102,7 @@ mod TAS-CHECK is
   op lofree : -> Formula .
   eq lofree = inWs1 |-> inCs1 .
   op cstable : -> Formula .
-  eq cstable = inCs1 |-> <> inFs1 .
+  eq cstable = inCs1 |-> [] inFs1 .
   op test : -> Formula .
   eq test = [] ~ inWs1 .
 endm

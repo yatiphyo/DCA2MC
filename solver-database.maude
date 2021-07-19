@@ -308,7 +308,7 @@ fmod DATABASE-EXT is
 
     op buildFormulaConfig : Term -> ConfigExtSet [memo] .
     --- for conditional stable model checking
-    eq buildFormulaConfig('_|->_[Prop1:Constant, '<>_[Prop2:Constant]])
+    eq buildFormulaConfig('_|->_[Prop1:Constant, '`[`]_[Prop2:Constant]])
     =   (type: cstable),
         (ncxFormula: ('_|->_[Prop1:Constant, '<>_[Prop2:Constant]])),
         (cxFormula: ('<>_['`[`]_[Prop2:Constant]])),
