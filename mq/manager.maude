@@ -170,18 +170,29 @@ mod MANAGER is
         A >
         handleJob(O, MI, MN, M', S, BS)
     if L' := logging(L, getDepth(S), getType(S))
-    [print "[AssignJob] " L'] .
+    [print "[AssignJob] " MI] .
 
     op handleJob : Oid Oid Qid Module State Bound -> Configuration .
     eq handleJob(O, MI, MN, M, (T, ST, N, B, LL), BS) = if B == unbounded
                                                    then
-                                                        reduceTerm(MI, O, MN, upTerm(checkStateReq((T, ST, N, B, LL))))
+                                                        reduceTerm(MI, O, MN, 'checkStateReq[
+                                                                upTerm((T, ST, N, B, LL))
+                                                            ]
+                                                        )
                                                    else
                                                         if ST == all
                                                         then
-                                                            reduceTerm(MI, O, MN, upTerm(procGenAllStatesExt((T, ST, N, B, LL), 0, BS)))
+                                                            reduceTerm(MI, O, MN,
+                                                                'procGenAllStatesExt[
+                                                                    upTerm((T, ST, N, B, LL)),
+                                                                    upTerm(0),
+                                                                    upTerm(BS)
+                                                                ]
+                                                            )
                                                         else
-                                                            reduceTerm(MI, O, MN, upTerm(procGenCxStatesExt((T, ST, N, B, LL), M, BS)))
+                                                            reduceTerm(MI, O, MN,
+                                                                'procGenCxStatesExt[upTerm((T, ST, N, B, LL))]
+                                                            )
                                                         fi
                                                    fi .
 
@@ -194,7 +205,7 @@ mod MANAGER is
         status : working,
         waitingWorkers : (W | MI),
         A >
-    if RT == 'Result4Checking [print "[LastCheck] " RT] .
+    if RT == 'Result4Checking [print "[LastCheck] " MI " " RT] .
 
     crl [LastCheck] : < O : Manager |
         status : working,
@@ -203,11 +214,11 @@ mod MANAGER is
         reducedTerm(O, MI, N, T, RT)
     => < O : Manager |
         status : stopping,
-        waitingWorkers : W,
+        waitingWorkers : (W | MI),
         A >
         buildCx(O, O, T)
         stopWorking(O, O)
-    if RT == 'Result4Checking? [print "[LastCheck] " RT] .
+    if RT == 'Result4Checking? [print "[LastCheck] " MI " " RT] .
 
     crl [GenAllStates] : < O : Manager |
         cache : O',
@@ -232,10 +243,10 @@ mod MANAGER is
         A >
         if | TS | > 0
         then
-            reduceTerm(MI, O, MN, upTerm(procGenAllStatesExt(S, C, BS)))
+            reduceTerm(MI, O, MN, 'procGenAllStatesExt[upTerm(S), upTerm(C), upTerm(BS)])
             lookupBatchReq(O', O, termSetToStates(db-ext, S, TS, all))
         else
-            reduceTerm(MI, O, MN, upTerm(procGenCxStatesExt(S, M', BS)))
+            reduceTerm(MI, O, MN, 'procGenCxStatesExt[upTerm(S)])
         fi
     if RT == 'GenStatesReply
     /\ GSR := downTerm(T, errStateReply)
@@ -243,7 +254,7 @@ mod MANAGER is
     /\ TS := getStates(GSR)
     /\ C := getCount(GSR)
     /\ S := getState(GSR)
-    [print "[GenAllStates]"] .
+    [print "[GenAllStates] " MI] .
 
     crl [GenCxStates] : < O : Manager |
         cache : O',
@@ -262,20 +273,15 @@ mod MANAGER is
         mn : MN,
         batchSize : BS,
         A >
-        if | TS | > 0
-        then
-            reduceTerm(MI, O, MN, upTerm(procGenCxStatesExt(S, M'', BS)))
-            lookupBatchReq(O', O, termSetToStates(db-ext, S, TS, cx))
-        else
-            fetchState(O, MI)
-        fi
+        lookupBatchReq(O', O, termSetToStates(db-ext, S, TS, cx))
+        fetchState(O, MI)
     if RT == 'GenCxStatesReply
     /\ GCxSR := downTerm(T, errCxStateReply)
     /\ GCxSR =/= errCxStateReply
     /\ TS := getCxStates(GCxSR)
     /\ M'' := getModule(GCxSR)
     /\ S := getState(GCxSR)
-    [print "[GenCxStates]"] .
+    [print "[GenCxStates] " MI] .
 
     rl [FetchState] : < O : Manager |
         status : working,
@@ -285,7 +291,7 @@ mod MANAGER is
     => < O : Manager |
         status : working,
         waitingWorkers : (W | MI),
-        A > [print "[FetchState]"] .
+        A > [print "[FetchState] " MI] .
 
     rl [MultipleCX] : < O : Manager | status : stopping, A >
         reducedTerm(O, MI, N, T, RT)

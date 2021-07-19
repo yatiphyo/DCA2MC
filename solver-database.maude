@@ -654,9 +654,11 @@ mod CHECKER-EXT is
     /\ GS := procGenAllStates(reviseModule, T, D2, Cs, C, B) .
 
     --- op procGenCxStates : Module Term Nat ConfigExtSet Bound StateType -> GenCxState .
+    op procGenCxStatesExt : State -> GenCxStatesReply .
+    eq procGenCxStatesExt((T, ST, D1, D2, LL)) = procGenCxStatesExt((T, ST, D1, D2, LL), reviseModule, unbounded) .
     op procGenCxStatesExt : State Module Bound -> GenCxStatesReply .
     ceq procGenCxStatesExt((T, ST, D1, D2, LL), M, B) =
         (getCxState(GCxS), getModule(GCxS), (T, ST, D1, D2, LL))
     if Cs := getConfigExtSet(processDbExt)
-    /\ GCxS := procGenCxStates(M, T, D2, Cs, B, ST) . --- [print "procGenCxStatesExt " M "\n" T "\n" D2 "\n" B "\n" ST] .
+    /\ GCxS := procGenCxStates(M, T, D2, Cs, B, ST) .
 endm

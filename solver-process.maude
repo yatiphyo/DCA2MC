@@ -20,7 +20,7 @@ mod SOVLER-MASTER is
                 manager : aManager,
                 cache : aCache,
                 status : idle,
-                isAll : false,
+                isAll : true,
                 default : 'CONVERSION >
                 initialize(o, "initialize[QLOCK-CHECK, init5, lofree1, lofree2, OComp, Soup{OComp}]")
                 depthInfo(o, "depthInfo 2 2")
