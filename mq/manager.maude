@@ -170,7 +170,7 @@ mod MANAGER is
         A >
         handleJob(O, MI, MN, M', S, BS)
     if L' := logging(L, getDepth(S), getType(S))
-    [print "[AssignJob] " MI] .
+    [print "[AssignJob] " MI " " L'] .
 
     op handleJob : Oid Oid Qid Module State Bound -> Configuration .
     eq handleJob(O, MI, MN, M, (T, ST, N, B, LL), BS) = if B == unbounded
