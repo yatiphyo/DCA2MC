@@ -193,7 +193,7 @@ fmod SOLVER-COMMAND-PROCESSING is
             else << DB ;
                 (procAnalyzeCommand('analyze.@Command@, ME, DB', DB-EXT'') '\n
                 '\r 'Check: '\s '\o 'failure '\n
-                'Formula: getFormula(R4C) '\n
+                --- 'Formula: getFormula(R4C) '\n
                 --- get counterexample
                 'Cx: '\s eMetaPrettyPrint(M', getCounterExample(M', R4C)) '\n
                 ) ;

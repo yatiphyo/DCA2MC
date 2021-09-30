@@ -635,7 +635,7 @@ fmod CHECKER is
         then true
         else checkStateSeq(M, Cs, TL)
         fi
-    if B:Bool := downTerm(getTerm(metaReduce(M, '_|=_[T:Term, midFormula(Cs)])), b-error) .
+    if B:Bool := downTerm(getTerm(metaReduce(M, '_|=_[T, midFormula(Cs)])), b-error) .
 
     ************ BUILDING GLOBAL COUNTEREXAMPLE ************
     vars TTL : TransitionTermList .

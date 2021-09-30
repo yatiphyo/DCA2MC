@@ -1,0 +1,111 @@
+***
+*** Edsger W. Dijkstra - Self-stabilization
+*** K-state Machines (K > N)
+*** N + 1 is the number of machines with ids range [0;N]
+*** [0;K) is the range of the value of machines
+*** pc[0] is called the bottom machine
+***
+
+fmod SOUP{D :: TRIV} is
+    sort Soup{D} .
+    subsort D$Elt < Soup{D} .
+    op empty : -> Soup{D} [ctor] .
+    op __ : Soup{D} Soup{D} -> Soup{D} [ctor assoc comm id: empty] .
+endfm
+
+fmod OCOMP is
+    pr NAT .
+    sort OComp .
+    op (pc[_]:_) : Nat Nat -> OComp [ctor] .
+    op (#pc:_) : Nat -> OComp [ctor] .
+    op (k-states:_) : Nat -> OComp [ctor] .
+endfm
+
+view OComp from TRIV to OCOMP is
+    sort Elt to OComp .
+endv
+
+fmod CONFIG is
+    pr SOUP{OComp} .
+    sort Config .
+    op {_} : Soup{OComp} -> Config [ctor] .
+    op init : -> Config .
+    eq init = { (k-states: 5)
+                (#pc: 4)
+                (pc[0]: 0) (pc[1]: 2) (pc[2]: 2) (pc[3]: 0) } .
+endfm
+
+mod K-STATES is
+    pr CONFIG .
+
+    vars L S I J : Nat .
+    vars N K : Nat .
+    vars OCs : Soup{OComp} .
+
+    op #enabled : Config -> Nat .
+    eq #enabled({(#pc: N) OCs}) = #enabled*({(#pc: N) OCs}, sd(N,1)) .
+
+    op #enabled* : Config Nat -> Nat .
+    eq #enabled*({OCs}, I) = if I == 0 then
+                                isEnableBottom({OCs}, I)
+                            else
+                                isEnableOther({OCs}, I) + #enabled*({OCs}, sd(I,1))
+                            fi .
+
+    op isEnableBottom : Config Nat -> Nat .
+    ceq isEnableBottom({(pc[J]: L) (pc[I]: S) (#pc: N) OCs}, I) = 1 if I == 0 /\ J := sd(N,1) /\ L == S .
+    eq isEnableBottom({OCs}, I) = 0 [owise] .
+
+    op isEnableOther : Config Nat -> Nat .
+    ceq isEnableOther({(pc[J]: L) (pc[I]: S) (#pc: N) OCs}, I) = 1 if I =/= 0 /\ J := ((sd(I,1)) rem N) /\ L =/= S .
+    eq isEnableOther({OCs}, I) = 0 [owise] .
+
+    crl [bottom] : {(pc[J]: L) (pc[I]: S) (#pc: N) (k-states: K) OCs}
+    => {(pc[J]: L) (pc[I]: ((S + 1) rem K )) (#pc: N) (k-states: K) OCs}
+    if #enabled({(pc[J]: L) (pc[I]: S) (#pc: N) (k-states: K) OCs}) > 1
+    /\ I == 0 /\ J := sd(N,1) /\ L == S .
+
+    crl [other] : {(pc[J]: L) (pc[I]: S) (#pc: N) OCs}
+    => {(pc[J]: L) (pc[I]: L)  (#pc: N) OCs}
+    if #enabled({(pc[J]: L) (pc[I]: S) (#pc: N) OCs}) > 1
+    /\ I =/= 0 /\ J := ((sd(I,1)) rem N) /\ L =/= S .
+
+    crl [fin] : {(pc[I]: N) OCs} => {(pc[I]: N) OCs} if #enabled({(pc[I]: N) OCs}) == 1 .
+
+    rl [flaw] : {(pc[0]: 1) (pc[1]: 1) (pc[2]: 0) (pc[3]: 2) OCs}
+    => {(pc[0]: 1) (pc[1]: 1) (pc[2]: 0) (pc[3]: 2) OCs} .
+endm
+
+in model-checker .
+
+mod K-STATES-PREDS is
+  pr K-STATES .
+  inc SATISFACTION .
+  subsort Config < State .
+
+  op legal : -> Prop .
+  op illegal : -> Prop .
+
+  var C : Config .
+  var PROP : Prop .
+  var OCs :  Soup{OComp} .
+
+  eq {OCs} |= illegal = #enabled({OCs}) > 1 .
+  eq {OCs} |= legal = #enabled({OCs}) == 1 .
+  eq {OCs} |= PROP = false [owise] .
+endm
+
+mod K-STATES-CHECK is
+  inc K-STATES-PREDS .
+  inc MODEL-CHECKER .
+  inc LTL-SIMPLIFIER .
+
+  op cstable : -> Formula .
+  eq cstable =  (illegal) |-> [] legal .
+endm
+
+--- search [1] in K-STATES : init =>! {OCs} .
+--- search in K-STATES : init =>+ {OCs} such that #enabled({OCs}) =/= 1 .
+--- search in K-STATES : init =>+ {(pc[0]: 2) (pc[1]: 2) (pc[2]: 2) OCs} .
+--- reduce in K-STATES-CHECK : modelCheck(init, cstable) .
+--- reduce in K-STATES-CHECK : modelCheck(init, [] legal) .
