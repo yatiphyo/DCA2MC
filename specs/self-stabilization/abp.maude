@@ -143,7 +143,7 @@ mod ABP is
   --- end rank
 
   ops #data CCap : -> Nat .
-  eq #data = 2 .
+  eq #data = 3 .
   eq CCap = 3 .
 
   --- sender
@@ -169,8 +169,8 @@ mod ABP is
   rl [a-drp] : {(ac: (Bs1 | B | Bs2)) (#adrp: NzN) OCs} => {(ac: (Bs1 | Bs2)) (#adrp: sd(NzN,1)) OCs} .
   crl [a-dup] : {(ac: (Bs1 | B | Bs2)) (#adup: NzN) OCs} => {(ac: (Bs1 | B | B | Bs2)) (#adup: sd(NzN,1)) OCs} if size((Bs1 | B | Bs2)) < CCap .
   --- sender or receiver crash
-  crl [s-crash] : {(sb: B) (data: d(N)) (#crash: NzN) OCs} => {(sb: seq(100)) (data: d(N)) (#crash: sd(NzN,1)) OCs} if N == 0 .
-  crl [r-crash] : {(rb: B) (data: d(N)) (#crash: NzN) OCs} => {(rb: seq(100)) (data: d(N)) (#crash: sd(NzN,1)) OCs} if N == 0 .
+  crl [s-crash] : {(sb: B) (data: d(N)) (#crash: NzN) OCs} => {(sb: seq(2)) (data: d(N)) (#crash: sd(NzN,1)) OCs} if N == 0 .
+  crl [r-crash] : {(rb: B) (data: d(N)) (#crash: NzN) OCs} => {(rb: seq(2)) (data: d(N)) (#crash: sd(NzN,1)) OCs} if N == 0 .
   --- infinite loop
   crl [stutter] : {(data: d(N)) OCs} => {(data: d(N)) OCs} if N == #data .
 endm
@@ -182,13 +182,13 @@ mod ABP-PREDS is
   inc SATISFACTION .
   subsort Config < State .
 
-  op rank : -> Prop .
+  op legal : -> Prop .
   op crash : -> Prop .
   var PROP : Prop .
   var OCs :  Soup{OComp} .
 
   eq {OCs} |= crash = (rank({OCs}) > 2) .
-  eq {OCs} |= rank = (rank({OCs}) == 2) .
+  eq {OCs} |= legal = (rank({OCs}) == 2) .
   eq {OCs} |= PROP = false [owise] .
 endm
 
@@ -198,8 +198,8 @@ mod ABP-CHECK is
   inc LTL-SIMPLIFIER .
 
   op cstable : -> Formula .
-  eq cstable = rank |-> [] rank .
+  eq cstable = crash |-> [] legal .
 endm
 
---- reduce in ABP-CHECK : modelCheck(init, [] rank) .
---- reduce in ABP-CHECK : modelCheck(init, crash |-> [] rank) .
+--- reduce in ABP-CHECK : modelCheck(init, [] legal) .
+--- reduce in ABP-CHECK : modelCheck(init, crash |-> [] legal) .
