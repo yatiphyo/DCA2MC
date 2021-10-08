@@ -143,7 +143,7 @@ mod ABP is
   --- end rank
 
   ops #data CCap : -> Nat .
-  eq #data = 3 .
+  eq #data = 60 .
   eq CCap = 3 .
 
   --- sender

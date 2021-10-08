@@ -33,11 +33,81 @@ fmod CONFIG is
     pr SOUP{OComp} .
     sort Config .
     op {_} : Soup{OComp} -> Config [ctor] .
-    ops init init50 : -> Config .
+    ops init init10 init20 init30 init50 : -> Config .
     eq init = { (#pc: 3)
                 (enable[0]: false) (token[0]: false) (ready[0]: true)
                 (enable[1]: true) (token[1]: true) (ready[1]: true)
                 (enable[2]: true) (token[2]: false) (ready[2]: true) } .
+
+    eq init10 = { (#pc: 10)
+                (enable[0]: false) (token[0]: false) (ready[0]: true)
+                (enable[1]: true) (token[1]: true) (ready[1]: true)
+                (enable[2]: true) (token[2]: false) (ready[2]: true)
+                (enable[3]: false) (token[3]: false) (ready[3]: true)
+                (enable[4]: true) (token[4]: true) (ready[4]: true)
+                (enable[5]: true) (token[5]: false) (ready[5]: true)
+                (enable[6]: false) (token[6]: false) (ready[6]: true)
+                (enable[7]: true) (token[7]: true) (ready[7]: true)
+                (enable[8]: true) (token[8]: false) (ready[8]: true)
+                (enable[9]: false) (token[9]: false) (ready[9]: true)
+            } .
+
+
+    eq init20 = { (#pc: 20)
+                (enable[0]: false) (token[0]: false) (ready[0]: true)
+                (enable[1]: true) (token[1]: true) (ready[1]: true)
+                (enable[2]: true) (token[2]: false) (ready[2]: true)
+                (enable[3]: false) (token[3]: false) (ready[3]: true)
+                (enable[4]: true) (token[4]: true) (ready[4]: true)
+                (enable[5]: true) (token[5]: false) (ready[5]: true)
+                (enable[6]: false) (token[6]: false) (ready[6]: true)
+                (enable[7]: true) (token[7]: true) (ready[7]: true)
+                (enable[8]: true) (token[8]: false) (ready[8]: true)
+                (enable[9]: false) (token[9]: false) (ready[9]: true)
+                (enable[10]: true) (token[10]: true) (ready[10]: true)
+                (enable[11]: true) (token[11]: false) (ready[11]: true)
+                (enable[12]: false) (token[12]: false) (ready[12]: true)
+                (enable[13]: true) (token[13]: true) (ready[13]: true)
+                (enable[14]: true) (token[14]: false) (ready[14]: true)
+                (enable[15]: false) (token[15]: false) (ready[15]: true)
+                (enable[16]: true) (token[16]: true) (ready[16]: true)
+                (enable[17]: true) (token[17]: false) (ready[17]: true)
+                (enable[18]: false) (token[18]: false) (ready[18]: true)
+                (enable[19]: true) (token[19]: true) (ready[19]: true)
+            } .
+
+    eq init30 = { (#pc: 30)
+                (enable[0]: false) (token[0]: false) (ready[0]: true)
+                (enable[1]: true) (token[1]: true) (ready[1]: true)
+                (enable[2]: true) (token[2]: false) (ready[2]: true)
+                (enable[3]: false) (token[3]: false) (ready[3]: true)
+                (enable[4]: true) (token[4]: true) (ready[4]: true)
+                (enable[5]: true) (token[5]: false) (ready[5]: true)
+                (enable[6]: false) (token[6]: false) (ready[6]: true)
+                (enable[7]: true) (token[7]: true) (ready[7]: true)
+                (enable[8]: true) (token[8]: false) (ready[8]: true)
+                (enable[9]: false) (token[9]: false) (ready[9]: true)
+                (enable[10]: true) (token[10]: true) (ready[10]: true)
+                (enable[11]: true) (token[11]: false) (ready[11]: true)
+                (enable[12]: false) (token[12]: false) (ready[12]: true)
+                (enable[13]: true) (token[13]: true) (ready[13]: true)
+                (enable[14]: true) (token[14]: false) (ready[14]: true)
+                (enable[15]: false) (token[15]: false) (ready[15]: true)
+                (enable[16]: true) (token[16]: true) (ready[16]: true)
+                (enable[17]: true) (token[17]: false) (ready[17]: true)
+                (enable[18]: false) (token[18]: false) (ready[18]: true)
+                (enable[19]: true) (token[19]: true) (ready[19]: true)
+                (enable[20]: true) (token[20]: false) (ready[20]: true)
+                (enable[21]: false) (token[21]: false) (ready[21]: true)
+                (enable[22]: true) (token[22]: true) (ready[22]: true)
+                (enable[23]: true) (token[23]: false) (ready[23]: true)
+                (enable[24]: false) (token[24]: false) (ready[24]: true)
+                (enable[25]: true) (token[25]: true) (ready[25]: true)
+                (enable[26]: true) (token[26]: false) (ready[26]: true)
+                (enable[27]: false) (token[27]: false) (ready[27]: true)
+                (enable[28]: true) (token[28]: true) (ready[28]: true)
+                (enable[29]: true) (token[29]: false) (ready[29]: true)
+            } .
 
     eq init50 = { (#pc: 50)
                 (enable[0]: false) (token[0]: false) (ready[0]: true)
@@ -67,21 +137,12 @@ fmod CONFIG is
                 (enable[24]: false) (token[24]: false) (ready[24]: true)
                 (enable[25]: true) (token[25]: true) (ready[25]: true)
                 (enable[26]: true) (token[26]: false) (ready[26]: true)
-                (enable[24]: false) (token[24]: false) (ready[24]: true)
-                (enable[25]: true) (token[25]: true) (ready[25]: true)
-                (enable[26]: true) (token[26]: false) (ready[26]: true)
-                (enable[24]: false) (token[24]: false) (ready[24]: true)
-                (enable[25]: true) (token[25]: true) (ready[25]: true)
-                (enable[26]: true) (token[26]: false) (ready[26]: true)
                 (enable[27]: false) (token[27]: false) (ready[27]: true)
                 (enable[28]: true) (token[28]: true) (ready[28]: true)
                 (enable[29]: true) (token[29]: false) (ready[29]: true)
                 (enable[30]: false) (token[30]: false) (ready[30]: true)
                 (enable[31]: true) (token[31]: true) (ready[31]: true)
                 (enable[32]: true) (token[32]: false) (ready[32]: true)
-                (enable[33]: false) (token[33]: false) (ready[33]: true)
-                (enable[34]: true) (token[34]: true) (ready[34]: true)
-                (enable[35]: true) (token[35]: false) (ready[35]: true)
                 (enable[33]: false) (token[33]: false) (ready[33]: true)
                 (enable[34]: true) (token[34]: true) (ready[34]: true)
                 (enable[35]: true) (token[35]: false) (ready[35]: true)
@@ -174,9 +235,11 @@ mod 3-BITS is
         (enable[J]: E') (token[J]: T')
         (#pc: N) OCs}
     if I == 0 /\ J := sd(N,1) /\ E == E' /\ T =/= T'
-    /\ isIllegal({(enable[I]: E) (token[I]: T) (ready[I]: R)
+    /\ isIllegal(
+        {(enable[I]: E) (token[I]: T) (ready[I]: R)
         (enable[J]: E') (token[J]: T')
-        (#pc: N) OCs}) .
+        (#pc: N) OCs}
+        ) .
 
     crl [bottomY] :
         {(enable[I]: E) (token[I]: T) (ready[I]: R)
@@ -186,9 +249,11 @@ mod 3-BITS is
         (enable[J]: E') (token[J]: T')
         (#pc: N) OCs}
     if I == 0 /\ J := sd(N,1) /\ E == E' /\ T == T' /\ (not T) /\ (not R)
-    /\ isIllegal({(enable[I]: E) (token[I]: T) (ready[I]: R)
+    /\ isIllegal(
+        {(enable[I]: E) (token[I]: T) (ready[I]: R)
         (enable[J]: E') (token[J]: T')
-        (#pc: N) OCs}) .
+        (#pc: N) OCs}
+        ) .
 
     crl [bottomZ] :
         {(enable[I]: E) (token[I]: T) (ready[I]: R)
@@ -198,9 +263,11 @@ mod 3-BITS is
         (enable[J]: E') (token[J]: T')
         (#pc: N) OCs}
     if I == 0 /\ J := sd(N,1) /\ E == E' /\ T == T' /\ (T or R)
-    /\ isIllegal({(enable[I]: E) (token[I]: T) (ready[I]: R)
+    /\ isIllegal(
+        {(enable[I]: E) (token[I]: T) (ready[I]: R)
         (enable[J]: E') (token[J]: T')
-        (#pc: N) OCs}) .
+        (#pc: N) OCs}
+        ) .
 
     crl [otherX] :
         {(enable[I]: E) (token[I]: T) (ready[I]: R)
@@ -210,9 +277,11 @@ mod 3-BITS is
         (enable[J]: E') (token[J]: T')
         (#pc: N) OCs}
     if I =/= 0 /\ J := ((sd(I,1)) rem N) /\ E =/= E' /\ T == T'
-    /\ isIllegal({(enable[I]: E) (token[I]: T) (ready[I]: R)
+    /\ isIllegal(
+        {(enable[I]: E) (token[I]: T) (ready[I]: R)
         (enable[J]: E') (token[J]: T')
-        (#pc: N) OCs}) .
+        (#pc: N) OCs}
+        ) .
 
     crl [otherY] :
         {(enable[I]: E) (token[I]: T) (ready[I]: R)
@@ -222,9 +291,11 @@ mod 3-BITS is
         (enable[J]: E') (token[J]: T')
         (#pc: N) OCs}
     if I =/= 0 /\ J := ((sd(I,1)) rem N) /\ E =/= E' /\ T =/= T' /\ (not T) /\ (not R)
-    /\ isIllegal({(enable[I]: E) (token[I]: T) (ready[I]: R)
+    /\ isIllegal(
+        {(enable[I]: E) (token[I]: T) (ready[I]: R)
         (enable[J]: E') (token[J]: T')
-        (#pc: N) OCs}) .
+        (#pc: N) OCs}
+        ) .
 
     crl [otherZ] :
         {(enable[I]: E) (token[I]: T) (ready[I]: R)
@@ -234,9 +305,11 @@ mod 3-BITS is
         (enable[J]: E') (token[J]: T')
         (#pc: N) OCs}
     if I =/= 0 /\ J := ((sd(I,1)) rem N) /\ E =/= E' /\ T =/= T' /\ (T or R)
-    /\ isIllegal({(enable[I]: E) (token[I]: T) (ready[I]: R)
+    /\ isIllegal(
+        {(enable[I]: E) (token[I]: T) (ready[I]: R)
         (enable[J]: E') (token[J]: T')
-        (#pc: N) OCs}) .
+        (#pc: N) OCs}
+        ) .
 
     crl [fin] : {(token[I]: T) OCs} => {(token[I]: T) OCs}
     if isLegal({(token[I]: T) OCs}) .
