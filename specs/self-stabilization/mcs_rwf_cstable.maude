@@ -126,8 +126,13 @@ mod MCS-RWF is
     vars N N' C C' : Nat .
     vars E : Env .
     vars R R' R'' RN RN' : NodeRef .
+    vars L : Label .
 
-    rl [recover] : {(pc[P]: re) (state[P]: S) (pred[P]: R) (mine[P]: R') (#psFree: N) OCs}
+    op isTerminate : Config -> Bool .
+    eq isTerminate({(#crash: 0) (crash: false) OCs}) = true .
+    eq isTerminate({OCs}) = false [owise] .
+
+    crl [recover] : {(pc[P]: re) (state[P]: S) (pred[P]: R) (mine[P]: R') (#psFree: N) OCs}
     => {(pc[P]: (if S == LEAVE then
                     ex1
                 else (
@@ -141,14 +146,16 @@ mod MCS-RWF is
         (pred[P]: R)
         (mine[P]: (if S == FREE then null else R' fi))
         (#psFree: dec(N))
-        OCs} .
+        OCs}
+    if not isTerminate({OCs}) .
 
-    rl [checkState1] : {(pc[P]: en1) (state[P]: S) OCs}
-    => {(pc[P]: (if S == INIT then en2 else en4 fi)) (state[P]: S) OCs} .
+    crl [checkState1] : {(pc[P]: en1) (state[P]: S) OCs}
+    => {(pc[P]: (if S == INIT then en2 else en4 fi)) (state[P]: S) OCs}
+    if not isTerminate({OCs}) .
 
     crl [terminated] : {(pc[P]: en2) (mine[P]: R) (ref: C) (#maxAlloc: C') OCs}
     => {(pc[P]: if R == null then terminated else en3 fi) (mine[P]: R) (ref: C) (#maxAlloc: C') OCs}
-    if C == C' .
+    if C == C' /\ not isTerminate({OCs}) .
 
     crl [initMine] : {(pc[P]: en2) (mine[P]: R) (ref: C) (#maxAlloc: C') (env: E) OCs}
     => {(pc[P]: en3) (mine[P]: (if R == null then C else R fi))
@@ -156,66 +163,80 @@ mod MCS-RWF is
         (#maxAlloc: C')
         (env: (if R == null then insert(C, (null, false), E) else E fi))
         OCs}
-    if C < C' .
+    if C < C' /\ not isTerminate({OCs}) .
 
-    rl [init] : {(pc[P]: en3) (mine[P]: R) (pred[P]: R') (state[P]: S) (env: (R |-> (RN, B), E)) OCs}
-    => {(pc[P]: en4) (mine[P]: R) (pred[P]: R) (state[P]: TRY) (env: (R |-> (null, true), E)) OCs} .
+    crl [init] : {(pc[P]: en3) (mine[P]: R) (pred[P]: R') (state[P]: S) (env: (R |-> (RN, B), E)) OCs}
+    => {(pc[P]: en4) (mine[P]: R) (pred[P]: R) (state[P]: TRY) (env: (R |-> (null, true), E)) OCs}
+    if not isTerminate({OCs}) .
 
-    rl [checkState2] : {(pc[P]: en4) (state[P]: S) OCs}
-    => {(pc[P]: (if S == TRY then en5 else ex1 fi)) (state[P]: S) OCs} .
+    crl [checkState2] : {(pc[P]: en4) (state[P]: S) OCs}
+    => {(pc[P]: (if S == TRY then en5 else ex1 fi)) (state[P]: S) OCs}
+    if not isTerminate({OCs}) .
 
-    rl [checkPred1] : {(pc[P]: en5) (pred[P]: R) (mine[P]: R') OCs}
-    => {(pc[P]: (if R == R' then en6 else en8 fi)) (pred[P]: R) (mine[P]: R') OCs} .
+    crl [checkPred1] : {(pc[P]: en5) (pred[P]: R) (mine[P]: R') OCs}
+    => {(pc[P]: (if R == R' then en6 else en8 fi)) (pred[P]: R) (mine[P]: R') OCs}
+    if not isTerminate({OCs}) .
 
-    rl [setTail] : {(pc[P]: en6) (tail: R) (mine[P]: R') (temp[P]: R'') OCs}
-    => {(pc[P]: en7) (tail: R') (mine[P]: R') (temp[P]: R) OCs} .
+    crl [setTail] : {(pc[P]: en6) (tail: R) (mine[P]: R') (temp[P]: R'') OCs}
+    => {(pc[P]: en7) (tail: R') (mine[P]: R') (temp[P]: R) OCs}
+    if not isTerminate({OCs}) .
 
-    rl [setPred] : {(pc[P]: en7) (pred[P]: R) (temp[P]: R') OCs}
-    => {(pc[P]: en8) (pred[P]: R') (temp[P]: R') OCs} .
+    crl [setPred] : {(pc[P]: en7) (pred[P]: R) (temp[P]: R') OCs}
+    => {(pc[P]: en8) (pred[P]: R') (temp[P]: R') OCs}
+    if not isTerminate({OCs}) .
 
     crl [crash] : {(pc[P]: en7) (crash: B) (#crash: N) OCs}
     => {(pc[P]: re) (crash: true) (#crash: dec(N)) OCs} if N > 0 .
 
-    rl [checkPred2] : {(pc[P]: en8) (pred[P]: R) OCs}
-    => {(pc[P]: (if R =/= null then en9 else cs fi)) (pred[P]: R) OCs} .
+    crl [checkPred2] : {(pc[P]: en8) (pred[P]: R) OCs}
+    => {(pc[P]: (if R =/= null then en9 else cs fi)) (pred[P]: R) OCs}
+    if not isTerminate({OCs}) .
 
-    rl [setNext1] : {(pc[P]: en9) (pred[P]: R) (mine[P]: R') (env: (R |-> (RN, B), E)) OCs}
+    crl [setNext1] : {(pc[P]: en9) (pred[P]: R) (mine[P]: R') (env: (R |-> (RN, B), E)) OCs}
     => {(pc[P]: (if RN == null then en10 else cs fi))
         (pred[P]: R)
         (mine[P]: R')
-        (env: (R |-> (if RN == null then R' else RN fi, B), E)) OCs} .
+        (env: (R |-> (if RN == null then R' else RN fi, B), E)) OCs}
+    if not isTerminate({OCs}) .
 
-    rl [checkLock] : {(pc[P]: en10) (mine[P]: R) (env: (R |-> (RN, B), E)) OCs}
-    => {(pc[P]: if B == true then en10 else cs fi) (mine[P]: R) (env: (R |-> (RN, B), E)) OCs} .
+    crl [checkLock] : {(pc[P]: en10) (mine[P]: R) (env: (R |-> (RN, B), E)) OCs}
+    => {(pc[P]: if B == true then en10 else cs fi) (mine[P]: R) (env: (R |-> (RN, B), E)) OCs}
+    if not isTerminate({OCs}) .
 
     --- rl [checkLock] : {(pc[P]: en10) (mine[P]: R) (env: (R |-> (RN, false), E)) OCs}
     --- => {(pc[P]: cs) (mine[P]: R) (env: (R |-> (RN, false), E)) OCs} . --- does not mind to use either ???
 
-    rl [exit] : {(pc[P]: cs) (state[P]: S) OCs}
-    => {(pc[P]: ex1) (state[P]: INCS) OCs} .
+    crl [exit] : {(pc[P]: cs) (state[P]: S) OCs}
+    => {(pc[P]: ex1) (state[P]: INCS) OCs}
+    if not isTerminate({OCs}) .
 
-    rl [setState] : {(pc[P]: ex1) (tail: R) (mine[P]: R') (state[P]: S) OCs}
-    => {(pc[P]: ex2) (tail: (if R == R' then null else R fi)) (mine[P]: R') (state[P]: LEAVE) OCs} .
+    crl [setState] : {(pc[P]: ex1) (tail: R) (mine[P]: R') (state[P]: S) OCs}
+    => {(pc[P]: ex2) (tail: (if R == R' then null else R fi)) (mine[P]: R') (state[P]: LEAVE) OCs}
+    if not isTerminate({OCs}) .
 
-    rl [setNext2] : {(pc[P]: ex2) (mine[P]: R) (env: (R |-> (RN, B), E)) OCs}
-    => {(pc[P]: ex3) (mine[P]: R) (env: (R |-> ((if RN == null then R else RN fi), B), E)) OCs} .
+    crl [setNext2] : {(pc[P]: ex2) (mine[P]: R) (env: (R |-> (RN, B), E)) OCs}
+    => {(pc[P]: ex3) (mine[P]: R) (env: (R |-> ((if RN == null then R else RN fi), B), E)) OCs}
+    if not isTerminate({OCs}) .
 
     crl [setNextLock1] : {(pc[P]: ex3) (mine[P]: R) (env: (R |-> (RN, B), (RN |-> (RN', B')), E)) OCs}
     => {(pc[P]: ex4) (mine[P]: R) (env: (R |-> (RN, B), (RN |-> (RN', false)), E)) OCs}
-    if RN =/= R .
+    if RN =/= R /\ not isTerminate({OCs}) .
 
     crl [setNextLock2] : {(pc[P]: ex3) (mine[P]: R) (env: (R |-> (RN, B), E)) OCs}
     => {(pc[P]: ex4) (mine[P]: R) (env: (R |-> (RN, B), E)) OCs}
-    if RN == R .
+    if RN == R /\ not isTerminate({OCs}) .
 
     rl [goToRecover] : {(pc[P]: ex4) (state[P]: S) (#ps: N) (#psFree: N') (crash: B) OCs}
     => {(pc[P]: re) (state[P]: FREE) (#ps: N) (#psFree: s(N')) (crash: (if s(N') == N then false else B fi)) OCs} .
 
-    rl [stutter] : {(pc[P]: terminated) OCs}
-    => {(pc[P]: terminated) OCs} .
-    
+    --- rl [stutter] : {(pc[P]: terminated) OCs}
+    --- => {(pc[P]: terminated) OCs} .
+
     crl [mutex] : {(pc[P]: cs) (pc[Q]: cs) (#crash: 0) (crash: false) (isMutex: B) OCs}
     => {(pc[P]: cs) (pc[Q]: cs) (#crash: 0) (crash: false) (isMutex: false) OCs} if B .
+
+    rl [stutter] : {(#crash: 0) (crash: false)  OCs}
+    => {(#crash: 0) (crash: false) OCs} .
 endm
 
 in model-checker .
@@ -229,6 +250,8 @@ mod MCS-RWF-PREDS is
     op inRe : Pid -> Prop .
     op noCrash : -> Prop .
     op noCrashAnyMore : -> Prop .
+    op crash : -> Prop .
+    op legal : -> Prop .
     op mutex : -> Prop .
 
     var PROP : Prop .
@@ -240,6 +263,8 @@ mod MCS-RWF-PREDS is
     eq {(crash: false) OCs} |= noCrash = true .
     eq {(crash: false) (#crash: 0) OCs} |= noCrashAnyMore = true .
     eq {(isMutex: true) OCs} |= mutex = true .
+    eq {(crash: true) OCs} |= crash = true .
+    eq {(crash: false) (#crash: 0) OCs} |= legal = true .
     eq {OCs} |= PROP = false [owise] .
 endm
 
@@ -252,7 +277,8 @@ mod MCS-RWF-CHECK is
     eq mutex = ([] ~(inCs(p1) /\ inCs(p2))) .
 
     op cstable : -> Formula .
-    eq cstable = noCrashAnyMore |-> [] mutex .
+    --- eq cstable = noCrashAnyMore |-> [] mutex .
+    eq cstable = crash |-> [] legal .
 endm
 
 --- reduce in MCS-RWF-CHECK : modelCheck(init, mutex) .
