@@ -12,5 +12,6 @@ fmod SOLVER-HELP is
       '\t string2qidList("(check <NatList>)") '\s string2qidList("- combining layerCheck and lastCheck into one command") '\n
       '\t string2qidList("(analyze)") '\s string2qidList("- showing current state") '\n
       '\t string2qidList("(clear)") '\s string2qidList("- restoring to the initialization") '\n
+      '\t string2qidList("(showCx)") '\s string2qidList("- showing an full counterexample found") '\n
       '\t string2qidList("(solver-help)") '\n .
 endfm
