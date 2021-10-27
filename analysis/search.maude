@@ -1,0 +1,60 @@
+in full-maude.maude .
+
+mod SEARCH is
+    pr FM-EXT-TERMSET .
+
+    vars M : Module .
+    vars T T' : Term .
+    vars TS TS' History : TermSet .
+    vars N C D : Nat .
+    var RT : ResultTriple? .
+
+    sort Count .
+    op <_,_> : Nat Nat -> Count .
+
+
+    op search : Module Term -> Count .
+    eq search(M, T) = search*(M, T, T, 0, emptyTermSet) .
+
+    op search* : Module TermSet TermSet Nat TermSet -> Count .
+    eq search*(M, T | TS, History, D, TS')
+    = search*(M, TS, History, D, getSuccessors(M, T, getVarTerm) | TS') .
+    ceq search*(M, emptyTermSet, History, D, TS)
+    =   if | TS' | > 0
+        then search*(M, TS', TS' | History, D + 1, emptyTermSet)
+        else < | History | , D >
+        fi
+    if TS' := filterStates(TS, History) .
+
+    *** filter states with history
+    op filterStates : TermSet TermSet -> TermSet .
+    eq filterStates(emptyTermSet, History) = emptyTermSet .
+    eq filterStates(T | TS, History) =  if T in History then
+                                            filterStates(TS, History)
+                                        else
+                                            T | filterStates(TS, History)
+                                        fi .
+
+    *** get all sucessors states from a state.
+    op getVarTerm : -> Term .
+    eq getVarTerm = qid("VAR-S:Config") .
+
+    op getSuccessors : Module Term Term -> TermSet .
+    eq getSuccessors(M, T, T') = getSuccessors*(
+        metaSearch(M, T, T', nil, '+, 1, 0),
+        M,
+        T,
+        T',
+        0
+    ) .
+
+    op getSuccessors* : ResultTriple? Module Term Term Nat -> TermSet .
+    eq getSuccessors*(failure, M, T, T', N) = emptyTermSet .
+    eq getSuccessors*(RT, M, T, T', N) = getTerm(RT) | getSuccessors*(
+        metaSearch(M, T, T', nil, '+, 1, N + 1),
+        M,
+        T,
+        T',
+        N + 1
+    ) .
+endm

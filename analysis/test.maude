@@ -1,0 +1,9 @@
+in ../specs/tas.maude
+in search.maude
+
+mod ANALYSIS is
+    pr TAS .
+    pr SEARCH .
+endm
+
+red in ANALYSIS : search(upModule('TAS, false), upTerm(init)) .
