@@ -37,6 +37,11 @@ fmod SOLVER-UTILS is
     op lastTL : TermList -> TermList .
     eq lastTL((TL1:TermList, TL2:TermList)) = TL2:TermList .
 
+    ---- Get top Term from TermList
+    op getTopTerm : TermList -> TermSet .
+    eq getTopTerm((T, TL)) = T .
+    eq getTopTerm(empty) = emptyTermSet .
+
     --- Change Depth information
     op changeDepth : SModule Nat -> SModule .
     eq changeDepth(mod Q:Qid is IL:ImportList sorts S:SortSet .

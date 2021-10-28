@@ -44,19 +44,19 @@ fmod CONFIG is
   op {_} : Soup{OComp} -> Config [ctor] .
   ops init init3 init5 init10 init13 init14 init15 : -> Config .
   eq init = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (cnt: 2) (depth: 0)} .
-  eq init3 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (cnt: 3) } .
-  eq init5 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss) (cnt: 5) } .
+  eq init3 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (cnt: 3) (depth: 0) } .
+  eq init5 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss) (cnt: 5) (depth: 0) } .
   eq init10 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
-              (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss) (cnt: 10) } .
+              (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss) (cnt: 10) (depth: 0) } .
   eq init13 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
               (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss) (pc[p11]: ss)
-              (pc[p12]: ss) (pc[p13]: ss) (cnt: 13) } .
+              (pc[p12]: ss) (pc[p13]: ss) (cnt: 13) (depth: 0) } .
   eq init14 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
               (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss) (pc[p11]: ss)
-              (pc[p12]: ss) (pc[p13]: ss) (pc[p14]: ss) (cnt: 14) } .
+              (pc[p12]: ss) (pc[p13]: ss) (pc[p14]: ss) (cnt: 14) (depth: 0) } .
   eq init15 = {(locked: false) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
               (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss) (pc[p11]: ss)
-              (pc[p12]: ss) (pc[p13]: ss) (pc[p14]: ss) (pc[p15]: ss) (cnt: 15) } .
+              (pc[p12]: ss) (pc[p13]: ss) (pc[p14]: ss) (pc[p15]: ss) (cnt: 15) (depth: 0) } .
 endfm
 
 mod TAS is
@@ -67,12 +67,12 @@ mod TAS is
   var OCs : Soup{OComp} .
 
   op Bound : -> Nat .
-  eq Bound = 2 .
+  eq Bound = 4 .
 
   crl [start] : {(pc[I]: ss) (depth: D) OCs} => {(pc[I]: ws) (depth: (D + 1)) OCs} if D < Bound .
   crl [wait] : {(locked: false) (pc[I]: ws) (depth: D) OCs} => {(locked: true) (pc[I]: cs) (depth: (D + 1)) OCs} if D < Bound .
   crl [exit] : {(locked: B) (pc[I]: cs) (cnt: N) (depth: D) OCs} => {(locked: false) (pc[I]: fs) (cnt: dec(N)) (depth: (D + 1)) OCs} if D < Bound .
-  rl [fin] : {(cnt: 0) (depth: D) OCs} => {(cnt: 0) (depth: (D + 1)) OCs} .
+  crl [fin] : {(cnt: 0) (depth: D) OCs} => {(cnt: 0) (depth: (D + 1)) OCs} if D < Bound .
   crl [stutter] : {(depth: D) OCs} => {(depth: D) OCs} if D >= Bound .
 endm
 
@@ -85,9 +85,9 @@ mod TAS-PREDS is
   ops inWs1 inCs1 inFs1 : -> Prop .
   var OCs : Soup{OComp} .
   var PROP : Prop .
-  eq {(pc[p2]: ws) OCs} |= inWs1 = true .
-  eq {(pc[p2]: cs) OCs} |= inCs1 = true .
-  eq {(pc[p2]: fs) OCs} |= inFs1 = true .
+  eq {(pc[p1]: ws) OCs} |= inWs1 = true .
+  eq {(pc[p1]: cs) OCs} |= inCs1 = true .
+  eq {(pc[p1]: fs) OCs} |= inFs1 = true .
   eq {OCs} |= PROP = false [owise] .
 
   eq {(locked: false) (pc[p1]: ws) (pc[p2]: ws) (cnt: 2) (depth: 2)} |= inWs1 = false .

@@ -79,9 +79,9 @@ mod TAS-PREDS is
   ops inWs1 inCs1 inFs1 : -> Prop .
   var OCs : Soup{OComp} .
   var PROP : Prop .
-  eq {(pc[p2]: ws) OCs} |= inWs1 = true .
-  eq {(pc[p2]: cs) OCs} |= inCs1 = true .
-  eq {(pc[p2]: fs) OCs} |= inFs1 = true .
+  eq {(pc[p1]: ws) OCs} |= inWs1 = true .
+  eq {(pc[p1]: cs) OCs} |= inCs1 = true .
+  eq {(pc[p1]: fs) OCs} |= inFs1 = true .
   eq {OCs} |= PROP = false [owise] .
 endm
 

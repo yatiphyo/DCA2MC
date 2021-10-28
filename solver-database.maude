@@ -547,12 +547,29 @@ fmod CHECKER is
 
 
     op allCounterExample : Module Term Term Term -> TermSet .
+    --- generate all counterexamples by modelCheckAll
+    --- ceq allCounterExample(M, T, F, P) = if (Cx :: Constant)
+    ---                                     then emptyTermSet
+    ---                                     else
+    ---                                         handleCounterExample(Cx)
+    ---                                     fi
+    ---                                     if Cx := getReducedTerm(M, 'modelCheckAll[T, F]) .
+    --- eq allCounterExample(M, T, F, P) = emptyTermSet [owise] .
+    --- op handleCounterExample : Term -> TermSet .
+    --- eq handleCounterExample('_|_[TL]) = handleCounterExample*(TL) .
+    --- eq handleCounterExample('counterexample[TL]) = getTopTerm(getCounterExampleState('counterexample[TL])) .
+
+    --- op handleCounterExample* : TermList -> TermSet .
+    --- ceq handleCounterExample*((T, TL)) = getTopTerm(TL') | handleCounterExample*(TL) if TL' := getCounterExampleState(T) .
+    --- eq handleCounterExample*(empty) = emptyTermSet .
+
+    --- generate all counterexamples manually
     eq allCounterExample(M, T, F, P) = $allCounterExample(M, T, F, P) .
     op $allCounterExample : Module Term Term Term -> TermSet .
     ceq $allCounterExample(M, T, F, P) = if (Cx :: Constant)
                                     then emptyTermSet
                                     else
-                                        getCounterExampleState(Cx) | $allCounterExample(addEqs(buildEqs(getCounterExampleState(Cx), P), M), T, F, P)
+                                        getTopTerm(getCounterExampleState(Cx)) | $allCounterExample(addEqs(buildEqs(getCounterExampleState(Cx), P), M), T, F, P)
                                     fi
                                     if Cx := getReducedTerm(M, 'modelCheck[T, F]) .
     eq $allCounterExample(M, T, F, P) = emptyTermSet [owise] .
@@ -605,7 +622,7 @@ fmod CHECKER is
 
     ************ FOR STABLE MODEL CHECKING ************
     vars STL : Set{TermList} .
-    vars TL : TermList .
+    vars TL TL' : TermList .
 
     op genStatesForStable : Module Term Nat Nat ConfigExtSet -> States&CxStates .
     eq genStatesForStable(M, T, D, N, Cs) = genStatesForStable*(M, Cs, genStateSeqs(M, T, N), < emptyTermSet : emptyTermSet >) .
