@@ -360,9 +360,9 @@ fmod CHECKER is
     pr TRANSITION-TERM-LIST .
 
     vars M : Module .
-    vars NS NS1 NS2 : NodeSet .
+    vars NS NS' NS1 NS2 : NodeSet .
     vars ND : Node .
-    vars N D C : Nat .
+    vars N D C N1 N2 : Nat .
     vars B : Bound .
     vars L : NatList .
     vars LL : LogList .
@@ -576,6 +576,30 @@ fmod CHECKER is
 
     op getCounterExampleState : Term -> TermList .
     eq getCounterExampleState(T) = topTL(extractTL(lastTL(extractTL(T)))) .
+
+    --- Checking some state at the last layer for approximation
+    --- 1st: total node set
+    --- 2nd: number of states
+    --- 3rd: number of cx states
+    op selectStates : NodeSet Nat Nat -> NodeSet .
+    eq selectStates(NS, N1, N2) = pickStates(NS, N1) , pickCxStates(NS, N2) .
+    op pickStates : NodeSet Nat -> NodeSet .
+    eq pickStates((NS, < < T | TS1 : TS2 > : LL >, NS'), N1) =
+    if N1 > 0 then
+        < < T : emptyTermSet > : LL >, pickStates((NS, < < TS1 : TS2 > : LL >, NS'), sd(N1,1))
+    else
+        empty
+    fi .
+    eq pickStates(NS, N1) = empty [owise] .
+
+    op pickCxStates : NodeSet Nat -> NodeSet .
+    eq pickCxStates((NS, < < TS1 : T | TS2 > : LL >, NS'), N2) =
+    if N2 > 0 then
+        < < emptyTermSet : T > : LL >, pickCxStates((NS, < < TS1 : TS2 > : LL >, NS'), sd(N2,1))
+    else
+        empty
+    fi .
+    eq pickCxStates(NS, N2) = empty [owise] .
 
     --- Logic checking at the last layer with unbounded
     op lastLayerCheck : Module NodeSet ConfigExtSet -> Result4Checking? .

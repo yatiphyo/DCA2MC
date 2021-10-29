@@ -24,6 +24,7 @@ fmod SOLVER-COMMAND-PROCESSING is
     vars Cs Cs' : ConfigExtSet .
     vars NS NS' : NodeSet .
     vars R4C : Result4Checking? .
+    vars N1 N2 : Nat .
 
     *** initialize command
     op procInitializeCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
@@ -180,6 +181,55 @@ fmod SOLVER-COMMAND-PROCESSING is
         [print R4C] .
 
     eq procLastCheckCommand('lastCheck.@Command@, ME, DB, DB-EXT) =
+        << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+
+    *** lastCheck with arguments command
+    op procLastCheckArgsCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
+    ceq procLastCheckArgsCommand('lastCheck[T1, T2], ME, DB, DB-EXT)
+    = if R4C :: Result4Checking
+        then << DB ;
+            ('\b 'LastCheck qid(N1) 'states qid(N2) 'cxstates: '\s '\o 'success '\n
+            '\t '\o 'numberOfNodeSet: qid(| NS |) '\n
+            '\t '\o 'numberOfStates: qid(getNumberOfStates(NS)) '\n
+            '\t '\o 'numberOfCxStates: qid(getNumberOfCxStates(NS)) '\n) ;
+            DB-EXT' >>
+        else << DB ;
+            ('\r 'LastCheck qid(N1) 'states qid(N2) 'cxstates: '\s '\o 'failure '\n
+            '\t '\o 'numberOfNodeSet: qid(| NS |) '\n
+            '\t '\o 'numberOfStates: qid(getNumberOfStates(NS)) '\n
+            '\t '\o 'numberOfCxStates: qid(getNumberOfCxStates(NS)) '\n
+            --- 'Formula: getFormula(R4C) '\n
+            --- get counterexample
+            'Cx: '\s eMetaPrettyPrint(M', getCounterExample(M', R4C)) '\n
+            ) ;
+            DB-EXT' >>
+        fi
+        if not isEmptyDatabaseExt(DB-EXT)
+        /\ Cs := getConfigExtSet(DB-EXT)
+        /\ OCs := getOCompExtSet(DB-EXT)
+        /\ M := getFlatModule(originModule(Cs), DB)
+        /\ M' := getFlatModule(reviseModule(Cs), DB)
+        /\ T1' := getTerm(
+                metaParse(
+                    upModule('NAT, false),
+                    downQid(solveBubbleAndToken(T1)),
+                    'Nat
+                )
+            )
+        /\ N1 := downTerm(T1', 0)
+        /\ T2' := getTerm(
+                metaParse(
+                    upModule('NAT, false),
+                    downQid(solveBubbleAndToken(T2)),
+                    'Nat
+                )
+            )
+        /\ N2 := downTerm(T2', 0)
+        /\ NS := selectStates(nodeSet(OCs), N1, N2)
+        /\ R4C := lastLayerCheck(M, NS, Cs)
+        /\ DB-EXT' := evalOCompExtSet(DB-EXT, ((result: R4C))) .
+
+    eq procLastCheckArgsCommand('lastCheck[T1, T2], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
 
     *** check command
