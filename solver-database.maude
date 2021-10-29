@@ -545,26 +545,33 @@ fmod CHECKER is
     eq buildEqs(T, P) = (eq '_|=_[T, P] = 'true.Bool [none] .) .
     --- eq buildEqs(T, P) = (eq '_|=_[T, 'inCs1.Prop] = 'true.Bool [none] .) .
 
+    --- switch to use modelCheckAll to generate all counterexamples at here
+    op isModelCheckAll : -> Bool .
+    eq isModelCheckAll = true .
 
     op allCounterExample : Module Term Term Term -> TermSet .
+    eq allCounterExample(M, T, F, P) = if isModelCheckAll
+                                       then allCounterExample*(M, T, F, P)
+                                       else $allCounterExample(M, T, F, P)
+                                       fi .
     --- generate all counterexamples by modelCheckAll
-    --- ceq allCounterExample(M, T, F, P) = if (Cx :: Constant)
-    ---                                     then emptyTermSet
-    ---                                     else
-    ---                                         handleCounterExample(Cx)
-    ---                                     fi
-    ---                                     if Cx := getReducedTerm(M, 'modelCheckAll[T, F]) .
-    --- eq allCounterExample(M, T, F, P) = emptyTermSet [owise] .
-    --- op handleCounterExample : Term -> TermSet .
-    --- eq handleCounterExample('_|_[TL]) = handleCounterExample*(TL) .
-    --- eq handleCounterExample('counterexample[TL]) = getTopTerm(getCounterExampleState('counterexample[TL])) .
+    op allCounterExample* : Module Term Term Term -> TermSet .
+    ceq allCounterExample*(M, T, F, P) = if (Cx :: Constant)
+                                        then emptyTermSet
+                                        else
+                                            handleCounterExample(Cx)
+                                        fi
+                                        if Cx := getReducedTerm(M, 'modelCheckAll[T, F]) .
+    eq allCounterExample*(M, T, F, P) = emptyTermSet [owise] .
+    op handleCounterExample : Term -> TermSet .
+    eq handleCounterExample('_|_[TL]) = handleCounterExample*(TL) .
+    eq handleCounterExample('counterexample[TL]) = getTopTerm(getCounterExampleState('counterexample[TL])) .
 
-    --- op handleCounterExample* : TermList -> TermSet .
-    --- ceq handleCounterExample*((T, TL)) = getTopTerm(TL') | handleCounterExample*(TL) if TL' := getCounterExampleState(T) .
-    --- eq handleCounterExample*(empty) = emptyTermSet .
+    op handleCounterExample* : TermList -> TermSet .
+    ceq handleCounterExample*((T, TL)) = getTopTerm(TL') | handleCounterExample*(TL) if TL' := getCounterExampleState(T) .
+    eq handleCounterExample*(empty) = emptyTermSet .
 
     --- generate all counterexamples manually
-    eq allCounterExample(M, T, F, P) = $allCounterExample(M, T, F, P) .
     op $allCounterExample : Module Term Term Term -> TermSet .
     ceq $allCounterExample(M, T, F, P) = if (Cx :: Constant)
                                     then emptyTermSet
