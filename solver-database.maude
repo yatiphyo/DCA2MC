@@ -372,7 +372,7 @@ fmod CHECKER is
     vars OCs : OCompExtSet .
     vars T T' T1 T2 F P Cx : Term .
     vars RT : ResultTriple .
-    vars TS TS1 TS2 : TermSet .
+    vars TS TS1 TS2 TS1' TS2' : TermSet .
     vars STATES CxSTATES : TermSet .
     vars R4C : Result4Checking? .
     vars CACHE : States&CxStates .
@@ -591,18 +591,18 @@ fmod CHECKER is
     op selectStates : NodeSet Nat Nat -> NodeSet .
     eq selectStates(NS, N1, N2) = pickStates(NS, N1) , pickCxStates(NS, N2) .
     op pickStates : NodeSet Nat -> NodeSet .
-    eq pickStates((NS, < < T | TS1 : TS2 > : LL >, NS'), N1) =
+    eq pickStates((NS, < < TS1 | T | TS1' : TS2 > : LL >, NS'), N1) =
     if N1 > 0 then
-        < < T : emptyTermSet > : LL >, pickStates((NS, < < TS1 : TS2 > : LL >, NS'), sd(N1,1))
+        < < T : emptyTermSet > : LL >, pickStates((NS, < < TS1 | TS1' : TS2 > : LL >, NS'), sd(N1,1))
     else
         empty
     fi .
     eq pickStates(NS, N1) = empty [owise] .
 
     op pickCxStates : NodeSet Nat -> NodeSet .
-    eq pickCxStates((NS, < < TS1 : T | TS2 > : LL >, NS'), N2) =
+    eq pickCxStates((NS, < < TS1 : TS2 | T | TS2' > : LL >, NS'), N2) =
     if N2 > 0 then
-        < < emptyTermSet : T > : LL >, pickCxStates((NS, < < TS1 : TS2 > : LL >, NS'), sd(N2,1))
+        < < emptyTermSet : T > : LL >, pickCxStates((NS, < < TS1 : TS2 | TS2' > : LL >, NS'), sd(N2,1))
     else
         empty
     fi .
