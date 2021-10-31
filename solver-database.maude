@@ -141,6 +141,7 @@ fmod DATABASE-EXT-DECL is
     op (depthList:_) : NatList -> OCompExt [ctor format (! o o)] .
     op (currentDepth:_) : Nat -> OCompExt [ctor format (! o o)] .
     op (nodeSet:_) : NodeSet -> OCompExt [ctor format (! o o)] .
+    op (cache:_) : States&CxStates -> OCompExt [ctor format (! o o)] .
     op (result:_) : Result4Checking? -> OCompExt [ctor format (m o o)] .
 endfm
 
@@ -181,6 +182,9 @@ fmod DATABASE-EXT is
     vars DB-EXT : DatabaseExt .
     vars ME : ModuleExpression .
     vars T T1 T2 : Term .
+    vars TS TS' TS1 TS2 : TermSet .
+    vars LL : LogList .
+    vars CACHE CACHE' : States&CxStates .
     vars T' : [Term] .
     vars S : Sort .
     vars NL NL' : NatList .
@@ -232,11 +236,13 @@ fmod DATABASE-EXT is
     op depthList : OCompExtSet -> NatList .
     op currentDepth : OCompExtSet -> Nat .
     op nodeSet : OCompExtSet -> NodeSet .
+    op cache : OCompExtSet -> States&CxStates .
     op result : OCompExtSet -> Result4Checking? .
 
     eq depthList(((depthList: NL), OCs)) = NL .
     eq currentDepth(((currentDepth: N), OCs)) = N .
     eq nodeSet(((nodeSet: NS), OCs)) = NS .
+    eq cache(((cache: CACHE), OCs)) = CACHE .
     eq result(((result: R4C), OCs)) = R4C .
 
     op clearDatabase : DatabaseExt -> DatabaseExt .
@@ -255,12 +261,21 @@ fmod DATABASE-EXT is
     = { Cs ; (currentDepth: N'), OCs } .
     eq $evalOCompExtSet({ Cs ; ((nodeSet: NS), OCs) }, (nodeSet: NS'))
     = { Cs ; ((nodeSet: NS'), OCs) } .
+    eq $evalOCompExtSet({ Cs ; ((cache: CACHE), OCs) }, (cache: CACHE'))
+    = { Cs ; ((cache: CACHE'), OCs) } .
     eq $evalOCompExtSet({ Cs ; ((result: R4C), OCs) }, (result: R4C'))
     = { Cs ; ((result: R4C'), OCs) } .
 
+    op getStates : NodeSet -> States&CxStates .
+    eq getStates(NS) = getStates*(NS, < emptyTermSet : emptyTermSet >) .
+    op getStates* : NodeSet States&CxStates -> States&CxStates .
+    eq getStates*((< < TS1 : TS2 > : LL >, NS), < TS : TS' >)
+    = getStates*(NS, < TS1 | TS : TS2 | TS' >) .
+    eq getStates*(empty, < TS : TS' >) = < TS : TS' > .
+
     op buildInitialOCompExtSet : Term FormulaType -> OCompExtSet .
     eq buildInitialOCompExtSet(T, FT)
-    = (depthList: nil), (currentDepth: 0), (result: nil),
+    = (depthList: nil), (currentDepth: 0), (result: nil), (cache: < emptyTermSet : emptyTermSet >),
     if FT == eventual then
         ( nodeSet: < < emptyTermSet : addDepthToTerm(T) > : nil > )
     else
@@ -607,25 +622,27 @@ fmod CHECKER is
     eq getCounterExampleState(T) = topTL(extractTL(lastTL(extractTL(T)))) .
 
     --- Select some states to check at the last layer for approximation
-    op selectStates : NodeSet Nat Nat -> NodeSet .
-    eq selectStates(NS, N1, N2) = pickStates(NS, N1) , pickCxStates(NS, N2) .
-    op pickStates : NodeSet Nat -> NodeSet .
-    eq pickStates((NS, < < TS1 | T | TS1' : TS2 > : LL >, NS'), N1) =
-    if N1 > 0 then
-        < < T : emptyTermSet > : LL >, pickStates((NS, < < TS1 | TS1' : TS2 > : LL >, NS'), sd(N1,1))
-    else
-        empty
-    fi .
-    eq pickStates(NS, N1) = empty [owise] .
+    op selectStates : NodeSet Nat Nat States&CxStates -> NodeSet .
+    eq selectStates(NS, N1, N2, < TS1 : TS2 >) = pickStates(NS, N1, TS1) , pickCxStates(NS, N2, TS2) .
+    op pickStates : NodeSet Nat TermSet -> NodeSet .
+    ceq pickStates((< < T | TS1 : TS2 > : LL >, NS), N1, TS) =
+        if N1 > 0 then
+            < < T : emptyTermSet > : LL >, pickStates((< < TS1 : TS2 > : LL >, NS), sd(N1,1), TS)
+        else
+            empty
+        fi
+    if not (T in TS) .
+    eq pickStates(NS, N1, TS) = empty [owise] .
 
-    op pickCxStates : NodeSet Nat -> NodeSet .
-    eq pickCxStates((NS, < < TS1 : TS2 | T | TS2' > : LL >, NS'), N2) =
-    if N2 > 0 then
-        < < emptyTermSet : T > : LL >, pickCxStates((NS, < < TS1 : TS2 | TS2' > : LL >, NS'), sd(N2,1))
-    else
-        empty
-    fi .
-    eq pickCxStates(NS, N2) = empty [owise] .
+    op pickCxStates : NodeSet Nat TermSet -> NodeSet .
+    ceq pickCxStates((< < TS1 : T | TS2 > : LL >, NS), N2, TS) =
+        if N2 > 0 then
+            < < emptyTermSet : T > : LL >, pickCxStates((< < TS1 : TS2 > : LL >, NS), sd(N2,1), TS)
+        else
+            empty
+        fi
+    if not (T in TS) .
+    eq pickCxStates(NS, N2, TS) = empty [owise] .
 
     --- Logic checking at the last layer with unbounded
     op lastLayerCheck : Module NodeSet ConfigExtSet -> Result4Checking? .
