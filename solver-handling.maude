@@ -466,6 +466,21 @@ mod SOLVER-DATABASE-HANDLING is
         default : ME, Atts >
         if RES := procLastCheckArgsCommand('lastCheck[T, T'], ME, DB, DB-EXT) .
 
+    crl [select] :
+        < O : X@DatabaseClass |
+        db : DB,
+        input : ('select[T, T']),
+        output : nil,
+        db-ext : DB-EXT,
+        default : ME, Atts >
+        => < O : X@DatabaseClass |
+        db : DB,
+        input : nilTermList,
+        output : getQidList(RES),
+        db-ext : getDatabaseExt(RES),
+        default : ME, Atts >
+        if RES := procSelectCommand('select[T, T'], ME, DB, DB-EXT) .
+
     crl [check] :
         < O : X@DatabaseClass |
             db : DB,

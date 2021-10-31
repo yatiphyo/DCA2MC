@@ -232,6 +232,39 @@ fmod SOLVER-COMMAND-PROCESSING is
     eq procLastCheckArgsCommand('lastCheck[T1, T2], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
 
+    *** select command
+    op procSelectCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
+    ceq procSelectCommand('select[T1, T2], ME, DB, DB-EXT)
+    = << DB ;
+            ('\b 'select qid(N1) 'states qid(N2) 'cxstates: '\s '\o 'success '\n
+            '\t '\o 'numberOfNodeSet: qid(| NS |) '\n
+            '\t '\o 'numberOfStates: qid(getNumberOfStates(NS)) '\n
+            '\t '\o 'numberOfCxStates: qid(getNumberOfCxStates(NS)) '\n) ;
+            DB-EXT' >>
+        if not isEmptyDatabaseExt(DB-EXT)
+        /\ OCs := getOCompExtSet(DB-EXT)
+        /\ T1' := getTerm(
+                metaParse(
+                    upModule('NAT, false),
+                    downQid(solveBubbleAndToken(T1)),
+                    'Nat
+                )
+            )
+        /\ N1 := downTerm(T1', 0)
+        /\ T2' := getTerm(
+                metaParse(
+                    upModule('NAT, false),
+                    downQid(solveBubbleAndToken(T2)),
+                    'Nat
+                )
+            )
+        /\ N2 := downTerm(T2', 0)
+        /\ NS := selectStates(nodeSet(OCs), N1, N2)
+        /\ DB-EXT' := evalOCompExtSet(DB-EXT, ((nodeSet: NS))) .
+
+    eq procSelectCommand('select[T1, T2], ME, DB, DB-EXT) =
+        << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+
     *** check command
     op procCheckCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
     ceq procCheckCommand('check_[T], ME, DB, DB-EXT)

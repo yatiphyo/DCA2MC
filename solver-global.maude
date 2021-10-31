@@ -6,4 +6,8 @@ fmod SOLVER-GLOBAL is
     --- show progress when conduct model checking at the final layer
     op showProgress : -> Bool .
     eq showProgress = true .
+
+    --- use a seed for random
+    op seed : -> Nat .
+    eq seed = 0 .
 endfm

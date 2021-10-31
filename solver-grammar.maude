@@ -7,6 +7,7 @@ fmod SOLVER-SIGN is
     op analyze : -> @Command@ .
     op lastCheck : -> @Command@ .
     op lastCheck : @Token@ @Token@ -> @Command@ .
+    op select : @Token@ @Token@ -> @Command@ .
     op check_ : @Bubble@ -> @Command@ .
     op check : -> @Command@ .
     op showCx : -> @Command@ .
