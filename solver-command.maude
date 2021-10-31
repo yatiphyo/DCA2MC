@@ -60,7 +60,7 @@ fmod SOLVER-COMMAND-PROCESSING is
                     ME''),
                     none, DB2)
                 fi
-                [print ME' " " T1' " " T2' " " S1' " " S2']
+                --- [print ME' " " T1' " " T2' " " S1' " " S2']
                 .
 
     op initializeDatabaseExt : ModuleExpression ModuleExpression Term Term Sort Sort Database DatabaseExt -> DatabaseExt .
@@ -83,7 +83,7 @@ fmod SOLVER-COMMAND-PROCESSING is
         /\ T1'' := getTerm(metaReduce(upModule(ME, true), T1'))
         /\ T2' := getTerm(metaParse(upModule(ME, false), downQid(T2), anyType))
         /\ T2'' := extractFormula(getEqs(upModule(ME, false)), T2')
-        [print "T1 = " T1'' "\n T2 = " T2'']
+        --- [print "T1 = " T1'' "\n T2 = " T2'']
         .
 
     *** layerCheck command

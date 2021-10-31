@@ -332,7 +332,28 @@ view DatabaseExt from TRIV to DATABASE-EXT is
     sort Elt to DatabaseExt .
 endv
 
+fmod PROGRESS is
+    pr 4TUPLE{Nat,Nat,Nat,Nat} * (
+        op `(_`,_`,_`,_`) to <_:_:_:_>,
+        op p1_ to #states,
+        op p2_ to #cxstates,
+        op p3_ to #checkedStates,
+        op p4_ to #checkedCxStates,
+        sort Tuple{Nat,Nat,Nat,Nat} to Progress
+    ) .
+
+    op state++ : Progress -> Progress .
+    op cxstate++ : Progress -> Progress .
+    ceq state++(< N1:Nat : N2:Nat : N3:Nat : N4:Nat >)
+    = < N1:Nat : N2:Nat : N3':Nat : N4:Nat > if N3':Nat := N3:Nat + 1
+    [print "Progress: " N3':Nat "/" N1:Nat " states, " N4:Nat "/" N2:Nat " cxstates"] .
+    ceq cxstate++(< N1:Nat : N2:Nat : N3:Nat : N4:Nat >) =
+    < N1:Nat : N2:Nat : N3:Nat : N4':Nat > if N4':Nat := N4:Nat + 1
+    [print "Progress: " N3:Nat "/" N1:Nat " states, " N4':Nat "/" N2:Nat " cxstates"] .
+endfm
+
 fmod CHECKER is
+    pr SOLVER-GLOBAL .
     pr DATABASE-EXT .
     pr TERMSET-EXT .
     pr 2TUPLE{NodeSet,States&CxStates} * (
@@ -358,6 +379,10 @@ fmod CHECKER is
         sort Tuple{States&CxStates,Nat} to GenAll&CxState) .
 
     pr TRANSITION-TERM-LIST .
+    pr PROGRESS .
+
+    sort Result&Progress .
+    op <_:_> : Result4Checking? Progress -> Result&Progress [ctor] .
 
     vars M : Module .
     vars NS NS' NS1 NS2 : NodeSet .
@@ -378,6 +403,7 @@ fmod CHECKER is
     vars CACHE : States&CxStates .
     vars NS&CACHE : NodeSet&Cache .
     vars Q : Qid .
+    vars PG PG' : Progress .
 
     --- NodeSet : [Node]+ , empty .
     --- Node : < < ALLStates : ALLCxStates > : < Term : Depth > | nil > >
@@ -545,10 +571,6 @@ fmod CHECKER is
     eq buildEqs(T, P) = (eq '_|=_[T, P] = 'true.Bool [none] .) .
     --- eq buildEqs(T, P) = (eq '_|=_[T, 'inCs1.Prop] = 'true.Bool [none] .) .
 
-    --- switch to use modelCheckAll to generate all counterexamples at here
-    op isModelCheckAll : -> Bool .
-    eq isModelCheckAll = true .
-
     op allCounterExample : Module Term Term Term -> TermSet .
     eq allCounterExample(M, T, F, P) = if isModelCheckAll
                                        then allCounterExample*(M, T, F, P)
@@ -584,10 +606,7 @@ fmod CHECKER is
     op getCounterExampleState : Term -> TermList .
     eq getCounterExampleState(T) = topTL(extractTL(lastTL(extractTL(T)))) .
 
-    --- Checking some state at the last layer for approximation
-    --- 1st: total node set
-    --- 2nd: number of states
-    --- 3rd: number of cx states
+    --- Select some states to check at the last layer for approximation
     op selectStates : NodeSet Nat Nat -> NodeSet .
     eq selectStates(NS, N1, N2) = pickStates(NS, N1) , pickCxStates(NS, N2) .
     op pickStates : NodeSet Nat -> NodeSet .
@@ -610,10 +629,16 @@ fmod CHECKER is
 
     --- Logic checking at the last layer with unbounded
     op lastLayerCheck : Module NodeSet ConfigExtSet -> Result4Checking? .
-    eq lastLayerCheck(M, empty, Cs) = success .
-    ceq lastLayerCheck(M, (ND , NS), Cs) = if R4C :: Result4Checking
+    eq lastLayerCheck(M, NS, Cs) = if showProgress
+                                   then lastLayerCheck&Progress(M, NS, Cs)
+                                   else lastLayerCheckWithoutProgress(M, NS, Cs)
+                                   fi [print "<=============== LastLayerCheck ===============>"] .
+
+    op lastLayerCheckWithoutProgress : Module NodeSet ConfigExtSet -> Result4Checking? .
+    eq lastLayerCheckWithoutProgress(M, empty, Cs) = success .
+    ceq lastLayerCheckWithoutProgress(M, (ND , NS), Cs) = if R4C :: Result4Checking
                                         then
-                                            lastLayerCheck(M, NS, Cs)
+                                            lastLayerCheckWithoutProgress(M, NS, Cs)
                                         else
                                             R4C
                                         fi
@@ -650,6 +675,52 @@ fmod CHECKER is
                     fi
                     if R4C := checkStates(M, states(states&CxStates(ND)), logList(ND), Cs) .
     eq checkNode(M, ND, Cs) = success [owise] .
+
+    --- Logic checking at the last layer with unbounded + PROGRESS
+    op lastLayerCheck&Progress : Module NodeSet ConfigExtSet -> Result4Checking? .
+    eq lastLayerCheck&Progress(M, NS, Cs) = lastLayerCheck*(M, NS, Cs, < getNumberOfStates(NS) : getNumberOfCxStates(NS) : 0 : 0 >) .
+    --- show progress
+    op lastLayerCheck* : Module NodeSet ConfigExtSet Progress -> Result4Checking? .
+    eq lastLayerCheck*(M, empty, Cs, PG) = success .
+    ceq lastLayerCheck*(M, (ND , NS), Cs, PG) = if R4C :: Result4Checking
+                                        then
+                                            lastLayerCheck*(M, NS, Cs, PG')
+                                        else
+                                            R4C
+                                        fi
+                                        if < R4C : PG' > := checkNode*(M, ND, Cs, PG) .
+
+    --- Check all states in ALLStates one by one + PROGRESS
+    op checkStates* : Module TermSet LogList ConfigExtSet Progress -> Result&Progress .
+    eq checkStates*(M, emptyTermSet, LL, Cs, PG) = < success : PG > .
+    ceq checkStates*(M, T | TS, LL, Cs, PG) = if (Cx :: Constant)
+                                    then checkStates*(M, TS, LL, Cs, state++(PG))
+                                    else
+                                        < {formula: F, term: T', trace: (< T : 0 > LL), cx: Cx} : state++(PG) >
+                                    fi
+                                    if T' := removeDepthFromTerm(T)
+                                    /\ F := ncxFormula(Cs)
+                                    /\ Cx := getReducedTerm(M, 'modelCheck[T', F]) .
+
+    --- Check counterexample in ALLCxStates one by one + PROGRESS
+    op checkCxStates* : Module TermSet LogList ConfigExtSet Progress -> Result&Progress .
+    eq checkCxStates*(M, emptyTermSet, LL, Cs, PG) = < success : PG > .
+    ceq checkCxStates*(M, T | TS, LL, Cs, PG) = if (Cx :: Constant)
+                                        then checkCxStates*(M, TS, LL, Cs, cxstate++(PG))
+                                        else < {formula: F, term: T', trace: (< T : 0 > LL), cx: Cx} : cxstate++(PG) >
+                                        fi
+                                        if T' := removeDepthFromTerm(T)
+                                        /\ F := cxFormula(Cs)
+                                        /\ Cx := getReducedTerm(M, 'modelCheck[T', F]) .
+
+    --- Check counterexample in a Node one by one in order, including both ALLStates and ALLCxStates, + PROGRESS
+    op checkNode* : Module Node ConfigExtSet Progress -> Result&Progress .
+    ceq checkNode*(M, ND, Cs, PG) = if (R4C :: Result4Checking)
+                    then checkCxStates*(M, cxStates(states&CxStates(ND)), logList(ND), Cs, PG')
+                    else < R4C : PG' >
+                    fi
+                    if < R4C : PG' > := checkStates*(M, states(states&CxStates(ND)), logList(ND), Cs, PG) .
+    eq checkNode*(M, ND, Cs, PG) = < success : PG > [owise] .
 
     ************ FOR STABLE MODEL CHECKING ************
     vars STL : Set{TermList} .
