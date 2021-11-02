@@ -166,10 +166,12 @@ mod MCS-PREDS is
   subsort Config < State .
   op inWs1 : -> Prop .
   op inCs1 : -> Prop .
+  op inFs1 : -> Prop .
   var PROP : Prop .
   var OCs :  Soup{OComp} .
   eq {(pc[p1] : ws) OCs} |= inWs1 = true .
   eq {(pc[p1] : cs) OCs} |= inCs1 = true .
+  eq {(pc[p1] : fs) OCs} |= inFs1 = true .
   eq {OCs} |= PROP = false [owise] .
 endm
 
@@ -179,6 +181,8 @@ mod MCS-CHECK is
   inc LTL-SIMPLIFIER .
   op lofree : -> Formula .
   eq lofree = inWs1 |-> inCs1 .
+  op halt : -> Formula .
+  eq halt = <> inFs1 .
 endm
 
 ***(

@@ -93,6 +93,8 @@ mod TAS-CHECK is
   eq lofree = inWs1 |-> inCs1 .
   op cstable : -> Formula .
   eq cstable = inWs1 |-> [] inFs1 .
+  op halt : -> Formula .
+  eq halt = <> inFs1 .
 endm
 
 ***(

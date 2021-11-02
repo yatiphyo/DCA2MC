@@ -140,11 +140,12 @@ mod ANDERSON-PREDS is
     pr ANDERSON .
     inc SATISFACTION .
     subsort Config < State .
-    ops inWs1 inCs1 : -> Prop .
+    ops inWs1 inCs1 inFs1 : -> Prop .
     var OCs : Soup{OComp} .
     var PROP : Prop .
     eq {(pc[p1]: ws) OCs} |= inWs1 = true .
     eq {(pc[p1]: cs) OCs} |= inCs1 = true .
+    eq {(pc[p1]: fs) OCs} |= inFs1 = true .
     eq {OCs} |= PROP = false [owise] .
 endm
 
@@ -154,6 +155,8 @@ mod ANDERSON-CHECK is
     inc LTL-SIMPLIFIER .
     op lofree : -> Formula .
     eq lofree = inWs1 |-> inCs1 .
+    op halt : -> Formula .
+    eq halt = <> inFs1 .
 endm
 
 ***
