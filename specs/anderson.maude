@@ -88,7 +88,7 @@ fmod CONFIG is
             (next: 0)
             (array[0]: true) (array[1]: false) (array[2]: false) (array[3]: false) (array[4]: false) (array[5]: false)
             (cnt: 6)} .
-  eq init7 = {(pc[p1]: rs) (pc[p2]: rs) (pc[p3]: rs) (pc[p4]: rs) (pc[p5]: rs) (pc[p6]: rs) (pc[p7]: rs) (pc[p8]: rs)
+  eq init7 = {(pc[p1]: rs) (pc[p2]: rs) (pc[p3]: rs) (pc[p4]: rs) (pc[p5]: rs) (pc[p6]: rs) (pc[p7]: rs)
             (place[p1]: 0) (place[p2]: 0) (place[p3]: 0) (place[p4]: 0) (place[p5]: 0) (place[p6]: 0) (place[p7]: 0)
             (next: 0)
             (array[0]: true) (array[1]: false) (array[2]: false) (array[3]: false) (array[4]: false) (array[5]: false) (array[6]: false)
@@ -118,9 +118,12 @@ mod ANDERSON is
     vars B1 B2 : Bool .
     var OCs : Soup{OComp} .
 
-    rl [incNxt&setPlc] : {(pc[I]: rs) (next: N) (place[I]: N1) OCs} => {(pc[I]: ws) (next: (( N + 1) rem 9)) (place[I]: N) OCs}.
+    op #procs : -> Nat . 
+    eq #procs = 9 .
+
+    rl [incNxt&setPlc] : {(pc[I]: rs) (next: N) (place[I]: N1) OCs} => {(pc[I]: ws) (next: (( N + 1) rem #procs)) (place[I]: N) OCs}.
     rl [wait] : {(pc[I]: ws) (place[I]: N) (array[N]: true) OCs} => {(pc[I]: cs) (place[I]: N) (array[N]: true) OCs} .
-    crl [chArray] : {(pc[I]: cs) (place[I]: N) (array[N]: B1) (array[N1]: B2) (cnt: C) OCs} => {(pc[I]: fs) (place[I]: N) (array[N]: false) (array[N1]: true) (cnt: dec(C)) OCs} if N1 = (N + 1) rem 9 .
+    crl [chArray] : {(pc[I]: cs) (place[I]: N) (array[N]: B1) (array[N1]: B2) (cnt: C) OCs} => {(pc[I]: fs) (place[I]: N) (array[N]: false) (array[N1]: true) (cnt: dec(C)) OCs} if N1 = (N + 1) rem #procs .
     rl [fin] : {(cnt: 0) OCs} => {(cnt: 0) OCs} .
 endm
 

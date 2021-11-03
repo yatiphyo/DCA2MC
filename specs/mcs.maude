@@ -83,15 +83,19 @@ fmod CONFIG is
   pr SOUP{OComp} .
   sort Config .
   op {_} : Soup{OComp} -> Config [ctor] .
-  op init3 : -> Config .
-  op init5 : -> Config .
-  op init6 : -> Config .
+  ops init3 init4 init5 init6 : -> Config .
   eq init3
   = {(glock: nop)
        (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss)
        (next[p1]: nop) (next[p2]: nop)  (next[p3]: nop)
        (lock[p1]: false) (lock[p2]: false)  (lock[p3]: false)
        (pred[p1]: nop) (pred[p2]: nop) (pred[p3]: nop) (cnt: 3)} .
+  eq init4
+  = {(glock: nop)
+       (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss)
+       (next[p1]: nop) (next[p2]: nop)  (next[p3]: nop) (next[p4]: nop)
+       (lock[p1]: false) (lock[p2]: false)  (lock[p3]: false)  (lock[p4]: false)
+       (pred[p1]: nop) (pred[p2]: nop) (pred[p3]: nop) (pred[p4]: nop) (cnt: 4)} .
   eq init5
   = {(glock: nop)
        (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)

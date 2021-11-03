@@ -58,14 +58,23 @@ fmod CONFIG is
   pr SOUP{OComp} .
   sort Config .
   op {_} : Soup{OComp} -> Config [ctor] .
-  op init : -> Config .
-  op init3 : -> Config .
-  op init5 : -> Config .
-  op init10 : -> Config .
+  ops init init3 init5 init6 init7 init8 init9 init10 : -> Config .
   eq init = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (cnt: 2)} .
   eq init3 = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (cnt: 3)} .
   eq init5 = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss)
                      (pc[p4]: ss) (pc[p5]: ss) (cnt: 5) } .
+  eq init6 = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss)
+                       (pc[p4]: ss) (pc[p5]: ss) (pc[p6]: ss)
+                       (cnt: 6) } .
+  eq init7 = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss)
+                       (pc[p4]: ss) (pc[p5]: ss) (pc[p6]: ss) (pc[p7]: ss)
+                       (cnt: 7) } .
+  eq init8 = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss)
+                       (pc[p4]: ss) (pc[p5]: ss) (pc[p6]: ss) (pc[p7]: ss)
+                       (pc[p8]: ss) (cnt: 8) } .
+  eq init9 = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss)
+                       (pc[p4]: ss) (pc[p5]: ss) (pc[p6]: ss) (pc[p7]: ss)
+                       (pc[p8]: ss) (pc[p9]: ss) (cnt: 9) } .
   eq init10 = {(queue: empq) (pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss)
                        (pc[p4]: ss) (pc[p5]: ss) (pc[p6]: ss) (pc[p7]: ss)
                        (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss) (cnt: 10) } .
