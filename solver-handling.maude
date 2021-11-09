@@ -3,6 +3,7 @@ mod SOLVER-DATABASE-HANDLING is
     pr SOLVER-COMMAND-PROCESSING .
     pr SOLVER-HELP .
     pr SOLVER-MESSAGE .
+    pr SOLVER-GLOBAL .
 
     op db-ext :_ : DatabaseExt -> Attribute .
 
@@ -159,7 +160,7 @@ mod SOLVER-DATABASE-HANDLING is
                 if type(Cs) == cstable then
                     genCxStatesForStable(O, ST, M, 0)
                 else
-                    genCxStates(O, ST, M)
+                    getGenCxStateMsg(O, ST, M)
                 fi
             else
                 lastCheckCxState(O, ST)
@@ -171,6 +172,12 @@ mod SOLVER-DATABASE-HANDLING is
         /\ N := getDepth(ST)
         /\ B := getNextDepth(ST)
         [print "[handle] State at Depth = " N " nextDepth = " B " Logger = " L'] .
+
+    op getGenCxStateMsg : Oid State Module -> Msg .
+    eq getGenCxStateMsg(O, ST, M) = if isModelCheckAll
+                                    then genCxStatesOnce(O, ST, M)
+                                    else genCxStates(O, ST, M)
+                                    fi .
 
     --- for conditional stable properties
     crl [genStatesForStable] :
@@ -190,7 +197,7 @@ mod SOLVER-DATABASE-HANDLING is
             cache : O',
             client : O'',
             Atts >
-        genStatesForStableDone(O, ST, M)
+        genStatesForStableDone(O, O)
         lookupBatchReq(O', O, (termSetToStates(DB-EXT, ST, TS1, all), termSetToStates(DB-EXT, ST, TS2, cx)))
         if Cs := getConfigExtSet(DB-EXT)
         /\ D := getNextDepth(ST)
@@ -205,7 +212,7 @@ mod SOLVER-DATABASE-HANDLING is
             status : working,
             client : O'',
             Atts >
-        genStatesForStableDone(O, ST, M)
+        genStatesForStableDone(O, O')
         =>
         < O : X@DatabaseClass |
             status : waiting,
@@ -287,7 +294,7 @@ mod SOLVER-DATABASE-HANDLING is
                     cache : O',
                     client : O'',
                     Atts >
-                genCxStates(O, ST, M)
+                getGenCxStateMsg(O, ST, M)
             fi
         if Cs := getConfigExtSet(DB-EXT)
         /\ GS := procGenAllStates(M, getState(ST), getNextDepth(ST), Cs, C, B)
@@ -338,6 +345,44 @@ mod SOLVER-DATABASE-HANDLING is
     /\ GCxS := procGenCxStates(M, getState(ST), getNextDepth(ST), Cs, B, getType(ST))
     /\ TS := getCxState(GCxS)
     /\ M' := getModule(GCxS) [print "[genCxStates]"] .
+
+    crl [genCxStatesOnce] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            input : nilTermList,
+            status : working,
+            cache : O',
+            client : O'',
+            Atts >
+        genCxStatesOnce(O, ST, M)
+    =>  < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            input : nilTermList,
+            status : suspending,
+            cache : O',
+            client : O'',
+            Atts >
+        lookupBatchReq(O', O, termSetToStates(DB-EXT, ST, TS, cx))
+        genCxStatesOnceDone(O, O)
+    if  Cs := getConfigExtSet(DB-EXT)
+    /\ TS := procGenCxStatesOnce(M, getState(ST), getNextDepth(ST), Cs, getType(ST))
+    [print "[genCxStatesOnce]"] .
+
+    rl [genCxStatesOnceDone] :
+        < O : X@DatabaseClass |
+            status : working,
+            client : O'',
+            Atts >
+        genCxStatesOnceDone(O, O')
+        =>
+        < O : X@DatabaseClass |
+            status : waiting,
+            client : O'',
+            Atts >
+        fetchState(O'', O)
+        [print "[genCxStatesOnceDone]"] .
 
     rl [resumeWorking] :
         < O : X@DatabaseClass |

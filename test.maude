@@ -1,14 +1,12 @@
 in debug.maude .
-in specs/self-stabilization/k-states.maude
+in specs/qlock.maude
 in full-maude
 in solver
---- (initialize[QLOCK-CHECK, init5, lofree, OComp, Soup{OComp}])
+(initialize[QLOCK-CHECK, init5, lofree, OComp, Soup{OComp}])
 --- (initialize[QLOCK-CHECK, init5, halt, OComp, Soup{OComp}])
 --- (initialize[QLOCK-CHECK, init5, cstable, OComp, Soup{OComp}])
---- (initialize[ABP-CHECK, init, cstable, OComp, Soup{OComp}])
-(initialize[K-STATES-CHECK, init, cstable, OComp, Soup{OComp}])
---- (layerCheck 2)
---- (layerCheck 1)
+(layerCheck 2)
+(layerCheck 2)
 --- (lastCheck)
 --- quit
 

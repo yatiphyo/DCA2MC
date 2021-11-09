@@ -1,4 +1,4 @@
-in specs/self-stabilization/abp.maude
+in specs/qlock.maude
 in full-maude.maude
 in solver-parallel.maude
 in mq/client.maude
@@ -29,9 +29,9 @@ mod SOVLER-WORKER is
                 < aCache : Cache | CxState : empty, AllState : empty, server : aClient, app : o >
                 < aClient : Client | app : o, cache : aCache >
                 CreateClientTcpSocket(socketManager, aClient, "localhost", 8811)
-                --- initialize(o, "initialize[QLOCK-CHECK, init5, lofree, OComp, Soup{OComp}]")
+                initialize(o, "initialize[QLOCK-CHECK, init5, lofree, OComp, Soup{OComp}]")
                 --- initialize(o, "initialize[QLOCK-CHECK, init5, halt, OComp, Soup{OComp}]")
-                initialize(o, "initialize[ABP-CHECK, init, cstable, OComp, Soup{OComp}]")
+                --- initialize(o, "initialize[QLOCK-CHECK, init5, cstable, OComp, Soup{OComp}]")
                 depthInfo(o, "depthInfo 2 2") .
 endm
 

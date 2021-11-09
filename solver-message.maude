@@ -88,8 +88,10 @@ mod SOLVER-MESSAGE is
     op handle : Oid Oid State -> Msg [ctor msg format (b o)] .
     op genAllStates : Oid State Module Nat -> Msg [ctor msg format (b o)] .
     op genCxStates : Oid State Module -> Msg [ctor msg format (b o)] .
+    op genCxStatesOnce : Oid State Module -> Msg [ctor msg format (b o)] .
+    op genCxStatesOnceDone : Oid Oid -> Msg [ctor msg format (b o)] .
     op genStatesForStable : Oid State Module -> Msg [ctor msg format (b o)] .
-    op genStatesForStableDone : Oid State Module -> Msg [ctor msg format (b o)] .
+    op genStatesForStableDone : Oid Oid -> Msg [ctor msg format (b o)] .
     op genCxStatesForStable : Oid State Module Nat -> Msg [ctor msg format (b o)] .
     op lastCheckAllState : Oid State -> Msg [ctor msg format (b o)] .
     op lastCheckCxState : Oid State -> Msg [ctor msg format (b o)] .

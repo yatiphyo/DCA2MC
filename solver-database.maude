@@ -588,18 +588,18 @@ fmod CHECKER is
 
     op allCounterExample : Module Term Term Term -> TermSet .
     eq allCounterExample(M, T, F, P) = if isModelCheckAll
-                                       then allCounterExample*(M, T, F, P)
+                                       then allCounterExample*(M, T, F)
                                        else $allCounterExample(M, T, F, P)
                                        fi .
     --- generate all counterexamples by modelCheckAll
-    op allCounterExample* : Module Term Term Term -> TermSet .
-    ceq allCounterExample*(M, T, F, P) = if (Cx :: Constant)
+    op allCounterExample* : Module Term Term -> TermSet .
+    ceq allCounterExample*(M, T, F) = if (Cx :: Constant)
                                         then emptyTermSet
                                         else
                                             handleCounterExample(Cx)
                                         fi
                                         if Cx := getReducedTerm(M, 'modelCheckAll[T, F]) .
-    eq allCounterExample*(M, T, F, P) = emptyTermSet [owise] .
+    eq allCounterExample*(M, T, F) = emptyTermSet [owise] .
     op handleCounterExample : Term -> TermSet .
     eq handleCounterExample('_|_[TL]) = handleCounterExample*(TL) .
     eq handleCounterExample('counterexample[TL]) = getTopTerm(getCounterExampleState('counterexample[TL])) .
@@ -841,6 +841,10 @@ fmod CHECKER is
     ceq genState(M, T, D, Cs, C) = metaSearch(M, T, Q['__[getVarTerm(soupSort(Cs)), 'depth:_[upTerm(D)]]], nil, '*, unbounded, C)
     if Q := extractOidFromTerm(T) .
 
+    --- process counterexample states onces
+    op procGenCxStatesOnce : Module Term Nat ConfigExtSet StateType -> TermSet .
+    eq procGenCxStatesOnce(M, T, D, Cs, all) = allCounterExample*(changeDepth(M, D), T, ncxFormula(Cs)) .
+    eq procGenCxStatesOnce(M, T, D, Cs, cx) = allCounterExample*(changeDepth(M, D), T, cxFormula(Cs)) .
 
     --- process counterexample states with batch
     op procGenCxStates : Module Term Nat ConfigExtSet Bound StateType -> GenCxState .

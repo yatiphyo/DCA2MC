@@ -1,9 +1,9 @@
 fmod SOLVER-GLOBAL is
     --- switch to use modelCheckAll to generate all counterexamples
     op isModelCheckAll : -> Bool .
-    eq isModelCheckAll = false .
+    eq isModelCheckAll = true .
 
     --- show progress when conduct model checking at the final layer
     op showProgress : -> Bool .
-    eq showProgress = false .
+    eq showProgress = true .
 endfm

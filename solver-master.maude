@@ -1,8 +1,8 @@
-in specs/self-stabilization/abp.maude
+in specs/qlock.maude
 in full-maude.maude
 in solver-parallel.maude
-in mq/server-ext.maude --- for conditional stable model checking
---- in mq/server.maude
+--- in mq/server-ext.maude --- for conditional stable model checking
+in mq/server.maude
 in mq/cache.maude
 in debug.maude
 
@@ -27,11 +27,11 @@ mod SOVLER-MASTER is
                 isAll : true,
                 default : 'CONVERSION >
                 < aCache : Cache | CxState : empty, AllState : empty, server : aServer, app : o, logger : empty >
-                < aServer : Server | app : o, cache : aCache, nWorkers : 2 >
+                < aServer : Server | app : o, cache : aCache, nWorkers : 8 >
                 CreateServerTcpSocket(socketManager, aServer, 8811, 10)
-                --- initialize(o, "initialize[QLOCK-CHECK, init5, lofree, OComp, Soup{OComp}]")
+                initialize(o, "initialize[QLOCK-CHECK, init5, lofree, OComp, Soup{OComp}]")
                 --- initialize(o, "initialize[QLOCK-CHECK, init5, halt, OComp, Soup{OComp}]")
-                initialize(o, "initialize[ABP-CHECK, init, cstable, OComp, Soup{OComp}]")
+                --- initialize(o, "initialize[QLOCK-CHECK, init5, cstable, OComp, Soup{OComp}]")
                 depthInfo(o, "depthInfo 2 2") .
 endm
 
