@@ -1,4 +1,6 @@
 fmod SOLVER-GLOBAL is
+    pr NAT .
+
     --- switch to use modelCheckAll to generate all counterexamples
     op isModelCheckAll : -> Bool .
     eq isModelCheckAll = true .
@@ -6,4 +8,7 @@ fmod SOLVER-GLOBAL is
     --- show progress when conduct model checking at the final layer
     op showProgress : -> Bool .
     eq showProgress = true .
+
+    op initSeed : -> Nat .
+    eq initSeed = 37 .
 endfm

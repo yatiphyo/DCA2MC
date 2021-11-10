@@ -141,7 +141,7 @@ fmod DATABASE-EXT-DECL is
     op (depthList:_) : NatList -> OCompExt [ctor format (! o o)] .
     op (currentDepth:_) : Nat -> OCompExt [ctor format (! o o)] .
     op (nodeSet:_) : NodeSet -> OCompExt [ctor format (! o o)] .
-    op (cache:_) : States&CxStates -> OCompExt [ctor format (! o o)] .
+    op (seed:_) : Nat -> OCompExt [ctor format (! o o)] .
     op (result:_) : Result4Checking? -> OCompExt [ctor format (m o o)] .
 endfm
 
@@ -167,6 +167,7 @@ view OCompExtSet from TRIV to CONFIG-EXT&STATE-EXT is
 endv
 
 fmod DATABASE-EXT is
+    pr SOLVER-GLOBAL .
     pr SOLVER-COMMON .
     pr STATE .
     pr STATE-SET .
@@ -182,9 +183,6 @@ fmod DATABASE-EXT is
     vars DB-EXT : DatabaseExt .
     vars ME : ModuleExpression .
     vars T T1 T2 : Term .
-    vars TS TS' TS1 TS2 : TermSet .
-    vars LL : LogList .
-    vars CACHE CACHE' : States&CxStates .
     vars T' : [Term] .
     vars S : Sort .
     vars NL NL' : NatList .
@@ -236,13 +234,13 @@ fmod DATABASE-EXT is
     op depthList : OCompExtSet -> NatList .
     op currentDepth : OCompExtSet -> Nat .
     op nodeSet : OCompExtSet -> NodeSet .
-    op cache : OCompExtSet -> States&CxStates .
+    op seed : OCompExtSet -> Nat .
     op result : OCompExtSet -> Result4Checking? .
 
     eq depthList(((depthList: NL), OCs)) = NL .
     eq currentDepth(((currentDepth: N), OCs)) = N .
     eq nodeSet(((nodeSet: NS), OCs)) = NS .
-    eq cache(((cache: CACHE), OCs)) = CACHE .
+    eq seed(((seed: N), OCs)) = N .
     eq result(((result: R4C), OCs)) = R4C .
 
     op clearDatabase : DatabaseExt -> DatabaseExt .
@@ -261,21 +259,14 @@ fmod DATABASE-EXT is
     = { Cs ; (currentDepth: N'), OCs } .
     eq $evalOCompExtSet({ Cs ; ((nodeSet: NS), OCs) }, (nodeSet: NS'))
     = { Cs ; ((nodeSet: NS'), OCs) } .
-    eq $evalOCompExtSet({ Cs ; ((cache: CACHE), OCs) }, (cache: CACHE'))
-    = { Cs ; ((cache: CACHE'), OCs) } .
+    eq $evalOCompExtSet({ Cs ; ((seed: N), OCs) }, (seed: N'))
+    = { Cs ; ((seed: N'), OCs) } .
     eq $evalOCompExtSet({ Cs ; ((result: R4C), OCs) }, (result: R4C'))
     = { Cs ; ((result: R4C'), OCs) } .
 
-    op getStates : NodeSet -> States&CxStates .
-    eq getStates(NS) = getStates*(NS, < emptyTermSet : emptyTermSet >) .
-    op getStates* : NodeSet States&CxStates -> States&CxStates .
-    eq getStates*((< < TS1 : TS2 > : LL >, NS), < TS : TS' >)
-    = getStates*(NS, < TS1 | TS : TS2 | TS' >) .
-    eq getStates*(empty, < TS : TS' >) = < TS : TS' > .
-
     op buildInitialOCompExtSet : Term FormulaType -> OCompExtSet .
     eq buildInitialOCompExtSet(T, FT)
-    = (depthList: nil), (currentDepth: 0), (result: nil), (cache: < emptyTermSet : emptyTermSet >),
+    = (depthList: nil), (currentDepth: 0), (result: nil), (seed: initSeed),
     if FT == eventual then
         ( nodeSet: < < emptyTermSet : addDepthToTerm(T) > : nil > )
     else
@@ -367,6 +358,110 @@ fmod PROGRESS is
     [print "Progress: " N3:Nat "/" N1:Nat " states, " N4':Nat "/" N2:Nat " cxstates"] .
 endfm
 
+fmod RANDOM-STATES is
+    pr SOLVER-GLOBAL .
+    pr DATABASE-EXT .
+    pr TERMSET-EXT .
+    pr RANDOM .
+
+    sort NodeSet&Seed .
+    op <_:_> : NodeSet Nat -> NodeSet&Seed [ctor] .
+
+    vars N N1 N2 C SEED SEED1 SEED2 : Nat .
+    vars NzN : NzNat .
+    vars TS TS' TS1 TS1' TS2 TS2' : TermSet .
+    vars ND : Node .
+    vars NS NS' NS1 NS1' NS2 NS2' : NodeSet .
+    vars LL : LogList .
+    vars T : Term .
+
+    op selectStates : NodeSet Nat Nat Nat -> NodeSet&Seed .
+    ceq selectStates(NS, N1, N2, SEED) = < (NS1, NS2) : SEED2 >
+    if < NS1 : SEED1 > := pickStates(filterStatesNS(NS), N1, empty, SEED)
+    /\ < NS2 : SEED2 > := pickCxStates(filterCxStatesNS(NS), N2, empty, SEED1) .
+
+    --- only get Node with not empty states
+    op filterStatesNS : NodeSet -> NodeSet .
+    eq filterStatesNS(empty) = empty .
+    eq filterStatesNS((< < T | TS1 : TS2 > : LL >, NS)) = < < T | TS1 : TS2 > : LL >, filterStatesNS(NS) .
+    eq filterStatesNS((< < emptyTermSet : TS2 > : LL >, NS)) = filterStatesNS(NS) .
+
+    --- only get Node with not empty cx states
+    op filterCxStatesNS : NodeSet -> NodeSet .
+    eq filterCxStatesNS(empty) = empty .
+    eq filterCxStatesNS((< < TS1 : T | TS2 > : LL >, NS)) = < < TS1 : T | TS2 > : LL >, filterCxStatesNS(NS) .
+    eq filterCxStatesNS((< < TS1 : emptyTermSet > : LL >, NS)) = filterCxStatesNS(NS) .
+
+    --- randomize to get a node
+    op randNodeSet : NodeSet Nat -> NodeSet .
+    ceq randNodeSet(NS, SEED) = if C > 0
+                             then getNodeSetByIndex(NS, (random(SEED) rem C))
+                             else empty
+                             fi
+    if C := | NS | .
+
+    op getNodeSetByIndex : NodeSet Nat -> NodeSet .
+    eq getNodeSetByIndex((ND, NS), N) = if N > 0
+                                        then getNodeSetByIndex(NS, sd(N, 1))
+                                        else ND
+                                        fi .
+    --- randomize to get a term
+    op randTermSet : TermSet Nat -> TermSet .
+    ceq randTermSet(TS, SEED) = if C > 0
+                             then getTermSetByIndex(TS, (random(SEED) rem C))
+                             else emptyTermSet
+                             fi
+    if C := | TS | .
+
+    op getTermSetByIndex : TermSet Nat -> TermSet .
+    eq getTermSetByIndex(T | TS, N) = if N > 0
+                                      then getTermSetByIndex(TS, sd(N, 1))
+                                      else T
+                                      fi .
+
+    op pickStates : NodeSet Nat NodeSet Nat -> NodeSet&Seed .
+    eq pickStates(empty, N, NS2, SEED) = < NS2 : SEED > .
+    eq pickStates(NS1, 0, NS2, SEED) = < NS2 : SEED > .
+    ceq pickStates(NS1, NzN, NS2, SEED) = if | TS1' | > 0
+                                      then pickStates(
+                                          (< < TS1' : TS2 > : LL >, NS1'),
+                                          sd(NzN, 1),
+                                          (< < T : emptyTermSet > : LL >, NS2),
+                                          (SEED + 2))
+                                      else pickStates(
+                                          NS1',
+                                          sd(NzN, 1),
+                                          (< < T : emptyTermSet > : LL >, NS2),
+                                          (SEED + 2))
+                                      fi
+    if | NS1 | > 0
+    /\ < < TS1 : TS2 > : LL > := randNodeSet(NS1, SEED)
+    /\ NS1' := (NS1 \ (< < TS1 : TS2 > : LL >))
+    /\ T := randTermSet(TS1, (SEED + 1))
+    /\ TS1' := TS1 except T .
+
+    op pickCxStates : NodeSet Nat NodeSet Nat -> NodeSet&Seed .
+    eq pickCxStates(empty, N, NS2, SEED) = < NS2 : SEED > .
+    eq pickCxStates(NS1, 0, NS2, SEED) = < NS2 : SEED > .
+    ceq pickCxStates(NS1, NzN, NS2, SEED) = if | TS2' | > 0
+                                      then pickCxStates(
+                                          (< < TS1 : TS2' > : LL >, NS1'),
+                                          sd(NzN, 1),
+                                          (< < emptyTermSet : T > : LL >, NS2),
+                                          (SEED + 2))
+                                      else pickCxStates(
+                                          NS1',
+                                          sd(NzN, 1),
+                                          (< < emptyTermSet : T > : LL >, NS2),
+                                          (SEED + 2))
+                                      fi
+    if | NS1 | > 0
+    /\ < < TS1 : TS2 > : LL > := randNodeSet(NS1, SEED)
+    /\ NS1' := (NS1 \ (< < TS1 : TS2 > : LL >))
+    /\ T := randTermSet(TS2, (SEED + 1))
+    /\ TS2' := TS2 except T .
+endfm
+
 fmod CHECKER is
     pr SOLVER-GLOBAL .
     pr DATABASE-EXT .
@@ -394,6 +489,7 @@ fmod CHECKER is
         sort Tuple{States&CxStates,Nat} to GenAll&CxState) .
 
     pr TRANSITION-TERM-LIST .
+    pr RANDOM-STATES .
     pr PROGRESS .
 
     sort Result&Progress .
@@ -620,29 +716,6 @@ fmod CHECKER is
 
     op getCounterExampleState : Term -> TermList .
     eq getCounterExampleState(T) = topTL(extractTL(lastTL(extractTL(T)))) .
-
-    --- Select some states to check at the last layer for approximation
-    op selectStates : NodeSet Nat Nat States&CxStates -> NodeSet .
-    eq selectStates(NS, N1, N2, < TS1 : TS2 >) = pickStates(NS, N1, TS1) , pickCxStates(NS, N2, TS2) .
-    op pickStates : NodeSet Nat TermSet -> NodeSet .
-    ceq pickStates((< < T | TS1 : TS2 > : LL >, NS), N1, TS) =
-        if N1 > 0 then
-            < < T : emptyTermSet > : LL >, pickStates((< < TS1 : TS2 > : LL >, NS), sd(N1,1), TS)
-        else
-            empty
-        fi
-    if not (T in TS) .
-    eq pickStates(NS, N1, TS) = empty [owise] .
-
-    op pickCxStates : NodeSet Nat TermSet -> NodeSet .
-    ceq pickCxStates((< < TS1 : T | TS2 > : LL >, NS), N2, TS) =
-        if N2 > 0 then
-            < < emptyTermSet : T > : LL >, pickCxStates((< < TS1 : TS2 > : LL >, NS), sd(N2,1), TS)
-        else
-            empty
-        fi
-    if not (T in TS) .
-    eq pickCxStates(NS, N2, TS) = empty [owise] .
 
     --- Logic checking at the last layer with unbounded
     op lastLayerCheck : Module NodeSet ConfigExtSet -> Result4Checking? .

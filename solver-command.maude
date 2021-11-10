@@ -24,8 +24,7 @@ fmod SOLVER-COMMAND-PROCESSING is
     vars Cs Cs' : ConfigExtSet .
     vars NS NS' : NodeSet .
     vars R4C : Result4Checking? .
-    vars N1 N2 : Nat .
-    vars TS TS' TS1 TS2 : TermSet .
+    vars N1 N2 SEED : Nat .
 
     *** initialize command
     op procInitializeCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
@@ -117,7 +116,6 @@ fmod SOLVER-COMMAND-PROCESSING is
             ((currentDepth: (currentDepth(OCs) + sum(NL))),
             (depthList: (append(depthList(OCs), NL))),
             (nodeSet: NS),
-            (cache: < emptyTermSet : emptyTermSet >),
             (result: nil))
         ) .
 
@@ -152,7 +150,6 @@ fmod SOLVER-COMMAND-PROCESSING is
             ((currentDepth: 0),
             (depthList: (append(depthList(OCs), NL))),
             (nodeSet: nodeSet(OCs)),
-            (cache: < emptyTermSet : emptyTermSet >),
             (result: nil))
         ) .
 
@@ -180,10 +177,7 @@ fmod SOLVER-COMMAND-PROCESSING is
         /\ M := getFlatModule(originModule(Cs), DB)
         /\ M' := getFlatModule(reviseModule(Cs), DB)
         /\ R4C := lastLayerCheck(M, nodeSet(OCs), Cs)
-        /\ DB-EXT' := evalOCompExtSet(
-            DB-EXT,
-            ((result: R4C), (cache: < emptyTermSet : emptyTermSet >))
-        )
+        /\ DB-EXT' := evalOCompExtSet(DB-EXT, ((result: R4C)))
         [print R4C] .
 
     eq procLastCheckCommand('lastCheck.@Command@, ME, DB, DB-EXT) =
@@ -231,13 +225,11 @@ fmod SOLVER-COMMAND-PROCESSING is
                 )
             )
         /\ N2 := downTerm(T2', 0)
-        /\ < TS : TS' > := cache(OCs)
-        /\ NS := selectStates(nodeSet(OCs), N1, N2, < TS : TS' >)
-        /\ < TS1 : TS2 > := getStates(NS)
+        /\ < NS : SEED > := selectStates(nodeSet(OCs), N1, N2, seed(OCs))
         /\ R4C := lastLayerCheck(M, NS, Cs)
         /\ DB-EXT' := evalOCompExtSet(
             DB-EXT,
-            ((result: R4C), (cache: < TS1 | TS : TS2 | TS' >))
+            ((result: R4C), (seed: SEED))
         ) .
 
     eq procLastCheckArgsCommand('lastCheck[T1, T2], ME, DB, DB-EXT) =
@@ -270,11 +262,8 @@ fmod SOLVER-COMMAND-PROCESSING is
                 )
             )
         /\ N2 := downTerm(T2', 0)
-        /\ NS := selectStates(nodeSet(OCs), N1, N2, < emptyTermSet : emptyTermSet >)
-        /\ DB-EXT' := evalOCompExtSet(
-            DB-EXT,
-            ((nodeSet: NS), (cache: < emptyTermSet : emptyTermSet >))
-        ) .
+        /\ < NS : SEED > := selectStates(nodeSet(OCs), N1, N2, seed(OCs))
+        /\ DB-EXT' := evalOCompExtSet(DB-EXT, ((nodeSet: NS), (seed: SEED))) .
 
     eq procSelectCommand('select[T1, T2], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
@@ -317,7 +306,6 @@ fmod SOLVER-COMMAND-PROCESSING is
             ((currentDepth: (currentDepth(OCs) + sum(NL))),
             (depthList: (append(depthList(OCs), NL))),
             (nodeSet: NS),
-            (cache: < emptyTermSet : emptyTermSet >),
             (result: nil))
         )
         --- lastCheck
