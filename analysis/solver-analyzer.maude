@@ -1,0 +1,526 @@
+in ../specs/tas.maude
+in full-maude.maude
+in ../solver-parallel.maude
+in ../debug.maude
+in time
+in file
+
+view 6Tuple{X1 :: TRIV, X2 :: TRIV, X3 :: TRIV, X4 :: TRIV, X5 :: TRIV, X6 :: TRIV} from TRIV to 6TUPLE{X1, X2, X3, X4, X5, X6} is
+  sort Elt to Tuple{X1, X2, X3, X4, X5, X6} .
+endv
+
+mod SOLVER-LOGGER-ANALYSIS is
+    pr MAP{Nat,6Tuple{Nat,Nat,Nat,Nat,Nat,Nat}} * (
+        op `(_`,_`,_`,_`,_`,_`) to <_`,_`,_`,_`,_`,_>,
+        op p1_ to states,
+        op p2_ to cxStates,
+        op p3_ to genStates,
+        op p4_ to genCxStates,
+        op p5_ to totalStates,
+        op p6_ to totalCxStates,
+        sort Tuple{Nat,Nat,Nat,Nat,Nat,Nat} to ICounter,
+        sort Entry{Nat,6Tuple{Nat,Nat,Nat,Nat,Nat,Nat}} to ILoggerEntry,
+        sort Map{Nat,6Tuple{Nat,Nat,Nat,Nat,Nat,Nat}} to ILogger) .
+
+    vars L : ILogger .
+    vars K : Nat .
+    vars C : ICounter .
+    vars N1 N2 N3 N4 N5 N6 : Nat .
+
+    op updateLogger : ILogger Nat ICounter -> ILogger .
+    eq updateLogger(L, K, < N1, N2, N3, N4, N5, N6 >) = insert(K, < N1, N2, N3, N4, N5, N6 >, L) .
+endm
+
+mod SOLVER-MESSAGE-ANALYSIS is
+    pr SOLVER-MESSAGE .
+    pr SOLVER-LOGGER-ANALYSIS .
+
+    op analyzer :_ : Oid -> Attribute [ctor] .
+    op cmdList :_ : TermList -> Attribute [ctor] .
+    op cmdList : Oid String -> Msg [ctor msg format(b o)] .
+    op handle : Oid TermList -> Msg [ctor msg format(b o)] .
+    op iLogger :_ : ILogger -> Attribute [ctor format(m o o o)] .
+endm
+
+fmod SOLVER-SIGN-ANALYSIS is
+    pr SOLVER-SIGN .
+
+    sort @CommandList@ .
+    subsort @Command@ < @CommandList@ .
+    op emp : -> @CommandList@ [ctor] .
+    op __ : @CommandList@ @CommandList@ -> @CommandList@ [ctor assoc id: emp prec 25] .
+endfm
+
+mod SOLVER-META-SIGN-ANALYSIS is
+    pr SOLVER-META-SIGN .
+
+    op SOLVER-GRAMMAR-ANALYSIS : -> FModule .
+    eq SOLVER-GRAMMAR-ANALYSIS = addImports((including 'SOLVER-SIGN-ANALYSIS .), GRAMMAR) .
+endm
+
+mod SOLVER-APP-ANALYSIS is
+    pr SOLVER-META-SIGN-ANALYSIS .
+    pr SOLVER-MESSAGE-ANALYSIS .
+    pr SOLVER-APP .
+    pr TIME .
+    pr STD-STREAM .
+
+    op states :_ : NodeSet -> Attribute [ctor format(m o o o)] .
+    op start :_ : Nat -> Attribute [ctor format(m o o o)] .
+    op #states :_ : Nat -> Attribute [ctor format(m o o o)] .
+    op #cxStates :_ : Nat -> Attribute [ctor format(m o o o)] .
+    op timeStates :_ : Nat -> Attribute [ctor format(m o o o)] .
+    op timeCxStates :_ : Nat -> Attribute [ctor format(m o o o)] .
+    op currState :_ : Node -> Attribute [ctor format(m o o o)] .
+    op handleState : Oid Node -> Msg [ctor msg format(b o)] .
+    op empNode : -> Node [ctor] .
+
+    vars T T' T'' : Term .
+    vars T1 T2 T3 T4 T5 : Term .
+    vars ME ME' : ModuleExpression .
+    var Atts : AttributeSet .
+    var X@DatabaseClass : DatabaseClass .
+    vars O O' O'' : Oid .
+    var DB-EXT DB-EXT' : DatabaseExt .
+    var QIL : QidList .
+    var RES : Tuple{Database,QidList,DatabaseExt} .
+    vars M M' : Module .
+    vars OCs OCs' : OCompExtSet .
+    vars Cs Cs' : ConfigExtSet .
+    vars D N N' C C' : Nat .
+    vars B : Bound .
+    vars TS TS1 TS2 : TermSet .
+    vars R4C : Result4Checking? .
+    vars IL IL' : ILogger .
+    vars IC : ICounter .
+    vars BL : Bool .
+    vars S DATA : String .
+    vars QI : Qid .
+    vars TL TL' : TermList .
+    vars NL : NatList .
+    vars DB : Database .
+    vars TC : Constant .
+    vars N1 N2 N3 N4 N5 N6 N7 : Nat .
+    var TIME1 TIME2 TIME AVG1 AVG2 : Bound .
+    vars ND ND' : Node .
+    vars NS : NodeSet .
+    vars OUT OUT1 OUT2 : String .
+
+    crl [CmdList] :
+        < O : X@DatabaseClass |
+            db : DB, input : nilTermList, output : nil, default : QI, Atts >
+        cmdList(O, S)
+        => if metaParse(SOLVER-GRAMMAR-ANALYSIS, QIL, '@Input@) :: ResultPair
+        then < O : X@DatabaseClass | db : DB,
+                input : getTerm(metaParse(SOLVER-GRAMMAR-ANALYSIS, QIL, '@Input@)),
+                output : nil, default : QI, Atts >
+        else < O : X@DatabaseClass | db : DB, input : nilTermList,
+                    output : ('\r 'Warning:
+                            printSyntaxError(metaParse(SOLVER-GRAMMAR-ANALYSIS, QIL, '@Input@),
+                                QIL)
+                            '\n
+                            '\r 'Error: '\o 'No 'parse 'for 'input. '\n),
+                    default : QI, Atts >
+        fi
+        if QIL := tokenize(S) .
+
+    crl [HandleCmdList] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : initialized,
+            input : TL,
+            output : nil,
+            default : ME, Atts >
+        => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : waiting,
+            input : nilTermList,
+            output : nil,
+            cmdList : TL',
+            iLogger : initializeLogger(DB-EXT),
+            default : ME, Atts >
+        if TL =/= nilTermList
+        /\ TL' := procCmdList(TL) [print "[HandleCmdList]"] .
+
+    op initializeLogger : DatabaseExt -> ILogger .
+    ceq initializeLogger(DB-EXT) = updateLogger(empty, D, < N1, N2, N1, N2, N1, N2 >)
+    if OCs := getOCompExtSet(DB-EXT)
+    /\ D := currentDepth(OCs)
+    /\ N1 := getNumberOfStates(nodeSet(OCs))
+    /\ N2 := getNumberOfCxStates(nodeSet(OCs)) .
+
+    op layerCheckLogging : DatabaseExt ILogger -> ILogger .
+    ceq layerCheckLogging(DB-EXT, IL) = updateLogger(IL, D, < N1, N2, N3, N4, N5, N6 >)
+    if OCs := getOCompExtSet(DB-EXT)
+    /\ D := currentDepth(OCs)
+    /\ NL := depthList(OCs)
+    /\ IC := IL[findPrevDepth(D, NL)]
+    /\ NS := nodeSet(OCs)
+    /\ N3 := getNumberOfStates(NS)
+    /\ N4 := getNumberOfCxStates(NS)
+    /\ N1 := N3
+    /\ N2 := N4
+    /\ N5 := (if states(IC) =/= 0 then N3 * (totalStates(IC) quo states(IC)) else N3 fi)
+    /\ N6 := (if cxStates(IC) =/= 0 then N4 * (totalCxStates(IC) quo cxStates(IC)) else N4 fi)
+    .
+
+    op selectLogging : DatabaseExt ILogger -> ILogger .
+    ceq selectLogging(DB-EXT, IL) = updateLogger(IL, D, < N1, N2, N3, N4, N5, N6 >)
+    if OCs := getOCompExtSet(DB-EXT)
+    /\ D := currentDepth(OCs)
+    /\ IC := IL[D]
+    /\ NS := nodeSet(OCs)
+    /\ N1 := getNumberOfStates(NS)
+    /\ N2 := getNumberOfCxStates(NS)
+    /\ N3 := genStates(IC)
+    /\ N4 := genCxStates(IC)
+    /\ N5 := totalStates(IC)
+    /\ N6 := totalCxStates(IC)
+    .
+
+    op procCmdList : TermList -> TermList .
+    eq procCmdList('__[T, T']) = T, procCmdList(T') .
+    eq procCmdList('seed_[T]) = 'seed_[T] .
+    eq procCmdList(TC) = TC .
+    eq procCmdList(nilTermList) = empty .
+
+    rl [CmdController] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : waiting,
+            input : nilTermList,
+            cmdList : (T, TL),
+            output : nil,
+            default : ME, Atts >
+        => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            cmdList : TL,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            handle(O, T) .
+
+    crl [HandleSeed] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            handle(O, 'seed_[T])
+        => < O : X@DatabaseClass |
+            db : getDatabase(RES),
+            db-ext : getDatabaseExt(RES),
+            status : waiting,
+            input : nilTermList,
+            --- output : getQidList(RES),
+            output : nil,
+            default : ME, Atts >
+        if RES := procSeedCommand('seed_[T], ME, DB, DB-EXT)
+        [print "[HandleSeed]"] .
+
+    crl [HandleLayerCheck] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            input : nilTermList,
+            output : nil,
+            iLogger : IL,
+            default : ME, Atts >
+            handle(O, 'layerCheck_[T])
+        => < O : X@DatabaseClass |
+            db : getDatabase(RES),
+            db-ext : getDatabaseExt(RES),
+            status : waiting,
+            input : nilTermList,
+            --- output : getQidList(RES),
+            output : nil,
+            iLogger : IL',
+            default : ME, Atts >
+        if RES := procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT)
+        /\ IL' := layerCheckLogging(getDatabaseExt(RES), IL)
+        [print "[HandleLayerCheck]"] .
+
+    crl [HandleSelect] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            input : nilTermList,
+            output : nil,
+            iLogger : IL,
+            default : ME, Atts >
+            handle(O, 'select[T, T'])
+        => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : getDatabaseExt(RES),
+            status : waiting,
+            input : nilTermList,
+            --- output : getQidList(RES),
+            output : nil,
+            iLogger : IL',
+            default : ME, Atts >
+        if RES := procSelectCommand('select[T, T'], ME, DB, DB-EXT)
+        /\ IL' := selectLogging(getDatabaseExt(RES), IL)
+        [print "[HandleSelect]"] .
+
+    crl [HandleLastCheck] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            input : nilTermList,
+            output : nil,
+            iLogger : IL,
+            default : ME, Atts >
+            handle(O, 'lastCheck.@Command@)
+        => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : waiting,
+            states : NS,
+            start : 0,
+            #states : 0,
+            #cxStates : 0,
+            timeStates : 0,
+            timeCxStates : 0,
+            currState : empNode,
+            input : nilTermList,
+            output : nil,
+            iLogger : IL,
+            default : ME, Atts >
+        if OCs := getOCompExtSet(DB-EXT)
+        /\ NS := flattenStates(nodeSet(OCs))
+        [print "[HandleLastCheck] IL = " IL] .
+
+    op countCxStates : NodeSet -> Nat .
+    eq countCxStates((ND, NS)) = if isCxState(ND) then (1 + countCxStates(NS)) else countCxStates(NS) fi .
+    eq countCxStates(empty) = 0 .
+
+    crl [AssignState] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            #states : N1,
+            #cxStates : N2,
+            currState : ND',
+            states : (ND, NS),
+            status : waiting,
+            input : nilTermList,
+            output : nil,
+            iLogger : IL,
+            default : ME, Atts >
+        => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            #states : N3,
+            #cxStates : N4,
+            currState : ND,
+            states : NS,
+            status : suspending,
+            input : nilTermList,
+            output : nil,
+            iLogger : IL,
+            default : ME, Atts >
+            handleState(O, ND)
+            getTimeSinceEpoch(timeManager, O)
+        if OCs := getOCompExtSet(DB-EXT)
+        /\ D := currentDepth(OCs)
+        /\ IC := IL[D]
+        /\ BL := isCxState(ND)
+        /\ N3 := (if BL then N1 else (N1 + 1) fi)
+        /\ N4 := (if BL then (N2 + 1) else N2 fi)
+        /\ N5 := states(IC)
+        /\ N6 := cxStates(IC)
+        [print "[AssignState] isCxState = " BL ", " N3 "/" N5 " states, " N4 "/" N6 " cxstates"] .
+
+    rl [CheckStateStarted] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            states : NS,
+            status : suspending,
+            start : N1,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            gotTimeSinceEpoch(O, O', N2)
+        => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            states : NS,
+            status : working,
+            start : N2,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+        .
+
+    crl [CheckingState] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            states : NS,
+            status : working,
+            start : N1,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            handleState(O, ND)
+        => if R4C == success
+        then
+            < O : X@DatabaseClass |
+                db : DB,
+                db-ext : DB-EXT,
+                states : NS,
+                status : working,
+                start : N1,
+                input : nilTermList,
+                output : nil,
+                default : ME, Atts >
+                getTimeSinceEpoch(timeManager, O)
+        else
+            < O : X@DatabaseClass |
+                db : DB,
+                db-ext : DB-EXT,
+                states : NS,
+                status : stopping,
+                start : N1,
+                input : nilTermList,
+                output : nil,
+                default : ME, Atts >
+            buildCx(O, O)
+        fi
+        if Cs := getConfigExtSet(DB-EXT)
+        /\ OCs := getOCompExtSet(DB-EXT)
+        /\ M := getFlatModule(originModule(Cs), DB)
+        /\ R4C := lastLayerCheck(M, ND, Cs)
+        /\ BL := isCxState(ND)
+        [print "[CheckingState] R4C = " R4C] .
+
+    crl [CheckStateEnded] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            #states : C,
+            #cxStates : C',
+            timeStates : N1,
+            timeCxStates : N2,
+            currState : ND,
+            states : NS,
+            status : working,
+            start : N,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            gotTimeSinceEpoch(O, O', N')
+        => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            #states : C,
+            #cxStates : C',
+            timeStates : N3,
+            timeCxStates : N4,
+            currState : ND,
+            states : NS,
+            status : waiting,
+            start : 0,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+        if TIME := sd(N', N)
+        /\ N3 := (if isCxState(ND) then N1 else (N1 + TIME) fi)
+        /\ N4 := (if isCxState(ND) then (N2 + TIME) else N2 fi)
+        /\ AVG1 := (if C =/= 0 then (N3 quo C) else unbounded fi)
+        /\ AVG2 := (if C' =/= 0 then (N4 quo C') else unbounded fi)
+        /\ OUT1 := formatTime(AVG1)
+        /\ OUT2 := formatTime(AVG2)
+        /\ OUT := formatTime(TIME)
+        [print "[CheckStateEnded]\n\tTime taken for the state is " OUT "\n\tApproximately average time taken for a state: " OUT1 "\n\tApproximately average time taken for a cxstate: " OUT2] .
+
+    crl [Finished] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            #states : N,
+            #cxStates : N',
+            timeStates : C,
+            timeCxStates : C',
+            states : empty,
+            status : waiting,
+            input : nilTermList,
+            output : nil,
+            iLogger : IL,
+            default : ME, Atts >
+        => < O : X@DatabaseClass |
+            #states : N,
+            #cxStates : N',
+            timeStates : C,
+            timeCxStates : C',
+            status : terminated,
+            iLogger : IL
+            >
+            --- write(stdout, O, "\tApproximately time taken for all: " + formatTime(TIME) + " nanoseconds\n")
+            --- write(stdout, O, "\tApproximately time taken for states: " + formatTime(TIME1) + " nnoseconds\n")
+            --- write(stdout, O, "\tApproximately time taken for cxstates: " + formatTime(TIME2) + " nanoseconds\n")
+            write(stdout, O, "\tApproximately average time taken for a state: " + formatTime(AVG1) + " nanoseconds\n")
+            write(stdout, O, "\tApproximately average time taken for a cxstate: " + formatTime(AVG2) + " nanoseconds\n")
+        if OCs := getOCompExtSet(DB-EXT)
+        /\ D := currentDepth(OCs)
+        /\ IC := IL[D]
+        /\ N1 := states(IC)
+        /\ N2 := cxStates(IC)
+        /\ N3 := genStates(IC)
+        /\ N4 := genCxStates(IC)
+        /\ N5 := totalStates(IC)
+        /\ N6 := totalCxStates(IC)
+        /\ AVG1 := if N =/= 0 then (C quo N) else unbounded fi
+        /\ AVG2 := if N' =/= 0 then (C' quo N') else unbounded fi
+        /\ TIME1 := if N =/= 0 then (C * (N5 quo N)) else unbounded fi
+        /\ TIME2 := if N' =/= 0 then (C' * (N6 quo N')) else unbounded fi
+        /\ TIME := (if (TIME1 =/= unbounded and TIME2 =/= unbounded) then (TIME1 + TIME2) else unbounded fi)
+        [print "[Finished]"] .
+
+    op formatTime : Bound -> String .
+    eq formatTime(unbounded) = "cannot estimate now" .
+    ceq formatTime(N) = string(qid(N)) + "ns OR " + string(qid(N2)) + "d:" + string(qid(N4)) + "h:" + string(qid(N6)) + "m:" + string(qid(N7)) + "s"
+    if N =/= unbounded
+    /\ N1 := (N quo 1000000000) --- convert to seconds
+    /\ N2 := (N1 quo (24 * 3600)) --- days
+    /\ N3 := (N1 rem (24 * 3600)) --- remaining time
+    /\ N4 := (N3 quo 3600) --- hours
+    /\ N5 := (N3 rem 3600) --- remaining time
+    /\ N6 := (N5 quo 60) --- minutes
+    /\ N7 := (N5 rem 60) --- seconds
+    .
+
+    rl [CleanUp] :
+        < O : X@DatabaseClass | Atts > wrote(O, O')
+        => < O : X@DatabaseClass | Atts > .
+endm
+
+mod SOVLER-ANALYSIS is
+    pr SOLVER-APP-ANALYSIS .
+
+    ops o aAnalyzer : -> Oid .
+    op init : -> Configuration .
+
+    eq init = < o : Database |
+                db : initialDatabase,
+                input : nilTermList, output : nil,
+                db-ext : emptyDatabaseExt,
+                analyzer : aAnalyzer,
+                status : idle,
+                default : 'CONVERSION >
+                initialize(o, "initialize[TAS-CHECK, init13, lofree, OComp, Soup{OComp}]")
+                cmdList(o, "(seed 481) (layerCheck 3) (select(10, 10)) (layerCheck 3) (select(10, 10)) (lastCheck)") .
+endm
+
+erew <> init .
