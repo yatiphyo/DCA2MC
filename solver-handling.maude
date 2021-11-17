@@ -526,6 +526,21 @@ mod SOLVER-DATABASE-HANDLING is
         default : ME, Atts >
         if RES := procSelectCommand('select[T, T'], ME, DB, DB-EXT) .
 
+    crl [seed] :
+        < O : X@DatabaseClass |
+        db : DB,
+        input : ('seed_[T]),
+        output : nil,
+        db-ext : DB-EXT,
+        default : ME, Atts >
+        => < O : X@DatabaseClass |
+        db : DB,
+        input : nilTermList,
+        output : getQidList(RES),
+        db-ext : getDatabaseExt(RES),
+        default : ME, Atts >
+        if RES := procSeedCommand('seed_[T], ME, DB, DB-EXT) .
+
     crl [check] :
         < O : X@DatabaseClass |
             db : DB,

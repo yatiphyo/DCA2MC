@@ -268,6 +268,26 @@ fmod SOLVER-COMMAND-PROCESSING is
     eq procSelectCommand('select[T1, T2], ME, DB, DB-EXT) =
         << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
 
+    *** seed command
+    op procSeedCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
+    ceq procSeedCommand('seed_[T], ME, DB, DB-EXT)
+    = << DB ;
+        ('\b 'Update 'seed 'to qid(SEED) ': '\s '\o 'success '\n) ;
+        DB-EXT' >>
+    if not isEmptyDatabaseExt(DB-EXT)
+    /\ T' := getTerm(
+                metaParse(
+                    upModule('NAT, false),
+                    downQid(solveBubbleAndToken(T)),
+                    'Nat
+                )
+            )
+    /\ SEED := downTerm(T', 0)
+    /\ DB-EXT' := evalOCompExtSet(DB-EXT, ((seed: SEED))) .
+
+    eq procSeedCommand(T, ME, DB, DB-EXT) =
+        << DB ; ('\r 'Error: '\o 'cannot 'find 'initialization. '\n) ; DB-EXT >> [owise] .
+
     *** check command
     op procCheckCommand : Term ModuleExpression Database DatabaseExt -> Tuple{Database,QidList,DatabaseExt} .
     ceq procCheckCommand('check_[T], ME, DB, DB-EXT)

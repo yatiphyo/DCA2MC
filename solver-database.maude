@@ -280,6 +280,10 @@ fmod DATABASE-EXT is
     eq getNumberOfCxStates((ND , NS)) = | cxStates(states&CxStates(ND)) | + getNumberOfCxStates(NS) .
     eq getNumberOfCxStates(empty) = 0 .
 
+    op findPrevDepth : Nat NatList -> Nat .
+    eq findPrevDepth(N, (NL N')) = sd(N, N') .
+    eq findPrevDepth(N, NL) = 0 [owise] .
+
     op findNextDepth : Nat NatList -> Bound .
     eq findNextDepth(N, NL) = $findNextDepth(N, NL, 0) .
 
@@ -374,6 +378,19 @@ fmod RANDOM-STATES is
     vars NS NS' NS1 NS1' NS2 NS2' : NodeSet .
     vars LL : LogList .
     vars T : Term .
+
+    op flattenStates : NodeSet -> NodeSet .
+    eq flattenStates((< < T | TS1 : TS2 > : LL >, NS))
+    = < < T : emptyTermSet > : LL >, flattenStates((< < TS1 : TS2 > : LL >, NS)) .
+    eq flattenStates((< < emptyTermSet : T | TS2 > : LL >, NS))
+    = < < emptyTermSet : T > : LL >, flattenStates((< < emptyTermSet : TS2 > : LL >, NS)) .
+    eq flattenStates((< < emptyTermSet : emptyTermSet > : LL >, NS))
+    = flattenStates(NS) .
+    eq flattenStates(empty) = empty .
+
+    op isCxState : Node -> Bool .
+    eq isCxState(< < T : emptyTermSet > : LL >) = false .
+    eq isCxState(< < emptyTermSet : T > : LL >) = true .
 
     op selectStates : NodeSet Nat Nat Nat -> NodeSet&Seed .
     ceq selectStates(NS, N1, N2, SEED) = < (NS1, NS2) : SEED2 >
