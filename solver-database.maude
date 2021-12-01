@@ -89,6 +89,7 @@ fmod NODE is
         op p1_ to states&CxStates,
         op p2_ to logList,
         sort Tuple{States&CxStates,LogList} to Node) .
+    op empNode : -> Node [ctor] .
 endfm
 
 view Node from TRIV to NODE is
@@ -371,6 +372,7 @@ fmod RANDOM-STATES is
     sort NodeSet&Seed .
     op <_:_> : NodeSet Nat -> NodeSet&Seed [ctor] .
 
+    vars B1 B2 : Bound .
     vars N N1 N2 C SEED SEED1 SEED2 : Nat .
     vars NzN : NzNat .
     vars TS TS' TS1 TS1' TS2 TS2' : TermSet .
@@ -392,10 +394,10 @@ fmod RANDOM-STATES is
     eq isCxState(< < T : emptyTermSet > : LL >) = false .
     eq isCxState(< < emptyTermSet : T > : LL >) = true .
 
-    op selectStates : NodeSet Nat Nat Nat -> NodeSet&Seed .
-    ceq selectStates(NS, N1, N2, SEED) = < (NS1, NS2) : SEED2 >
-    if < NS1 : SEED1 > := pickStates(filterStatesNS(NS), N1, empty, SEED)
-    /\ < NS2 : SEED2 > := pickCxStates(filterCxStatesNS(NS), N2, empty, SEED1) .
+    op selectStates : NodeSet Bound Bound Nat -> NodeSet&Seed .
+    ceq selectStates(NS, B1, B2, SEED) = < (NS1, NS2) : SEED2 >
+    if < NS1 : SEED1 > := (if B1 == unbounded then < flattenStates(filterStatesNS(NS)) : SEED > else pickStates(filterStatesNS(NS), B1, empty, SEED) fi)
+    /\ < NS2 : SEED2 > := (if B2 == unbounded then < flattenStates(filterCxStatesNS(NS)) : SEED > else pickCxStates(filterCxStatesNS(NS), B2, empty, SEED1) fi) .
 
     --- only get Node with not empty states
     op filterStatesNS : NodeSet -> NodeSet .

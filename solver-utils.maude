@@ -2,6 +2,20 @@ fmod SOLVER-UTILS is
     pr FM-UNIT .
     pr CONVERSION .
 
+    --- Add equations
+    op addEquations : EquationSet SModule -> SModule .
+    op addEquations : EquationSet FModule -> FModule .
+    eq addEquations(ES:EquationSet,mod Q:Qid is IL:ImportList sorts S:SortSet .
+            S:SubsortDeclSet O:OpDeclSet M:MembAxSet E:EquationSet R:RuleSet endm)
+    = mod Q:Qid
+        is IL:ImportList sorts S:SortSet . S:SubsortDeclSet
+        O:OpDeclSet M:MembAxSet (E:EquationSet ES:EquationSet) R:RuleSet endm .
+    eq addEquations(ES:EquationSet,fmod Q:Qid is IL:ImportList sorts S:SortSet .
+            S:SubsortDeclSet O:OpDeclSet M:MembAxSet E:EquationSet endfm)
+    = fmod Q:Qid
+        is IL:ImportList sorts S:SortSet . S:SubsortDeclSet
+        O:OpDeclSet M:MembAxSet (E:EquationSet ES:EquationSet) endfm .
+
     --- Check existing Equation in EqutionSet by Qid
     op isExistEquationByQid : EquationSet Qid -> Bool .
     eq isExistEquationByQid(none, Q:Qid) = false .
@@ -283,3 +297,27 @@ mod EXT-TERM-STRING is
                             A := substr(S, N + length(F), length(S)) .
     eq replace(S, F, R) = S [owise] .
 endm
+
+fmod TIME-CONVERTER is
+    pr NAT .
+    pr BOUND .
+
+    var N : Nat .
+    op _us : Nat -> Nat .
+    eq N us = 1000 * N .
+
+    op _ms : Nat -> Nat .
+    eq N ms = 1000000 * N .
+
+    op _seconds : Nat -> Nat .
+    eq N seconds = 1000000000 * N .
+
+    op _minutes : Nat -> Nat .
+    eq N minutes = N * 60 seconds .
+
+    op _hours : Nat -> Nat .
+    eq N hours = N * 60 minutes .
+
+    op _days : Nat -> Nat .
+    eq N days = N * 24 hours .
+endfm

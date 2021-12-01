@@ -1,0 +1,506 @@
+in file
+in time
+in metaInterpreter
+in analysis-logger.maude
+in analysis-worker.maude
+
+mod SOLVER-APP-ANALYSIS is
+    pr SOLVER-ANALYSIS-WORKERS .
+
+    vars T T' T'' : Term .
+    vars T1 T2 T3 T4 T5 T1' T2' T3' T4' T5' : Term .
+    vars ME ME' : ModuleExpression .
+    var Atts : AttributeSet .
+    var X@DatabaseClass : DatabaseClass .
+    vars O O' O'' MI TIMER : Oid .
+    vars DB DB' : Database .
+    var DB-EXT DB-EXT' : DatabaseExt .
+    var QIL : QidList .
+    var RES : Tuple{Database,QidList,DatabaseExt} .
+    vars M M' : Module .
+    vars OCs OCs' : OCompExtSet .
+    vars Cs Cs' : ConfigExtSet .
+    vars D N N' C C' SEED : Nat .
+    vars B B' B1 B2 B3 B4 B1' B2' B3' B4' : Bound .
+    vars TS TS1 TS2 : TermSet .
+    vars R4C : Result4Checking? .
+    vars LL LL' : Map{Nat,ILogSet} .
+    vars RL RL' : Map{Nat,ILogSet} .
+    vars PL PL' : Map{Oid,ILogSet} .
+    vars ILSL ILSL' : ILogSetList .
+    vars ILS ILS' : ILogSet .
+    vars BL BL1 BL2 : Bool .
+    vars S DATA : String .
+    vars QI MN : Qid .
+    vars TL TL' : TermList .
+    vars NL NL' NL1 NL2 NL1' NL2' : NatList .
+    vars TC : Constant .
+    vars N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 N13 N14 N15 : Nat .
+    vars N1' N2' N3' N4' N5' N6' N7' N8' N9' N10' N11' N12' N13' N14' N15' : Nat .
+    var TIME1 TIME2 TIME TIME' AVG1 AVG2 TOTAL : Bound .
+    vars ND ND' : Node .
+    vars NS : NodeSet .
+    vars OUT OUT1 OUT2 OUT3 OUT4 OUT5 OUT6 OUT7 OUT8 : String .
+    vars ST : Status .
+    vars WS WS' : Set{Worker} .
+    var RT : Type .
+    var SR SR' SR1 SR2 : StatusRun .
+
+    --- initialize
+    crl [Initialized] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : initialized,
+            Atts >
+    =>  < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : waiting,
+            cmdList : empty,
+            revCmdList : nilTermList,
+            layerLogger : LL,
+            runnerLogger : empty,
+            procLogger : empty,
+            timeGenStates : 0,
+            threshold : unbounded,
+            #procs : 0,
+            #states : unbounded,
+            #cxStates : unbounded,
+            workers : empty,
+            killWorkers : empty,
+            timeout : timeout,
+            mn : 'CHECKER-EXT,
+            Atts >
+        if LL := layerCheckLog(DB-EXT, empty, 0, 0) .
+
+    --- process command list
+    crl [CmdList] :
+        < O : X@DatabaseClass |
+            db : DB,
+            status : waiting,
+            revCmdList : nilTermList,
+            input : nilTermList,
+            output : nil,
+            default : QI, Atts >
+        cmdList(O, S)
+        => if metaParse(SOLVER-GRAMMAR, QIL, '@Input@) :: ResultPair
+        then < O : X@DatabaseClass |
+                db : DB,
+                status : waiting,
+                revCmdList : getTerm(metaParse(SOLVER-GRAMMAR, QIL, '@Input@)),
+                input : nilTermList,
+                output : nil,
+                default : QI, Atts >
+        else < O : X@DatabaseClass |
+                    db : DB,
+                    status : waiting,
+                    input : nilTermList,
+                    output : ('\r 'Warning:
+                            printSyntaxError(metaParse(SOLVER-GRAMMAR, QIL, '@Input@),
+                                QIL)
+                            '\n
+                            '\r 'Error: '\o 'No 'parse 'for 'input. '\n),
+                    default : QI, Atts >
+        fi
+        if QIL := tokenize(S) .
+
+    --- process command list to cmdList
+    crl [HandleCmdList] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : waiting,
+            revCmdList : TL,
+            input : nilTermList,
+            output : nil,
+            cmdList : empty,
+            default : ME, Atts >
+        => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : waiting,
+            revCmdList : nilTermList,
+            input : nilTermList,
+            output : nil,
+            cmdList : TL',
+            default : ME, Atts >
+        if TL =/= nilTermList
+        /\ TL' := procCmdList(TL) [print "[HandleCmdList]"] .
+
+    op procCmdList : TermList -> TermList .
+    ceq procCmdList(QI[TL]) = procCmdList*(QI[TL])
+    if QI == '__ .
+    ceq procCmdList(QI[TL]) = QI[TL]
+    if QI =/= '__ .
+    op procCmdList* : TermList -> TermList .
+    eq procCmdList*('__[T, T']) = T, procCmdList(T') .
+    --- eq procCmdList('seed_[T]) = 'seed_[T] .
+    --- eq procCmdList('timeout_[T]) = 'timeout_[T] .
+    --- eq procCmdList('layerCheck_[T]) = 'layerCheck_[T] .
+    --- eq procCmdList('select[T, T']) = 'select[T, T'] .
+    --- eq procCmdList('threshold_[T]) = 'threshold_[T] .
+    --- eq procCmdList('lastCheck[T1, T2, T3]) = 'lastCheck[T1, T2, T3] .
+    eq procCmdList(TC) = TC .
+    eq procCmdList(nilTermList) = empty .
+
+    --- handle command list one by one
+    rl [CmdController] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : waiting,
+            input : nilTermList,
+            cmdList : (T, TL),
+            output : nil,
+            default : ME, Atts >
+        => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            cmdList : TL,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            handle(O, T) .
+
+    --- handle seed command
+    crl [HandleSeed] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            handle(O, 'seed_[T])
+        => < O : X@DatabaseClass |
+            server : O',
+            db : getDatabase(RES),
+            db-ext : getDatabaseExt(RES),
+            status : waiting,
+            input : nilTermList,
+            --- output : getQidList(RES),
+            output : nil,
+            default : ME, Atts >
+            resumeReq(O', O)
+        if RES := procSeedCommand('seed_[T], ME, DB, DB-EXT)
+        [print "[HandleSeed]"] .
+
+    --- handle threshold command
+    crl [HandleThreshold] :
+        < O : X@DatabaseClass |
+            server : O',
+            status : working,
+            threshold : B,
+            Atts >
+            handle(O, 'threshold_[T])
+        => < O : X@DatabaseClass |
+            server : O',
+            status : waiting,
+            threshold : B',
+            Atts >
+            resumeReq(O', O)
+        if T' := getTerm(
+            metaParse(
+                upModule('BOUND, false),
+                downQid(solveBubbleAndToken(T)),
+                'Bound
+            )
+        )
+        /\ B' := downTerm(T', unbounded)
+        [print "[HandleThreshold]"] .
+
+    --- handle timeout command
+    crl [HandleTimeout] :
+        < O : X@DatabaseClass |
+            server : O',
+            status : working,
+            timeout : N,
+            Atts >
+            handle(O, 'timeout_[T])
+        => < O : X@DatabaseClass |
+            server : O',
+            status : waiting,
+            timeout : N',
+            Atts >
+            resumeReq(O', O)
+        if T' := getTerm(
+            metaParse(
+                upModule('NAT, false),
+                downQid(solveBubbleAndToken(T)),
+                'Nat
+            )
+        )
+        /\ N' := downTerm(T', timeout)
+        [print "[HandleTimeout]"] .
+
+
+    --- handle layerCheck command
+    crl [HandleLayerCheck] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            layerLogger : LL,
+            timeGenStates : TIME,
+            default : ME, Atts >
+            handle(O, 'layerCheck_[T])
+        => < O : X@DatabaseClass |
+            server : O',
+            db : DB',
+            db-ext : DB-EXT',
+            status : waiting,
+            layerLogger : LL',
+            timeGenStates : TIME',
+            default : ME, Atts >
+            resumeReq(O', O)
+        if N1 := getTimeSinceEpochAt(0)
+        /\ RES := procLayerCheckCommand('layerCheck_[T], ME, DB, DB-EXT)
+        /\ DB' := getDatabase(RES)
+        /\ DB-EXT' := getDatabaseExt(RES)
+        /\ N2 := getTimeSinceEpochAt(1)
+        /\ N := sd(N2, N1)
+        /\ TIME' := TIME + N
+        /\ LL' := layerCheckLog(DB-EXT', LL, N, TIME')
+        .
+
+    --- handle select command
+    crl [HandleSelect] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            layerLogger : LL,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            handle(O, 'select[T, T'])
+        => < O : X@DatabaseClass |
+            server : O',
+            db : getDatabase(RES),
+            db-ext : getDatabaseExt(RES),
+            status : waiting,
+            layerLogger : LL',
+            input : nilTermList,
+            --- output : getQidList(RES),
+            output : nil,
+            default : ME, Atts >
+            resumeReq(O', O)
+        if RES := procSelectCommand('select[T, T'], ME, DB, DB-EXT)
+        /\ LL' := updateLayerCheckLog(getDatabaseExt(RES), LL)
+        [print "[HandleSelect]"] .
+
+    --- handle show command for debugging
+    crl [HandleShow] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            input : nilTermList,
+            output : nil,
+            layerLogger : LL,
+            threshold : B,
+            timeGenStates : TIME,
+            #procs : N,
+            #states : B1,
+            #cxStates : B2,
+            workers : WS,
+            runnerLogger : RL,
+            procLogger : PL,
+            timeout : N',
+            default : ME, Atts >
+            handle(O, 'show.@Command@)
+        => < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : waiting,
+            input : nilTermList,
+            output : nil,
+            layerLogger : LL,
+            threshold : B,
+            timeGenStates : TIME,
+            #procs : N,
+            #states : B1,
+            #cxStates : B2,
+            workers : WS,
+            runnerLogger : RL,
+            procLogger : PL,
+            timeout : N',
+            default : ME, Atts >
+            resumeReq(O', O)
+        if OCs := getOCompExtSet(DB-EXT)
+        /\ D := currentDepth(OCs)
+        /\ NL := depthList(OCs)
+        /\ NS := nodeSet(OCs)
+        /\ N1 := getNumberOfStates(NS)
+        /\ N2 := getNumberOfCxStates(NS)
+        /\ N3 := | NS |
+        /\ SEED := seed(OCs)
+        /\ OUT1 := formatTime*(B)
+        /\ OUT2 := formatTime*(N')
+        [print "[HandleShow]\n\tSeed = " SEED "\n\tThreshold = " OUT1 "\n\tTimeout = " OUT2
+            "\n\tDepth List = " NL "\n\tD = " D "\n\tTime to generate states = " TIME
+            "\n\t#NodeSet = " N3 "\n\t#States = " N1 "\n\t#CxStates = " N2
+            --- "\n\t#pickStates = " B1 "\n\t#pickCxStates = " B2
+            "\n\t#procs = " N ", Workers = " WS
+            "\n\tLayerLog = " LL "\n\tRunLogger = " RL "\n\tProcLogger = " PL] .
+
+    --- starting checking states with meta-interpreters
+    crl [HandleLastCheck] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            #procs : N,
+            #states : B1,
+            #cxStates : B2,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            handle(O, 'analyze[T1, T2, T3])
+    =>  < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : analyzing,
+            #procs : N',
+            #states : B1',
+            #cxStates : B2',
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+    if T1' := getTerm(
+        metaParse(
+            upModule('NAT, false),
+            downQid(solveBubbleAndToken(T1)),
+            'Nat
+        )
+    )
+    /\ T2' := getTerm(
+        metaParse(
+            upModule('BOUND, false),
+            downQid(solveBubbleAndToken(T2)),
+            'Bound
+        )
+    )
+    /\ T3' := getTerm(
+        metaParse(
+            upModule('BOUND, false),
+            downQid(solveBubbleAndToken(T3)),
+            'Bound
+        )
+    )
+    /\ N' := downTerm(T1', 0)
+    /\ B1' := downTerm(T2', unbounded)
+    /\ B2' := downTerm(T3', unbounded)
+    [print "[HandleLastCheck]"] .
+
+    --- handle kill command
+    crl [KillCommand]:
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : workingInterperter,
+            runnerLogger : RL,
+            procLogger : PL,
+            killWorkers : empty,
+            Atts >
+        kill(O, O')
+    =>  < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : killInterpreter,
+            runnerLogger : RL',
+            procLogger : empty,
+            killWorkers : WS,
+            Atts >
+    if WS := getWorkingWorkers(PL)
+    /\ RL' := updateRunnerLogStatusBatch(RL, DB-EXT, WS, killed)
+    [print "[KillCommand] WS = " WS] .
+
+    --- clean app
+    rl [CleanApp&Timer]:
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT',
+            timer : TIMER,
+            status : ST,
+            Atts >
+        stopApp(O, O')
+    =>  < O : X@DatabaseClass |
+            --- db : DB,
+            --- db-ext : DB-EXT',
+            status : terminated
+            --- Atts
+            >
+        deleteTimer(TIMER, O)
+        [print "[CleanApp&Timer]"]
+        .
+
+    rl [CleanApp]:
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT',
+            status : ST,
+            Atts
+            >
+        stopApp(O, O')
+    =>  < O : X@DatabaseClass |
+            --- db : DB,
+            --- db-ext : DB-EXT',
+            status : terminated
+            --- Atts
+            >
+        [print "[CleanApp]"]
+        .
+
+    crl [CleanWorkers]:
+        < O : X@DatabaseClass |
+            workers : WS,
+            status : terminated,
+            Atts >
+    =>  < O : X@DatabaseClass |
+            workers : empty,
+            status : terminated,
+            Atts >
+        produceQuitMsg(O, WS)
+    if | WS | > 0 .
+
+    op produceQuitMsg : Oid Set{Worker} -> Configuration .
+    eq produceQuitMsg(O, (MI, WS)) = quit(MI, O) produceQuitMsg(O, WS) .
+    eq produceQuitMsg(O, empty) = none .
+
+    rl [DeletedTimer] :
+        < O : X@DatabaseClass |
+            status : terminated,
+            Atts >
+        deletedTimer(O, O')
+    =>  < O : X@DatabaseClass |
+            status : terminated,
+            Atts > .
+
+    rl [StartedTimer] :
+        < O : X@DatabaseClass |
+            status : terminated,
+            Atts >
+        startedTimer(O, O')
+    =>  < O : X@DatabaseClass |
+            status : terminated,
+            Atts > .
+
+    rl [Bye] :
+        < O : X@DatabaseClass |
+            status : terminated,
+            Atts >
+        bye(O, O')
+    =>  < O : X@DatabaseClass |
+            status : terminated,
+            Atts > .
+endm

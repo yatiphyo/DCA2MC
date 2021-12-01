@@ -27,6 +27,10 @@ fmod REQUEST is
     eq done = "done" .
     op stop : -> Request .
     eq stop = "stop" .
+    op close : -> Request .
+    eq close = "close" .
+    op kill : -> Request .
+    eq kill = "kill" .
     op initialJob : -> Request .
     eq initialJob = "initialJob" .
     op noParse : -> Request .
@@ -59,7 +63,7 @@ mod SOLVER-MESSAGE is
     op nWorkers :_ : Nat -> Attribute [ctor] .
 
     sort Status .
-    ops idle initialized waiting suspending working stopping terminated : -> Status .
+    ops idle initialized waiting suspending working stopping terminated analyzing : -> Status .
 
     --- cache messages
     op lookupReq : Oid Oid State -> Msg [ctor msg format (b o)] .
@@ -96,6 +100,13 @@ mod SOLVER-MESSAGE is
     op lastCheckAllState : Oid State -> Msg [ctor msg format (b o)] .
     op lastCheckCxState : Oid State -> Msg [ctor msg format (b o)] .
     op stopWorking : Oid Oid -> Msg [ctor msg format (b o)] .
+
+    --- analysis messages
+    op cmdList : Oid String -> Msg [ctor msg format(b o)] .
+    op kill : Oid Oid -> Msg [ctor msg format (b o)] .
+    op handle : Oid TermList -> Msg [ctor msg format(b o)] .
+    op buildCx : Oid Oid Term -> Msg [ctor msg format (b o)] .
+    op stopApp : Oid Oid -> Msg [ctor msg format (b o)] .
 
     --- error message
     op error : Oid Oid Request String -> Msg [ctor msg format (b o)] .

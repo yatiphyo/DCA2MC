@@ -1,5 +1,5 @@
-in solver-global .
 in solver-utils .
+in solver-global .
 in solver-grammar .
 in solver-database .
 in solver-help .

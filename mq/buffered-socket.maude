@@ -52,7 +52,7 @@ mod BUFFERED-SOCKET is
     vars A : Attribute .
     vars PORT BACKLOG N : Nat .
 
-    eq A, A = A [print "Duplicate Attribute"] .
+    eq A, A = A [print "Duplicate Attribute " A] .
 
     eq < O : BufferedSocket | Atts > < O : BufferedSocket | Atts > = < O : BufferedSocket | Atts > .
 

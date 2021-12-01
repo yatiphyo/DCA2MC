@@ -7,7 +7,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     zip \
     unzip \
-    g++
+    g++ \
+    net-tools
 
 RUN wget https://github.com/SRI-CSL/Maude/releases/download/Alpha136/Maude-alpha136-linux.zip \
     && unzip Maude-alpha136-linux.zip && mv Linux64 Maude && mv Maude/maude.linux64 Maude/maude \

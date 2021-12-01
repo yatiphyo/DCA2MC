@@ -1,0 +1,156 @@
+in full-maude.maude
+in ../debug.maude
+in ../mq/buffered-socket.maude
+in file.maude
+in ../solver-utils.maude
+in ../solver-grammar.maude
+in ../solver-global.maude
+
+mod INPUT-HANDER is
+    pr MOVE-DOWN .
+    pr LEXICAL .
+    pr 2TUPLE{Bool,String} .
+    pr SOLVER-UTILS .
+    pr SOLVER-GLOBAL .
+
+    vars QIL : QidList .
+    vars T : Term .
+    var TL : TermList .
+    var B : Bound .
+    var N : Nat .
+    var RP : ResultPair? .
+
+    op handleInput : Term QidList -> Tuple{Bool,String} .
+    --- threshold input
+    ceq handleInput('threshold_[TL], QIL)
+    =   if RP :: ResultPair then
+            (true, handleThresholdInput(getTerm(RP)))
+        else
+            (false, "Error: No parse for the input\n")
+        fi
+    if RP := metaParse(upModule('TIME-CONVERTER, false),
+                downQidList(solveBubbleAndToken(TL)),
+                'Bound) .
+
+    --- timeout input
+    ceq handleInput('timeout_[TL], QIL)
+    =   if RP :: ResultPair and (getType(RP) == 'Nat or-else getType(RP) == 'NzNat) then
+            (true, handleTimeoutInput(getTerm(RP)))
+        else
+            (false, "Error: No parse for the input\n")
+        fi
+    if RP := metaParse(upModule('TIME-CONVERTER, false),
+                downQidList(solveBubbleAndToken(TL)),
+                'Nat)
+    .
+
+    eq handleInput(T, QIL) = (true, printTokens(QIL)) [owise] .
+
+    --- handle threshold input
+    op handleThresholdInput : Term -> String .
+    ceq handleThresholdInput(T)
+    =   if B == unbounded then
+            "threshold unbounded"
+        else
+            "threshold " + string(B, 10)
+        fi
+    if B := downTerm(T, unbounded) .
+
+    --- handle timeout input
+    op handleTimeoutInput : Term -> String .
+    ceq handleTimeoutInput(T)
+    = "timeout " + string(N, 10)
+    if N := downTerm(T, timeout) .
+endm
+
+mod CLIENT is
+    pr BUFFERED-SOCKET .
+    pr STD-STREAM .
+    pr CONFIGURATION .
+    pr SOLVER-META-SIGN .
+    pr INPUT-HANDER .
+
+    protecting LIST{String} * (sort NeList{String} to NeCmdList, sort List{String} to CmdList) .
+
+    op Client : -> Cid .
+    op socket :_ : Oid -> Attribute [ctor format(! o o o)] .
+    op stopWorking : Oid Oid -> Msg [ctor msg format (b o)] .
+    op log :_ : CmdList -> Attribute [ctor format(! o o o)] .
+
+    vars O O' CLIENT : Oid .
+    vars A : AttributeSet .
+    vars DATA S : String .
+    vars QIL : QidList .
+    var LL : CmdList .
+    var RP : ResultPair? .
+
+    rl [MqCreatedSocket] :
+        < O : Client | A > CreatedSocket(O, socketManager, CLIENT)
+    =>  < O : Client | socket : CLIENT, log : nil, A >
+        getLine(stdin, O, ">>> ")
+        [print "[MqCreatedSocket]"] .
+
+    rl [CommandSent] :
+        < O : Client | log : LL, A > Sent(O, CLIENT)
+    =>  < O : Client | log : LL, A >
+        if head(LL) == "stop" then
+            stopWorking(O, O)
+        else
+            getLine(stdin, O, ">>> ")
+        fi
+        [print "[CommandSent]"] .
+
+    crl [ParseCommand] :
+        < O : Client | socket : CLIENT, log : LL,  A >
+        gotLine(O, O', S)
+    =>  if RP :: ResultPair
+        then
+            if (p1(handleInput(getTerm(RP), QIL))) then
+                < O : Client | socket : CLIENT, log : append(p2(handleInput(getTerm(RP), QIL)), LL), A >
+                Send(CLIENT, O, p2(handleInput(getTerm(RP), QIL)))
+            else
+                < O : Client | socket : CLIENT, log : LL, A >
+                write(stdout, O, "Error: No parse for the input\n")
+            fi
+        else
+            < O : Client | socket : CLIENT, log : LL, A >
+            write(stdout, O, "Error: No parse for the input\n")
+        fi
+    if S =/= "" and-then S =/= "close\n"
+    /\ QIL := tokenize(S)
+    /\ RP := metaParse(SOLVER-GRAMMAR, QIL, '@Input@)
+    .
+
+    crl [MqStop] :
+        < O : Client | socket : CLIENT, A >
+        gotLine(O, O', S)
+    =>  < O : Client | socket : CLIENT, A >
+        CloseSocket(CLIENT, O)
+    if S == "" or-else S == "close\n" .
+
+    rl [MqWrote] :
+        < O : Client | A > wrote(O, O')
+    =>  < O : Client | A >
+        getLine(stdin, O, ">>> ") .
+
+    rl [MqStopWorking] :
+        < O : Client | socket : CLIENT, A > stopWorking(O, O)
+    =>  < O : Client | A >
+        CloseSocket(CLIENT, O) .
+
+    rl [MqClosedSocket] :
+        < O : Client | A > ClosedSocket(O, O', S)
+    =>  < O : Client | A >
+        [print "[MqClosedSocket]"] .
+endm
+
+mod SOVLER-COMMANDER is
+    pr CLIENT .
+
+    op aClient : -> Oid [ctor] .
+    op init : -> Configuration .
+    eq init = < aClient : Client | none >
+                CreateClientTcpSocket(socketManager, aClient, "localhost", 8811) .
+endm
+
+erew <> init .

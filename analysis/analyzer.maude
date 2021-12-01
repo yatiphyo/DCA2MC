@@ -1,0 +1,30 @@
+in ../specs/qlock.maude
+in full-maude.maude
+in ../solver-parallel.maude
+in server.maude
+in ../debug.maude
+in solver-analysis.maude
+
+mod SOVLER-ANALYSIS is
+    pr SOLVER-APP-ANALYSIS .
+    pr SERVER .
+
+    op o : -> Oid .
+    op aServer : -> Oid [ctor] .
+
+    op init : -> Configuration .
+
+    eq init = < o : Database |
+                db : initialDatabase,
+                input : nilTermList, output : nil,
+                db-ext : emptyDatabaseExt,
+                server : aServer,
+                status : idle,
+                default : 'CONVERSION >
+                < aServer : Server | app : o, status : idle >
+                CreateServerTcpSocket(socketManager, aServer, 8811, 10)
+                createInterpreter(interpreterManager, aServer, newProcess)
+                initialize(o, "initialize[QLOCK-CHECK, init, lofree, OComp, Soup{OComp}]") .
+endm
+
+erew <> init .

@@ -1,5 +1,6 @@
 fmod SOLVER-GLOBAL is
     pr NAT .
+    pr TIME-CONVERTER .
 
     --- switch to use modelCheckAll to generate all counterexamples
     op isModelCheckAll : -> Bool .
@@ -9,6 +10,11 @@ fmod SOLVER-GLOBAL is
     op showProgress : -> Bool .
     eq showProgress = true .
 
+    --- initial seed for random
     op initSeed : -> Nat .
     eq initSeed = 37 .
+
+    --- timeout for Timer
+    op timeout : -> Nat .
+    eq timeout = 10 seconds .
 endfm

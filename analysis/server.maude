@@ -1,0 +1,70 @@
+in ../mq/buffered-socket.maude
+in time
+
+mod SERVER is
+    pr BUFFERED-SOCKET .
+    pr IQUEUE{Job} .
+    pr SET{Worker} .
+    pr SOLVER-MESSAGE .
+
+    op Server : -> Cid [ctor] .
+    op jobs :_ : Queue{Job} -> Attribute [ctor format(! o o o)] .
+    op workers :_ : Set{Worker} -> Attribute [ctor format(! o o o)] .
+
+    vars O O' O'' LISTENER CLIENT APP : Oid .
+    var  A : AttributeSet .
+    vars IP DATA S : String .
+    var QIL : QidList .
+    vars J : Queue{Job} .
+    vars SW : Set{Worker} .
+    vars ST : Status .
+
+    rl [MqCreatedSocket] :
+        < O : Server | status : idle, A > CreatedSocket(O, socketManager, LISTENER)
+    =>  < O : Server | status : working, listener : LISTENER, workers : empty, jobs : emptyq, A >
+        AcceptClient(LISTENER, O) [print "[MqCreatedSocket]"] .
+
+    rl [MqAcceptedClient] :
+        < O : Server | workers : SW, A > AcceptedClient(O, LISTENER, IP, CLIENT)
+        => < O : Server | workers : (CLIENT, SW), A > Receive(CLIENT, O)
+        AcceptClient(LISTENER, O) [print "[MqAcceptedClient]"] .
+
+    crl [MqReceived] :
+        < O : Server | jobs : J, A > Received(O, CLIENT, DATA)
+    =>  < O : Server | jobs : (J | DATA), A >
+    if DATA =/= stop
+    /\ DATA =/= kill
+    [print "[MqReceived] " DATA] .
+
+    crl [MqReceivedStop] :
+        < O : Server | A > Received(O, CLIENT, DATA)
+    => < O : Server | A > stopWorking(O, CLIENT)
+    if DATA == stop [print "[MqReceivedStop] " DATA] .
+
+    crl [MqReceivedKill] :
+    < O : Server | app : APP, A > Received(O, CLIENT, DATA)
+    => < O : Server | app : APP, A > kill(APP, CLIENT)
+    if DATA == kill [print "[MqReceivedKill] " DATA] .
+
+    rl [HandleJob] :
+        < O : Server | app : APP, status : working, jobs : (S | J), A >
+    =>  < O : Server | app : APP, status : suspending, jobs : J, A >
+        cmdList(APP, S) [print "[HandleJob] " S] .
+
+    rl [ResumeReq] :
+        < O : Server | status : suspending, A > resumeReq(O, O')
+    =>  < O : Server | status : working, A >
+        [print "[ResumeReq]"] .
+
+    rl [StopClient] :
+        < O : Server | workers : (CLIENT, SW), A > stopWorking(O, O')
+    =>  < O : Server | workers : SW, A > CloseSocket(CLIENT, O) stopWorking(O, O')
+        [print "[StopClient] " CLIENT] .
+
+    rl [StopListener] : < O : Server | workers : empty, app : APP, listener : LISTENER, A > stopWorking(O, O')
+        => < O : Server | A > CloseSocket(LISTENER, O) stopApp(APP, O) [print "[StopListener]"] .
+
+    rl [MqClosedSocket] :
+        < O : Server | status : ST, A > ClosedSocket(O, CLIENT, DATA)
+        => < O : Server |  status : terminated, A > [print "[MqClosedSocket]"] .
+endm

@@ -1,0 +1,1019 @@
+view Worker from TRIV to CONFIGURATION is
+    sort Elt to Oid .
+endv
+
+mod SOLVER-MESSAGE-ANALYSIS is
+    pr SOLVER-MESSAGE .
+    pr SOLVER-LOGGER-ANALYSIS .
+    pr SET{Worker} .
+
+    op #procs :_ : Nat -> Attribute [ctor format(m o o o)] .
+    op #states :_ : Bound -> Attribute [ctor format(m o o o)] .
+    op #cxStates :_ : Bound -> Attribute [ctor format(m o o o)] .
+    op timeGenStates :_ : Nat -> Attribute [ctor format(m o o o)] .
+    op workers :_ : Set{Worker} -> Attribute [ctor format(m o o o)] .
+    op killWorkers :_ : Set{Worker} -> Attribute [ctor format(m o o o)] .
+    op timeout :_ : Nat -> Attribute [ctor format(m o o o)] .
+    op timer :_ : Oid -> Attribute [ctor format(m o o o)] .
+    op mn :_ : Qid -> Attribute [ctor format(m o o o)] .
+    op cmdList :_ : TermList -> Attribute [ctor format(m o o o)] .
+    op revCmdList :_ : TermList -> Attribute [ctor format(m o o o)] .
+    --- logging
+    op layerLogger :_ : Map{Nat,ILogSet} -> Attribute [ctor format(m o o o)] .
+    op runnerLogger :_ : Map{Nat,ILogSet} -> Attribute [ctor format(m o o o)] .
+    op procLogger :_ : Map{Oid,ILogSet} -> Attribute [ctor format(m o o o)] .
+    op threshold :_ : Bound -> Attribute [ctor format(m o o o)] .
+endm
+
+mod CHECKER-EXT is
+    pr CHECKER .
+
+    op originModule : -> Module .
+    op processDbExt : -> DatabaseExt .
+
+    vars Cs : ConfigExtSet .
+    vars M : Module .
+    vars T : Term .
+    vars LL : LogList .
+
+    op checkStateReq : Node -> Result4Checking? .
+    ceq checkStateReq(< < T : emptyTermSet > : LL >)
+    = checkStates(originModule, T, LL, Cs)
+    if Cs := getConfigExtSet(processDbExt) .
+
+    ceq checkStateReq(< < emptyTermSet : T > : LL >)
+    = checkCxStates(originModule, T, LL, Cs)
+    if Cs := getConfigExtSet(processDbExt) .
+endm
+
+mod SOLVER-ANALYSIS-WORKERS is
+    pr SOLVER-UTILS .
+    pr SOLVER-GLOBAL .
+    pr SOLVER-META-SIGN .
+    pr SOLVER-MESSAGE-ANALYSIS .
+    pr SOLVER-APP .
+    pr TIME .
+    pr STD-STREAM .
+    pr META-INTERPRETER .
+    pr CHECKER-EXT .
+
+    vars T T' T'' : Term .
+    vars T1 T2 T3 T4 T5 T1' T2' T3' T4' T5' : Term .
+    vars ME ME' : ModuleExpression .
+    var Atts : AttributeSet .
+    var X@DatabaseClass : DatabaseClass .
+    vars O O' O'' MI TIMER : Oid .
+    vars DB DB' : Database .
+    var DB-EXT DB-EXT' : DatabaseExt .
+    var QIL : QidList .
+    var RES : Tuple{Database,QidList,DatabaseExt} .
+    vars M M' : Module .
+    vars OCs OCs' : OCompExtSet .
+    vars Cs Cs' : ConfigExtSet .
+    vars D N N' C C' SEED : Nat .
+    vars B B' B1 B2 B3 B4 B1' B2' B3' B4' : Bound .
+    vars TS TS1 TS2 : TermSet .
+    vars R4C : Result4Checking? .
+    vars LL LL' : Map{Nat,ILogSet} .
+    vars RL RL' : Map{Nat,ILogSet} .
+    vars PL PL' : Map{Oid,ILogSet} .
+    vars ILSL ILSL' : ILogSetList .
+    vars ILS ILS' : ILogSet .
+    vars BL BL1 BL2 : Bool .
+    vars S DATA : String .
+    vars QI MN : Qid .
+    vars TL TL' : TermList .
+    vars NL NL' NL1 NL2 NL1' NL2' : NatList .
+    vars TC : Constant .
+    vars N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 N13 N14 N15 : Nat .
+    vars N1' N2' N3' N4' N5' N6' N7' N8' N9' N10' N11' N12' N13' N14' N15' : Nat .
+    var TIME1 TIME2 TIME TIME' AVG1 AVG2 TOTAL : Bound .
+    vars ND ND' : Node .
+    vars NS : NodeSet .
+    vars OUT OUT1 OUT2 OUT3 OUT4 OUT5 OUT6 OUT7 OUT8 : String .
+    vars ST : Status .
+    vars WS WS' : Set{Worker} .
+    var RT : Type .
+    var SR SR' SR1 SR2 : StatusRun .
+
+    ops initializeInterpeter loadedInterpeter createTimer deleteTimer workingInterperter killInterpreter killedInterpreter : -> Status [ctor] .
+
+    --- layerCheck logging with `layerCheck` command
+    op layerCheckLog : DatabaseExt Map{Nat,ILogSet} Nat Nat -> Map{Nat,ILogSet} .
+    ceq layerCheckLog(DB-EXT, LL, N, TIME) = insert(D, (states: N1, cxStates: N2, selectStates: N1, selectCxStates: N2, time: N, totalTime: TIME), LL)
+    if OCs := getOCompExtSet(DB-EXT)
+    /\ D := currentDepth(OCs)
+    /\ NL := depthList(OCs)
+    /\ NS := nodeSet(OCs)
+    /\ N1 := getNumberOfStates(NS)
+    /\ N2 := getNumberOfCxStates(NS)
+    /\ OUT1 := formatTime(N)
+    /\ OUT2 := formatTime(TIME)
+    [print "[HandleLayerCheck]\n\tDepth = " D
+        "\n\tDepth List = " NL
+        "\n\t#states = " N1
+        "\n\t#cxstates = " N2
+        "\n\tTime to generate states at this layer = " OUT1
+        "\n\tTime to generate states in total = " OUT2]
+    .
+
+    --- update layerCheck logging with `select` command
+    op updateLayerCheckLog : DatabaseExt Map{Nat,ILogSet} -> Map{Nat,ILogSet} .
+    ceq updateLayerCheckLog(DB-EXT, LL) =
+        insert(D, (states: N1, cxStates: N2, selectStates: N3', selectCxStates: N4', time: N5, totalTime: N6), LL)
+    if OCs := getOCompExtSet(DB-EXT)
+    /\ D := currentDepth(OCs)
+    /\ (states: N1, cxStates: N2, selectStates: N3, selectCxStates: N4, time: N5, totalTime: N6) := LL[D]
+    /\ NS := nodeSet(OCs)
+    /\ N3' := getNumberOfStates(NS)
+    /\ N4' := getNumberOfCxStates(NS)
+    .
+
+    --- get working workers
+    op getWorkingWorkers : Map{Oid,ILogSet} -> Set{Worker} .
+    eq getWorkingWorkers((MI |-> ((jobs: NS), (timeStart: N), (current: ND), (statusRun: SR)), PL))
+    = if SR == completed then getWorkingWorkers(PL) else (MI, getWorkingWorkers(PL)) fi .
+    eq getWorkingWorkers(empty) = empty .
+
+    --- select workers from the worker pool
+    op selectWorkers : Set{Worker} Nat -> Set{Worker} .
+    ceq selectWorkers((MI, WS), N) = MI, selectWorkers(WS, sd(N, 1)) if N > 0 .
+    eq selectWorkers(WS, 0) = empty .
+
+    --- update the runner and process log
+    sort UpdateLog .
+    op <_,_,_> : Map{Nat,ILogSet} Map{Oid,ILogSet} DatabaseExt -> UpdateLog .
+
+    op updateExecuteLog : DatabaseExt Map{Nat,ILogSet} Set{Worker} Bound Bound Bound -> UpdateLog .
+    ceq updateExecuteLog(DB-EXT, RL, WS, B1, B2, B) =
+        updateExecuteLog*(DB-EXT, RL, WS,
+            ((states: B1),
+            (cxStates: B2),
+            (selectStates: B1),
+            (selectCxStates: B2),
+            (threshold: B),
+            (runs: nil),
+            (prev: emptyILogSet)),
+            empty
+        )
+    if OCs := getOCompExtSet(DB-EXT)
+    /\ D := currentDepth(OCs)
+    /\ ILS := (if RL[D] == undefined then emptyILogSet else RL[D] fi)
+    .
+
+    op updateExecuteLog* : DatabaseExt Map{Nat,ILogSet} Set{Worker} ILogSet Map{Oid,ILogSet} -> UpdateLog .
+    ceq updateExecuteLog*(DB-EXT, RL, (MI, WS),
+        ((states: B1),
+        (cxStates: B2),
+        (selectStates: B3),
+        (selectCxStates: B4),
+        (threshold: B),
+        (runs: ILSL),
+        (prev: ILS)),
+        PL)
+    = updateExecuteLog*(DB-EXT', RL, WS,
+        ((states: B1),
+        (cxStates: B2),
+        (selectStates: N1),
+        (selectCxStates: N2),
+        (threshold: B),
+        (runs: ILSL'),
+        (prev: ILS)),
+        PL'
+    )
+    if OCs := getOCompExtSet(DB-EXT)
+    /\ < NS : SEED > := selectStates(nodeSet(OCs), B1, B2, seed(OCs))
+    /\ N1 := getNumberOfStates(NS)
+    /\ N2 := getNumberOfCxStates(NS)
+    /\ DB-EXT' := evalOCompExtSet(DB-EXT, ((seed: SEED)))
+    /\ PL' := insert(MI, ((jobs: NS), (timeStart: 0), (statusRun: waiting), (current: empNode)), PL)
+    /\ ILSL' := append(ILSL, (
+        (statusRun: working),
+        (#states: 0),
+        (#cxStates: 0),
+        (proc: MI),
+        (timeStates: nil),
+        (timeCxStates: nil)
+    ))
+    .
+
+    ceq updateExecuteLog*(DB-EXT, RL, empty, ILS, PL)
+    = < insert(D, ILS, RL), PL, DB-EXT >
+    if OCs := getOCompExtSet(DB-EXT)
+    /\ D := currentDepth(OCs)
+    .
+
+    --- update the status of runner log
+    op updateRunnerLogStatus : Map{Nat,ILogSet} DatabaseExt Oid StatusRun -> Map{Nat,ILogSet} .
+    ceq updateRunnerLogStatus((D |-> ((selectStates: N3), (selectCxStates: N4),
+        (runs: (ILSL (
+            (statusRun: SR1),
+            (#states: N1),
+            (#cxStates: N2),
+            (proc: MI),
+            (timeStates: NL1),
+            (timeCxStates: NL2)
+        ) ILSL')), ILS), RL), DB-EXT, MI, SR2)
+    =   (D |-> ((selectStates: N3), (selectCxStates: N4),
+        (runs: (ILSL (
+            (statusRun: SR2),
+            (#states: N1),
+            (#cxStates: N2),
+            (proc: MI),
+            (timeStates: NL1),
+            (timeCxStates: NL2)
+        ) ILSL')), ILS), RL)
+    if Cs := getConfigExtSet(DB-EXT)
+    /\ OCs := getOCompExtSet(DB-EXT)
+    /\ D := currentDepth(OCs)
+    .
+
+    --- update the status of runner log by batch
+    op updateRunnerLogStatusBatch : Map{Nat,ILogSet} DatabaseExt Set{Worker} StatusRun -> Map{Nat,ILogSet} .
+    ceq updateRunnerLogStatusBatch(RL, DB-EXT, (MI, WS), SR)
+    = updateRunnerLogStatusBatch(RL, DB-EXT, WS, SR)
+    if RL' := updateRunnerLogStatus(RL, DB-EXT, MI, SR) .
+    eq updateRunnerLogStatusBatch(RL, DB-EXT, empty, SR) = RL .
+
+    --- update runner log after a worker finished a job
+    op updateRunnerLog : Map{Nat,ILogSet} DatabaseExt Oid Nat Bool -> Map{Nat,ILogSet} .
+    ceq updateRunnerLog((D |-> ((selectStates: N3), (selectCxStates: N4),
+        (runs: (ILSL (
+            (statusRun: working),
+            (#states: N1),
+            (#cxStates: N2),
+            (proc: MI),
+            (timeStates: NL1),
+            (timeCxStates: NL2)
+        ) ILSL')), ILS), RL), DB-EXT, MI, N, BL)
+    =   (D |-> ((selectStates: N3), (selectCxStates: N4),
+            (runs: (ILSL (
+            (statusRun: working),
+            (#states: N1'),
+            (#cxStates: N2'),
+            (proc: MI),
+            (timeStates: NL1'),
+            (timeCxStates: NL2')
+        ) ILSL')), ILS), RL)
+    if Cs := getConfigExtSet(DB-EXT)
+    /\ OCs := getOCompExtSet(DB-EXT)
+    /\ D := currentDepth(OCs)
+    /\ N1' := if BL then N1 else (N1 + 1) fi
+    /\ N2' := if BL then (N2 + 1) else N2 fi
+    /\ NL1' := if BL then NL1 else append(N, NL1) fi
+    /\ NL2' := if BL then append(N, NL2) else NL2 fi
+    /\ AVG1 := (if N1' =/= 0 then (sum(NL1') quo N1') else unbounded fi)
+    /\ AVG2 := (if N2' =/= 0 then (sum(NL2') quo N2') else unbounded fi)
+    /\ OUT1 := formatTime(AVG1)
+    /\ OUT2 := formatTime(AVG2)
+    [print "[ReducedTerm] " MI "\n\tFinished a state with isCxState = " BL
+        "\n\tStates = " N1' "/" N3 ", timeStates = " NL1'
+        "\n\tCxStates = " N2' "/" N4 ", timeCxStates = " NL2'
+        "\n\t-----------------------"
+        "\n\tAverage time to check a state = " OUT1
+        "\n\tAverage time to check a cxstate = " OUT2]
+    .
+
+    --- calculate time
+    op sum : NatList -> Nat .
+    eq sum(N NL) = N + sum(NL) .
+    eq sum(nil) = 0 .
+
+    op formatTime : Bound -> String .
+    eq formatTime(B) = formatTime**(B, true) .
+    op formatTime* : Bound -> String .
+    eq formatTime*(B) = formatTime**(B, false) .
+    --- display unbounded as it is or cannot estimate in case of estimating elapsed time.
+    op formatTime** : Bound Bool -> String .
+    eq formatTime**(unbounded, true) = "cannot estimate now" .
+    eq formatTime**(unbounded, false) = "unbounded" .
+    ceq formatTime**(N, BL) = string(qid(N)) + "ns OR " + string(qid(N2)) + "d:" + string(qid(N4)) + "h:" + string(qid(N6)) + "m:" + string(qid(N7)) + "s"
+    if N =/= unbounded
+    /\ N1 := (N quo 1000000000) --- convert to seconds
+    /\ N2 := (N1 quo (24 * 3600)) --- days
+    /\ N3 := (N1 rem (24 * 3600)) --- remaining time
+    /\ N4 := (N3 quo 3600) --- hours
+    /\ N5 := (N3 rem 3600) --- remaining time
+    /\ N6 := (N5 quo 60) --- minutes
+    /\ N7 := (N5 rem 60) --- seconds
+    .
+
+    --- show summary
+    op showSummary : Map{Nat,ILogSet} Map{Nat,ILogSet} -> Configuration .
+    eq showSummary(
+        ((D |-> ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: TIME))), LL),
+        ((D |-> ((selectStates: N6), (selectCxStates: N7), (runs: ILSL), ILS)), RL)
+    )
+    = showSummary(LL, RL) showSummaryForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: TIME)),
+        ((selectStates: N6), (selectCxStates: N7), (runs: ILSL), ILS),
+        D
+    )
+    .
+    eq showSummary(LL, empty) = none .
+
+    op showSummaryForOne : ILogSet ILogSet Nat -> Configuration .
+    ceq showSummaryForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: TIME)),
+        ((selectStates: N6),
+            (selectCxStates: N7),
+            (threshold: B),
+            (runs: ((
+                (statusRun: SR),
+                (#states: N8),
+                (#cxStates: N9),
+                (proc: MI),
+                (timeStates: NL1),
+                (timeCxStates: NL2)
+                ) ILSL)),
+            ILS), D)
+    = showSummaryForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: TIME)),
+        ((selectStates: N6),
+            (selectCxStates: N7),
+            (threshold: B),
+            (runs: ((
+                (statusRun: SR),
+                (#states: N8),
+                (#cxStates: N9),
+                (proc: MI),
+                (timeStates: NL1),
+                (timeCxStates: NL2)
+                ) ILSL)),
+            ILS)
+        )
+    if OUT1 := formatTime(N5)
+    /\ OUT2 := formatTime(TIME)
+    /\ OUT3 := if B == unbounded then "unbounded" else formatTime(B) fi
+    [print "<------------------- [Summary] ------------------->"
+        "\n\tDepth " D
+        "\n\tTotal states = " N3 "/" N1
+        "\n\tTotal cxstates = " N4 "/" N2
+        --- "\n\tTime to generate states at this layer = " OUT1
+        --- "\n\tTime to generate states in total = " OUT2
+        "\n\tThreshold " OUT3
+        ] .
+
+    op showSummaryForOne : ILogSet ILogSet -> Configuration .
+    ceq showSummaryForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N10)),
+        ((selectStates: N6),
+            (selectCxStates: N7),
+            (runs: ((
+                (statusRun: SR),
+                (#states: N8),
+                (#cxStates: N9),
+                (proc: MI),
+                (timeStates: NL1),
+                (timeCxStates: NL2)
+                ) ILSL)),
+            ILS))
+    = showSummaryForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N10)),
+        ((selectStates: N6),
+            (selectCxStates: N7),
+            (runs: ILSL),
+            ILS)
+    )
+    if AVG1 := (if N8 =/= 0 then (sum(NL1) quo N8) else unbounded fi)
+    /\ AVG2 := (if N9 =/= 0 then (sum(NL2) quo N9) else unbounded fi)
+    /\ TIME1 := if AVG1 == unbounded then unbounded else (AVG1 * N3) fi
+    /\ TIME2 := if AVG2 == unbounded then unbounded else (AVG2 * N4) fi
+    /\ TIME := if (TIME1 =/= unbounded and TIME2 =/= unbounded) then (TIME1 + TIME2) else unbounded fi
+    /\ TOTAL := if (TIME =/= unbounded) then (TIME + N10) else unbounded fi
+    /\ OUT1 := formatTime(AVG1)
+    /\ OUT2 := formatTime(AVG2)
+    /\ OUT3 := formatTime(TIME1)
+    /\ OUT4 := formatTime(TIME2)
+    /\ OUT5 := formatTime(TIME)
+    /\ OUT6 := formatTime(N10)
+    /\ OUT7 := formatTime(TOTAL)
+    [print "[" MI "] status = " SR
+        "\n\tStates = " N8 "/" N6 ", timeStates = " NL1
+        "\n\tCxStates = " N9 "/" N7 ", timeCxStates = " NL2
+        "\n\t-----------------------"
+        "\n\tAverage time to check a state = " OUT1
+        "\n\tAverage time to check a cxstate = " OUT2
+        "\n\tTotal time to check states = " OUT3
+        "\n\tTotal time to check cxstates = " OUT4
+        "\n\t-----------------------"
+        "\n\tTotal time to check all states = " OUT5
+        "\n\tTotal time to generate states = " OUT6
+        "\n\tTotal time = " OUT7
+    ]
+    .
+
+    eq showSummaryForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N6)),
+        ((selectStates: N7),
+            (selectCxStates: N8),
+            (runs: nil),
+            ILS),
+        TIME) = none .
+
+    --- handling timeout and checking over threshold
+    op _plus_ : Bound Bound -> Bound [assoc comm] .
+    eq unbounded plus B = unbounded .
+    eq N1 plus N2 = N1 + N2 .
+
+    op checkOverThreshold : Bound Bound Bound Bound -> Bool .
+    eq checkOverThreshold(TIME1, TIME2, TIME, B)
+    = checkOverThreshold(TIME1, B) or-else checkOverThreshold(TIME2, B) or-else checkOverThreshold(TIME, B)
+    .
+
+    op checkOverThreshold : Bound Bound -> Bool .
+    eq checkOverThreshold(TIME, B)
+    =   if TIME == unbounded
+        then false
+        else (if B == unbounded then false else (TIME > B) fi)
+        fi
+    .
+
+    --- handle timeout and check over threshold
+    op handleTimeOut : DatabaseExt Map{Nat,ILogSet} Map{Nat,ILogSet} Map{Oid,ILogSet} Nat -> Set{Worker} .
+    ceq handleTimeOut(
+        DB-EXT,
+        ((D |-> ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N6))), LL),
+        ((D |-> ((threshold: B), (selectStates: N7), (selectCxStates: N8), (runs: ILSL), ILS)), RL),
+        PL,
+        TIME
+    )
+    = handleTimeOutForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N6)),
+        ((threshold: B), (selectStates: N7), (selectCxStates: N8), (runs: ILSL), ILS),
+        PL,
+        TIME,
+        false,
+        empty
+    )
+    if Cs := getConfigExtSet(DB-EXT)
+    /\ OCs := getOCompExtSet(DB-EXT)
+    /\ D := currentDepth(OCs)
+    /\ OUT1 := formatTime(N5)
+    /\ OUT2 := formatTime(N6)
+    /\ OUT3 := if B == unbounded then "unbounded" else formatTime(B) fi
+    [print "<------------------- [TimeOut - START] ------------------->"
+        "\n\tDepth " D
+        "\n\tTotal states = " N3 "/" N1
+        "\n\tTotal cxstates = " N4 "/" N2
+        --- "\n\tTime to generate states at this layer = " OUT1
+        --- "\n\tTime to generate states in total = " OUT2
+        "\n\tThreshold " OUT3
+        ] .
+
+    eq handleTimeOut(DB-EXT, LL, RL, PL, TIME) = empty .
+
+    op handleTimeOutForOne : ILogSet ILogSet Map{Oid,ILogSet} Nat Bool Set{Worker} -> Set{Worker} .
+    ceq handleTimeOutForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N6)),
+        ((selectStates: N7),
+            (selectCxStates: N8),
+            (threshold: B),
+            (runs: ((
+                (statusRun: SR1),
+                (#states: N9),
+                (#cxStates: N10),
+                (proc: MI),
+                (timeStates: NL1),
+                (timeCxStates: NL2)
+                ) ILSL)),
+            ILS),
+        (MI |-> ((jobs: NS), (timeStart: N11), (current: ND), (statusRun: SR2)), PL),
+        N12,
+        BL1,
+        WS
+        )
+    = handleTimeOutForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N6)),
+        ((selectStates: N7),
+            (selectCxStates: N8),
+            (threshold: B),
+            (runs: ILSL),
+            ILS),
+        PL,
+        N12,
+        (BL1 or BL2),
+        insert(MI, WS)
+    )
+    if SR1 == working
+    /\ N13 := sd(N12, N11)
+    /\ BL := isCxState(ND)
+    /\ AVG1 := (if BL then (if N9 =/= 0 then (sum(NL1) quo N9) else unbounded fi) else (sum(N13 NL1) quo (N9 + 1)) fi)
+    /\ AVG2 := (if BL then (sum(N13 NL2) quo (N10 + 1)) else (if N10 =/= 0 then (sum(NL2) quo N10) else unbounded fi) fi)
+    /\ TIME1 := if AVG1 == unbounded then unbounded else (AVG1 * N3) fi
+    /\ TIME2 := if AVG2 == unbounded then unbounded else (AVG2 * N4) fi
+    /\ TIME := if (TIME1 =/= unbounded and TIME2 =/= unbounded) then (TIME1 + TIME2) else unbounded fi
+    /\ TOTAL := if (TIME =/= unbounded) then (TIME + N6) else unbounded fi
+    /\ BL2 := checkOverThreshold((TIME1 plus N6), (TIME2 plus N6), TOTAL, B)
+    /\ OUT1 := formatTime(AVG1)
+    /\ OUT2 := formatTime(AVG2)
+    /\ OUT3 := formatTime(TIME1)
+    /\ OUT4 := formatTime(TIME2)
+    /\ OUT5 := formatTime(TIME)
+    /\ OUT6 := formatTime(N6)
+    /\ OUT7 := formatTime(TOTAL)
+    /\ OUT8 := formatTime(N13)
+    [print "[" MI "] status = " SR1
+        "\n\tStates = " N9 "/" N7 ", timeStates = " NL1
+        "\n\tCxStates = " N10 "/" N8 ", timeCxStates = " NL2
+        "\n\tBeing checking a state, isCxState = " BL ", taking time = " OUT8
+        "\n\t-----------------------"
+        "\n\tAverage time to check a state = " OUT1
+        "\n\tAverage time to check a cxstate = " OUT2
+        "\n\tTotal time to check states = " OUT3
+        "\n\tTotal time to check cxstates = " OUT4
+        "\n\t-----------------------"
+        "\n\tTotal time to check all states = " OUT5
+        "\n\tTotal time to generate states = " OUT6
+        "\n\tTotal time = " OUT7
+    ]
+    .
+
+    ceq handleTimeOutForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N6)),
+        ((selectStates: N7),
+            (selectCxStates: N8),
+            (threshold: B),
+            (runs: ((
+                (statusRun: SR1),
+                (#states: N9),
+                (#cxStates: N10),
+                (proc: MI),
+                (timeStates: NL1),
+                (timeCxStates: NL2)
+                ) ILSL)),
+            ILS),
+        (MI |-> ((jobs: NS), (timeStart: N11), (current: ND), (statusRun: SR2)), PL),
+        N12,
+        BL1,
+        WS
+        )
+    = handleTimeOutForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N6)),
+        ((selectStates: N7),
+            (selectCxStates: N8),
+            (threshold: B),
+            (runs: ILSL),
+            ILS),
+        PL,
+        N12,
+        (BL1 or BL2),
+        (if SR1 =/= completed then insert(MI, WS) else WS fi)
+    )
+    if SR1 =/= working
+    /\ AVG1 := (if N9 =/= 0 then (sum(NL1) quo N9) else unbounded fi)
+    /\ AVG2 := (if N10 =/= 0 then (sum(NL2) quo N10) else unbounded fi)
+    /\ TIME1 := if AVG1 == unbounded then unbounded else (AVG1 * N3) fi
+    /\ TIME2 := if AVG2 == unbounded then unbounded else (AVG2 * N4) fi
+    /\ TIME := if (TIME1 =/= unbounded and TIME2 =/= unbounded) then (TIME1 + TIME2) else unbounded fi
+    /\ TOTAL := if (TIME =/= unbounded) then (TIME + N6) else unbounded fi
+    /\ BL2 := checkOverThreshold((TIME1 plus N6), (TIME2 plus N6), TOTAL, B)
+    /\ OUT1 := formatTime(AVG1)
+    /\ OUT2 := formatTime(AVG2)
+    /\ OUT3 := formatTime(TIME1)
+    /\ OUT4 := formatTime(TIME2)
+    /\ OUT5 := formatTime(TIME)
+    /\ OUT6 := formatTime(N6)
+    /\ OUT7 := formatTime(TOTAL)
+    [print "[" MI "] status = " SR1
+        "\n\tStates = " N9 "/" N7 ", timeStates = " NL1
+        "\n\tCxStates = " N10 "/" N8 ", timeCxStates = " NL2
+        "\n\t-----------------------"
+        "\n\tAverage time to check a state = " OUT1
+        "\n\tAverage time to check a cxstate = " OUT2
+        "\n\tTotal time to check states = " OUT3
+        "\n\tTotal time to check cxstates = " OUT4
+        "\n\t-----------------------"
+        "\n\tTotal time to check all states = " OUT5
+        "\n\tTotal time to generate states = " OUT6
+        "\n\tTotal time = " OUT7
+    ]
+    .
+
+    eq handleTimeOutForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N6)),
+        ((selectStates: N7),
+            (selectCxStates: N8),
+            (threshold: B),
+            (runs: nil),
+            ILS),
+        PL,
+        TIME,
+        BL,
+        WS) = (if BL then WS else empty fi) .
+
+    *************************** rewriting rules for workers ***************************
+    --- prepare enough meta-interpreters
+    rl [PrepareWorkers] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : analyzing,
+            #procs : N,
+            #states : B1,
+            #cxStates : B2,
+            workers : WS,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+    =>  if | WS | < N then
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : initializeInterpeter,
+            #procs : N,
+            #states : B1,
+            #cxStates : B2,
+            workers : WS,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            produceInterpreters(O, sd(N, | WS |))
+        else
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : loadedInterpeter,
+            #procs : N,
+            #states : B1,
+            #cxStates : B2,
+            workers : WS,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+        fi
+    [print "[PrepareWorkers]"] .
+
+    op produceInterpreters : Oid Nat -> Configuration .
+    ceq produceInterpreters(O, N) = createInterpreter(interpreterManager, O, newProcess)
+        produceInterpreters(O, sd(N, 1)) if N > 0 .
+    eq produceInterpreters(O, N) = none [owise] .
+
+    crl [CreatedWorker] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : initializeInterpeter,
+            mn : MN,
+            default : ME, Atts >
+        createdInterpreter(O, O', MI)
+    => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : initializeInterpeter,
+            mn : MN,
+            default : ME, Atts >
+        insertModule(MI, O, M')
+    if Cs := getConfigExtSet(DB-EXT)
+    /\ OCs := getOCompExtSet(DB-EXT)
+    /\ NS := flattenStates(nodeSet(OCs))
+    /\ M := getFlatModule(originModule(Cs), DB)
+    /\ M' := addEquations(
+            (eq 'originModule.Module = upTerm(M) [none] . )
+            (eq 'processDbExt.DatabaseExt = upTerm(DB-EXT) [none] . )
+            , upModule(MN, true)
+        )
+    [print "[CreatedWorker]"] .
+
+    rl [LoadedModule] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : initializeInterpeter,
+            workers : WS,
+            default : ME, Atts >
+        insertedModule(O, MI)
+    => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : initializeInterpeter,
+            workers : (MI, WS),
+            default : ME, Atts >
+        [print "[LoadedModule]"] .
+
+    crl [LoadedInterpreter] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : initializeInterpeter,
+            #procs : N,
+            workers : WS,
+            Atts >
+    => < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : loadedInterpeter,
+            #procs : N,
+            workers : WS,
+            Atts >
+    if | WS | >= N
+    [print "[LoadedInterpreter]"] .
+
+    --- initialize log before execution
+    crl [InitializeLog] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : loadedInterpeter,
+            threshold : B,
+            #procs : N,
+            #states : B1,
+            #cxStates : B2,
+            workers : WS,
+            runnerLogger : RL,
+            procLogger : PL,
+            default : ME, Atts >
+    =>  < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT',
+            status : createTimer,
+            threshold : B,
+            #procs : N,
+            #states : B1,
+            #cxStates : B2,
+            workers : WS, --- should not remove here, we may use meta-interpreters again
+            runnerLogger : RL',
+            procLogger : PL',
+            default : ME, Atts >
+            createTimer(timeManager, O)
+    if WS' := selectWorkers(WS, N)
+    /\ < RL', PL', DB-EXT' > := updateExecuteLog(DB-EXT, RL, WS', B1, B2, B)
+    [print "[InitializeLog]"] .
+
+    --- create timer for timeout
+    rl [CreatedTimer] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT',
+            status : createTimer,
+            timeout : N,
+            Atts >
+        createdTimer(O, O'', TIMER)
+    =>  < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT',
+            status : workingInterperter,
+            timer : TIMER,
+            timeout : N,
+            Atts >
+        startTimer(TIMER, O, periodic, N)
+        [print "[CreatedTimer]"] .
+
+    crl [WorkingInterpreter] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : workingInterperter,
+            runnerLogger : RL,
+            procLogger : ((MI |-> ((jobs: (ND, NS)), (timeStart: N), (current: ND'), (statusRun: waiting))), PL),
+            mn : MN,
+            Atts >
+    =>  < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : workingInterperter,
+            runnerLogger : RL,
+            procLogger : ((MI |-> ((jobs: NS), (timeStart: N'), (current: ND), (statusRun: working))), PL),
+            mn : MN,
+            Atts >
+            reduceTerm(MI, O, MN, T)
+    if Cs := getConfigExtSet(DB-EXT)
+    /\ OCs := getOCompExtSet(DB-EXT)
+    /\ D := currentDepth(OCs)
+    /\ T := upTerm(checkStateReq(ND))
+    /\ N' := getTimeSinceEpoch
+    [print "[AssignJob] " MI] .
+
+    crl [ReducedTerm] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : workingInterperter,
+            runnerLogger : RL,
+            procLogger : ((MI |-> ((jobs: NS), (timeStart: N1), (current: ND), (statusRun: working))), PL),
+            Atts >
+        reducedTerm(O, MI, N, T, RT, N')
+    =>  < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : workingInterperter,
+            runnerLogger : RL',
+            procLogger : ((MI |-> ((jobs: NS), (timeStart: 0), (current: ND), (statusRun: waiting))), PL),
+            Atts >
+    if RT == 'Result4Checking
+    /\ N2 := getTimeSinceEpoch
+    /\ N3 := sd(N2, N1)
+    /\ RL' := updateRunnerLog(RL, DB-EXT, MI, N3, isCxState(ND))
+    --- /\ RL' := updateRunnerLog(RL, DB-EXT, MI, N', isCxState(ND))
+    [print "\t" RT] .
+
+    crl [ReducedTerm] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : workingInterperter,
+            Atts >
+        reducedTerm(O, MI, N, T, RT, N')
+    =>  < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : stopping,
+            Atts >
+        buildCx(O, O, T)
+    if RT == 'Result4Checking?
+    [print "\t" RT] .
+
+    crl [BuildCx] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : stopping,
+            Atts >
+        buildCx(O, O, T1)
+    =>  < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : terminated,
+            Atts >
+        counterexample(O, T2)
+        stopWorking(O', O)
+    if Cs := getConfigExtSet(DB-EXT)
+    /\ M := getFlatModule(reviseModule(Cs), DB)
+    /\ R4C := downTerm(T1, nil)
+    /\ not R4C :: Result4Checking
+    /\ T2 := getCounterExample(M, R4C)
+    [print "[BuildCx]"] .
+
+    --- clean extra reducedTerm
+    rl [CleanReducedTerm] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : terminated,
+            Atts >
+        reducedTerm(O, MI, N, T, RT, N')
+    =>  < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : terminated,
+            Atts > .
+
+    crl [CompletedInterpreter] :
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : workingInterperter,
+            runnerLogger : RL,
+            procLogger : ((MI |-> ((jobs: empty), (timeStart: N1), (current: ND), (statusRun: waiting))), PL),
+            Atts >
+    =>  < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : workingInterperter,
+            runnerLogger : RL',
+            procLogger : ((MI |-> ((jobs: empty), (timeStart: N1), (current: ND), (statusRun: completed))), PL),
+            Atts >
+    if RL' := updateRunnerLogStatus(RL, DB-EXT, MI, completed)
+    [print "[CompletedInterpreter] " MI] .
+
+    op isCompleted : Map{Oid,ILogSet} -> Bool .
+    ceq isCompleted(((MI |-> ((statusRun: SR), ILS)), PL)) = false if SR =/= completed .
+    eq isCompleted(PL) = true [owise] .
+
+    crl [DeleteTimer] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            timer : TIMER,
+            status : workingInterperter,
+            runnerLogger : RL,
+            procLogger : PL,
+            Atts >
+    =>  < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            timer : TIMER,
+            status : deleteTimer,
+            runnerLogger : RL,
+            procLogger : empty,
+            Atts >
+            deleteTimer(TIMER, O)
+    if isCompleted(PL)
+    [print "[DeleteTimer]"] .
+
+    rl [InterpreterDone] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            timer : TIMER,
+            status : deleteTimer,
+            layerLogger : LL,
+            runnerLogger : RL,
+            Atts >
+            deletedTimer(O, TIMER)
+    =>  < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : waiting,
+            layerLogger : LL,
+            runnerLogger : RL,
+            Atts >
+            resumeReq(O', O)
+            showSummary(LL, RL)
+        [print "[InterpreterDone]"] .
+
+    --- handle when have timeout
+    crl [TimeOut]:
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : workingInterperter,
+            timer : TIMER,
+            threshold : B,
+            layerLogger : LL,
+            runnerLogger : RL,
+            procLogger : PL,
+            killWorkers : empty,
+            Atts >
+        timeOut(O, TIMER)
+    =>  < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : (if | WS | == 0 then workingInterperter else killInterpreter fi),
+            timer : TIMER,
+            threshold : B,
+            layerLogger : LL,
+            runnerLogger : RL,
+            procLogger : (if | WS | == 0 then PL else empty fi),
+            killWorkers : WS,
+            Atts >
+    if N := getTimeSinceEpoch
+    /\ WS := handleTimeOut(DB-EXT, LL, RL, PL, N)
+    [print "<------------------- [TimeOut - END] ------------------->"] .
+
+    --- kill interpreters
+    crl [KillInterpreter]:
+        < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : killInterpreter,
+            runnerLogger : RL,
+            workers : WS,
+            killWorkers : (MI, WS'),
+            Atts >
+    =>  < O : X@DatabaseClass |
+            db : DB,
+            db-ext : DB-EXT,
+            status : killedInterpreter,
+            runnerLogger : RL',
+            workers : delete(MI, WS),
+            killWorkers : WS',
+            Atts >
+        quit(MI, O)
+    if RL' := updateRunnerLogStatus(RL, DB-EXT, MI, killed)
+    [print "[KillInterpreter] " MI] .
+
+    rl [KilledInterpreter]:
+        < O : X@DatabaseClass |
+            status : killedInterpreter,
+            workers : WS,
+            killWorkers : WS',
+            Atts >
+        bye(O, MI)
+    =>  < O : X@DatabaseClass |
+            status : killInterpreter,
+            workers : WS,
+            killWorkers : WS',
+            Atts >
+        [print "[KilledInterpreter] " MI] .
+
+    rl [KillInterpreterDone]:
+        < O : X@DatabaseClass |
+            status : killInterpreter,
+            timer : TIMER,
+            killWorkers : empty,
+            Atts >
+    =>  < O : X@DatabaseClass |
+            status : deleteTimer,
+            timer : TIMER,
+            killWorkers : empty,
+            Atts >
+            deleteTimer(TIMER, O)
+    [print "[KillInterpreterDone]"] .
+endm

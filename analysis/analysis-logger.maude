@@ -1,0 +1,71 @@
+mod ILOG is
+    pr CONFIGURATION .
+    pr DATABASE-EXT-DECL .
+    pr NAT-LIST .
+
+    sorts StatusRun ILog .
+    ops waiting working completed killed : -> StatusRun .
+
+    op time:_ : Nat -> ILog .
+    op totalTime:_ : Nat -> ILog .
+    op states:_ : Bound -> ILog .
+    op cxStates:_ : Bound -> ILog .
+    op selectStates:_ : Bound -> ILog .
+    op selectCxStates:_ : Bound -> ILog .
+    op threshold:_ : Bound -> ILog .
+    op #states:_ : Nat -> ILog .
+    op #cxStates:_ : Nat -> ILog .
+    op proc:_ : Oid -> ILog .
+    op timeStates:_ : NatList -> ILog .
+    op timeCxStates:_ : NatList -> ILog .
+    op statusRun:_ : StatusRun -> ILog .
+    op current:_ : Node -> ILog .
+    op jobs:_ : NodeSet -> ILog .
+    op timeStart:_ : Nat -> ILog .
+endm
+
+view ILog from TRIV to ILOG is
+    sort Elt to ILog .
+endv
+
+mod ILOGSET is
+    pr SET{ILog} * (
+        sort NeSet{ILog} to NeILogSet,
+        sort Set{ILog} to ILogSet,
+        op empty : -> Set{ILog} to emptyILogSet) .
+endm
+
+view ILogSet from TRIV to ILOGSET is
+    sort Elt to ILogSet .
+endv
+
+view Oid from TRIV to CONFIGURATION is
+    sort Elt to Oid .
+endv
+
+view 6Tuple{X1 :: TRIV, X2 :: TRIV, X3 :: TRIV, X4 :: TRIV, X5 :: TRIV, X6 :: TRIV} from TRIV to 6TUPLE{X1, X2, X3, X4, X5, X6} is
+  sort Elt to Tuple{X1, X2, X3, X4, X5, X6} .
+endv
+
+mod SOLVER-LOGGER-ANALYSIS is
+    pr MAP{Nat,ILogSet} .
+    pr LIST{ILogSet} * (
+        sort NeList{ILogSet} to NeILogSetList,
+        sort List{ILogSet} to ILogSetList) .
+    pr MAP{Oid,ILogSet} .
+
+    op runs:_ : ILogSetList -> ILog .
+    op prev:_ : ILogSet -> ILog .
+
+    pr MAP{Nat,6Tuple{Nat,Nat,Nat,Nat,Nat,Nat}} * (
+        op `(_`,_`,_`,_`,_`,_`) to <_`,_`,_`,_`,_`,_>,
+        op p1_ to states,
+        op p2_ to cxStates,
+        op p3_ to genStates,
+        op p4_ to genCxStates,
+        op p5_ to totalStates,
+        op p6_ to totalCxStates,
+        sort Tuple{Nat,Nat,Nat,Nat,Nat,Nat} to ICounter,
+        sort Entry{Nat,6Tuple{Nat,Nat,Nat,Nat,Nat,Nat}} to ILoggerEntry,
+        sort Map{Nat,6Tuple{Nat,Nat,Nat,Nat,Nat,Nat}} to ILogger) .
+endm
