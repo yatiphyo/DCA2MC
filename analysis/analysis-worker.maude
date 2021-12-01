@@ -798,7 +798,7 @@ mod SOLVER-ANALYSIS-WORKERS is
             runnerLogger : RL,
             procLogger : ((MI |-> ((jobs: NS), (timeStart: N1), (current: ND), (statusRun: working))), PL),
             Atts >
-        reducedTerm(O, MI, N, T, RT, N')
+        reducedTerm(O, MI, N, T, RT)
     =>  < O : X@DatabaseClass |
             db : DB,
             db-ext : DB-EXT,
@@ -810,7 +810,6 @@ mod SOLVER-ANALYSIS-WORKERS is
     /\ N2 := getTimeSinceEpoch
     /\ N3 := sd(N2, N1)
     /\ RL' := updateRunnerLog(RL, DB-EXT, MI, N3, isCxState(ND))
-    --- /\ RL' := updateRunnerLog(RL, DB-EXT, MI, N', isCxState(ND))
     [print "\t" RT] .
 
     crl [ReducedTerm] :
@@ -819,7 +818,7 @@ mod SOLVER-ANALYSIS-WORKERS is
             db-ext : DB-EXT,
             status : workingInterperter,
             Atts >
-        reducedTerm(O, MI, N, T, RT, N')
+        reducedTerm(O, MI, N, T, RT)
     =>  < O : X@DatabaseClass |
             db : DB,
             db-ext : DB-EXT,
@@ -860,7 +859,7 @@ mod SOLVER-ANALYSIS-WORKERS is
             db-ext : DB-EXT,
             status : terminated,
             Atts >
-        reducedTerm(O, MI, N, T, RT, N')
+        reducedTerm(O, MI, N, T, RT)
     =>  < O : X@DatabaseClass |
             server : O',
             db : DB,
