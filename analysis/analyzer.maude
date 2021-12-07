@@ -23,7 +23,6 @@ mod SOVLER-ANALYSIS is
                 default : 'CONVERSION >
                 < aServer : Server | app : o, status : idle >
                 CreateServerTcpSocket(socketManager, aServer, 8811, 10)
-                createInterpreter(interpreterManager, aServer, newProcess)
                 initialize(o, "initialize[QLOCK-CHECK, init, lofree, OComp, Soup{OComp}]") .
 endm
 
