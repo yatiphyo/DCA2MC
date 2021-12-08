@@ -327,7 +327,7 @@ mod SOLVER-ANALYSIS-WORKERS is
                 (timeCxStates: NL2)
                 ) ILSL)),
             ILS), D)
-    = showSummaryForOne(
+    = showSummaryForOne*(
         ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: TIME)),
         ((selectStates: N6),
             (selectCxStates: N7),
@@ -354,8 +354,8 @@ mod SOLVER-ANALYSIS-WORKERS is
         "\n\tThreshold " OUT3
         ] .
 
-    op showSummaryForOne : ILogSet ILogSet -> Configuration .
-    ceq showSummaryForOne(
+    op showSummaryForOne* : ILogSet ILogSet -> Configuration .
+    ceq showSummaryForOne*(
         ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N10)),
         ((selectStates: N6),
             (selectCxStates: N7),
@@ -368,7 +368,7 @@ mod SOLVER-ANALYSIS-WORKERS is
                 (timeCxStates: NL2)
                 ) ILSL)),
             ILS))
-    = showSummaryForOne(
+    = showSummaryForOne*(
         ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N10)),
         ((selectStates: N6),
             (selectCxStates: N7),
@@ -403,13 +403,13 @@ mod SOLVER-ANALYSIS-WORKERS is
     ]
     .
 
-    eq showSummaryForOne(
+    eq showSummaryForOne*(
         ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N6)),
         ((selectStates: N7),
             (selectCxStates: N8),
             (runs: nil),
-            ILS),
-        TIME) = none .
+            ILS)
+        ) = none .
 
     --- handling timeout and checking over threshold
     op _plus_ : Bound Bound -> Bound [assoc comm] .
