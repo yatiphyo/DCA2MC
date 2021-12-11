@@ -29,7 +29,7 @@ mod CHECKER-EXT is
     pr CHECKER .
 
     op originModule : -> Module .
-    op processDbExt : -> DatabaseExt .
+    op configExtSet : -> ConfigExtSet .
 
     vars Cs : ConfigExtSet .
     vars M : Module .
@@ -39,11 +39,11 @@ mod CHECKER-EXT is
     op checkStateReq : Node -> Result4Checking? .
     ceq checkStateReq(< < T : emptyTermSet > : LL >)
     = checkStates(originModule, T, LL, Cs)
-    if Cs := getConfigExtSet(processDbExt) .
+    if Cs := configExtSet .
 
     ceq checkStateReq(< < emptyTermSet : T > : LL >)
     = checkCxStates(originModule, T, LL, Cs)
-    if Cs := getConfigExtSet(processDbExt) .
+    if Cs := configExtSet .
 endm
 
 mod SOLVER-ANALYSIS-WORKERS is
@@ -665,12 +665,10 @@ mod SOLVER-ANALYSIS-WORKERS is
             default : ME, Atts >
         insertModule(MI, O, M')
     if Cs := getConfigExtSet(DB-EXT)
-    /\ OCs := getOCompExtSet(DB-EXT)
-    /\ NS := flattenStates(nodeSet(OCs))
     /\ M := getFlatModule(originModule(Cs), DB)
     /\ M' := addEquations(
             (eq 'originModule.Module = upTerm(M) [none] . )
-            (eq 'processDbExt.DatabaseExt = upTerm(DB-EXT) [none] . )
+            (eq 'configExtSet.ConfigExtSet = upTerm(Cs) [none] . )
             , upModule(MN, true)
         )
     [print "[CreatedWorker]"] .
@@ -691,7 +689,7 @@ mod SOLVER-ANALYSIS-WORKERS is
             default : ME, Atts >
         [print "[LoadedModule]"] .
 
-    crl [LoadedInterpreter] :
+    crl [LoadedInterpreters] :
         < O : X@DatabaseClass |
             db : DB,
             db-ext : DB-EXT,
@@ -707,7 +705,7 @@ mod SOLVER-ANALYSIS-WORKERS is
             workers : WS,
             Atts >
     if | WS | >= N
-    [print "[LoadedInterpreter]"] .
+    [print "[LoadedInterpreters]"] .
 
     --- initialize log before execution
     crl [InitializeLog] :
