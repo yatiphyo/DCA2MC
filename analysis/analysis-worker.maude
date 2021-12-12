@@ -497,6 +497,7 @@ mod SOLVER-ANALYSIS-WORKERS is
     )
     if SR1 == working
     /\ N13 := sd(N12, N11)
+    /\ ND =/= empNode
     /\ BL := isCxState(ND)
     /\ AVG1 := (if BL then (if N9 =/= 0 then (sum(NL1) quo N9) else unbounded fi) else (sum(N13 NL1) quo (N9 + 1)) fi)
     /\ AVG2 := (if BL then (sum(N13 NL2) quo (N10 + 1)) else (if N10 =/= 0 then (sum(NL2) quo N10) else unbounded fi) fi)
@@ -526,6 +527,47 @@ mod SOLVER-ANALYSIS-WORKERS is
         "\n\tTotal time to check all states = " OUT5
         "\n\tTotal time to generate states = " OUT6
         "\n\tTotal time = " OUT7
+    ]
+    .
+
+    ceq handleTimeOutForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N6)),
+        ((selectStates: N7),
+            (selectCxStates: N8),
+            (threshold: B),
+            (runs: ((
+                (statusRun: SR1),
+                (#states: N9),
+                (#cxStates: N10),
+                (proc: MI),
+                (timeStates: NL1),
+                (timeCxStates: NL2)
+                ) ILSL)),
+            ILS),
+        (MI |-> ((jobs: NS), (timeStart: N11), (current: ND), (statusRun: SR2)), PL),
+        N12,
+        BL1,
+        WS
+        )
+    = handleTimeOutForOne(
+        ((states: N1), (cxStates: N2), (selectStates: N3), (selectCxStates: N4), (time: N5), (totalTime: N6)),
+        ((selectStates: N7),
+            (selectCxStates: N8),
+            (threshold: B),
+            (runs: ILSL),
+            ILS),
+        PL,
+        N12,
+        BL1,
+        insert(MI, WS)
+    )
+    if SR1 == working
+    /\ N13 := sd(N12, N11)
+    /\ ND == empNode
+    [print "[" MI "] status = " SR1
+        "\n\tStates = " N9 "/" N7 ", timeStates = " NL1
+        "\n\tCxStates = " N10 "/" N8 ", timeCxStates = " NL2
+        "\n\tThis worker does not start"
     ]
     .
 
