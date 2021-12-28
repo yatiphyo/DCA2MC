@@ -15,7 +15,7 @@ endfm
 
 fmod PID is
     sort Pid .
-    ops p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 : -> Pid [ctor] .
+    ops p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 : -> Pid [ctor] .
 endfm
 
 fmod SOUP {D :: TRIV} is
@@ -72,7 +72,7 @@ fmod CONFIG is
     ***
     *** Parameters
     op N : -> NzNat .
-    eq N = 7 .
+    eq N = 6 .
     ***
     op ainit5 : -> Config .
     eq ainit5 = {(pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
@@ -123,6 +123,66 @@ fmod CONFIG is
                 (place[p6]: 0) (place[p7]: 0) (place[p8]: 0) (place[p9]: 0) (place[p10]: 0)
                 (array[0]: true) (array[1]: true) (array[2]: true) (array[3]: true) (array[4]: true)
                 (array[5]: true) (array[6]: true) (array[7]: true) (array[8]: true) (array[9]: true)
+                (next: 0) (abnorm: false)} .
+    
+    op ainit11 : -> Config .
+    eq ainit11 = {(pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
+                (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss)
+                (pc[p11]: ss)
+                (place[p1]: 0) (place[p2]: 0) (place[p3]: 0) (place[p4]: 0) (place[p5]: 0)
+                (place[p6]: 0) (place[p7]: 0) (place[p8]: 0) (place[p9]: 0) (place[p10]: 0)
+                (place[p11]: 0)
+                (array[0]: true) (array[1]: true) (array[2]: true) (array[3]: true) (array[4]: true)
+                (array[5]: true) (array[6]: true) (array[7]: true) (array[8]: true) (array[9]: true)
+                (array[10]: true)
+                (next: 0) (abnorm: false)} .
+
+    op ainit12 : -> Config .
+    eq ainit12 = {(pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
+                (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss)
+                (pc[p11]: ss) (pc[p12]: ss)
+                (place[p1]: 0) (place[p2]: 0) (place[p3]: 0) (place[p4]: 0) (place[p5]: 0)
+                (place[p6]: 0) (place[p7]: 0) (place[p8]: 0) (place[p9]: 0) (place[p10]: 0)
+                (place[p11]: 0) (place[p12]: 0)
+                (array[0]: true) (array[1]: true) (array[2]: true) (array[3]: true) (array[4]: true)
+                (array[5]: true) (array[6]: true) (array[7]: true) (array[8]: true) (array[9]: true)
+                (array[10]: true) (array[11]: true)
+                (next: 0) (abnorm: false)} .
+
+    op ainit13 : -> Config .
+    eq ainit13 = {(pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
+                (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss)
+                (pc[p11]: ss) (pc[p12]: ss) (pc[p13]: ss)
+                (place[p1]: 0) (place[p2]: 0) (place[p3]: 0) (place[p4]: 0) (place[p5]: 0)
+                (place[p6]: 0) (place[p7]: 0) (place[p8]: 0) (place[p9]: 0) (place[p10]: 0)
+                (place[p11]: 0) (place[p12]: 0) (place[p13]: 0)
+                (array[0]: true) (array[1]: true) (array[2]: true) (array[3]: true) (array[4]: true)
+                (array[5]: true) (array[6]: true) (array[7]: true) (array[8]: true) (array[9]: true)
+                (array[10]: true) (array[11]: true) (array[12]: true)
+                (next: 0) (abnorm: false)} .
+    
+    op ainit14 : -> Config .
+    eq ainit14 = {(pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
+                (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss)
+                (pc[p11]: ss) (pc[p12]: ss) (pc[p13]: ss) (pc[p14]: ss)
+                (place[p1]: 0) (place[p2]: 0) (place[p3]: 0) (place[p4]: 0) (place[p5]: 0)
+                (place[p6]: 0) (place[p7]: 0) (place[p8]: 0) (place[p9]: 0) (place[p10]: 0)
+                (place[p11]: 0) (place[p12]: 0) (place[p13]: 0) (place[p14]: 0)
+                (array[0]: true) (array[1]: true) (array[2]: true) (array[3]: true) (array[4]: true)
+                (array[5]: true) (array[6]: true) (array[7]: true) (array[8]: true) (array[9]: true)
+                (array[10]: true) (array[11]: true) (array[12]: true) (array[13]: true)
+                (next: 0) (abnorm: false)} .
+
+    op ainit15 : -> Config .
+    eq ainit15 = {(pc[p1]: ss) (pc[p2]: ss) (pc[p3]: ss) (pc[p4]: ss) (pc[p5]: ss)
+                (pc[p6]: ss) (pc[p7]: ss) (pc[p8]: ss) (pc[p9]: ss) (pc[p10]: ss)
+                (pc[p11]: ss) (pc[p12]: ss) (pc[p13]: ss) (pc[p14]: ss) (pc[p15]: ss)
+                (place[p1]: 0) (place[p2]: 0) (place[p3]: 0) (place[p4]: 0) (place[p5]: 0)
+                (place[p6]: 0) (place[p7]: 0) (place[p8]: 0) (place[p9]: 0) (place[p10]: 0)
+                (place[p11]: 0) (place[p12]: 0) (place[p13]: 0) (place[p14]: 0) (place[p15]: 0)
+                (array[0]: true) (array[1]: true) (array[2]: true) (array[3]: true) (array[4]: true)
+                (array[5]: true) (array[6]: true) (array[7]: true) (array[8]: true) (array[9]: true)
+                (array[10]: true) (array[11]: true) (array[12]: true) (array[13]: true) (array[14]: true)
                 (next: 0) (abnorm: false)} .
 endfm
 
