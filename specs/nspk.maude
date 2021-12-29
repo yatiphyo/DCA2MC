@@ -272,6 +272,43 @@ mod NSPK is
 
 endm
 
+in model-checker .
+
+mod NSPK-PREDS is
+  pr NSPK .
+  inc SATISFACTION .
+  subsort Config < State .
+
+  ops invProp : -> Prop .
+
+  var NW : Soup{Msg} .
+  var R : Rand .
+  var N : Nonce .
+  vars P Q Q' : Prin .
+  var OCs : Soup{OCom} .
+
+  op checkOne2Many : Config -> Bool .
+  ceq checkOne2Many({(nw: ((m1(P,P,Q,c1(Q,n(P,Q,R),P))) (m2(Q',Q,P,c2(P,n(P,Q,R),N))) NW)) OCs}) = false
+  if not (m2(Q,Q,P,c2(P,n(P,Q,R),N)) \in ((m2(Q',Q,P,c2(P,n(P,Q,R),N))) NW)) /\ P =/= intrdr .
+  eq checkOne2Many({OCs}) = true [owise] .
+  eq {OCs} |= invProp = checkOne2Many({OCs}) .
+endm
+
+mod NSPK-CHECK is
+  inc NSPK-PREDS .
+  inc MODEL-CHECKER .
+  inc LTL-SIMPLIFIER .
+  op test : -> Formula .
+  eq test = [] invProp .
+  op one2many : -> Formula .
+  eq one2many = (~ invProp) |-> False .
+endm
+
+***(
+    red in NSPK-CHECK : modelCheck(init, test) .
+    red in NSPK-CHECK : modelCheck(init, one2many) .
+)
+
 ***(
 A nonce that has been made by a non-intruder principle for a non-intruder principle may be leaked
 to the intruder, which can be found by the following:
