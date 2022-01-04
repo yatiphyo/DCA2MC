@@ -177,7 +177,7 @@ Each worker configuration resides in the `solver-worker.maude` file. For example
                 --- initialize(o, "initialize[QLOCK-CHECK, init10, lofree, OComp, Soup{OComp}]")
                 --- initialize(o, "initialize[QLOCK-CHECK, init10, cstable, OComp, Soup{OComp}]")
                 initialize(o, "initialize[QLOCK-CHECK, init10, halt, OComp, Soup{OComp}]")
-                depthInfo(o, "depthInfo 3") .
+                depthInfo(o, "depthInfo 2 2") .
 ```
 
 `batchSize` : the number of accumulated jobs before sending them to the master.
