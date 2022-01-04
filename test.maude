@@ -1,8 +1,8 @@
 in debug.maude .
-in specs/qlock.maude
+in specs/self-stabilization/qlock.maude
 in full-maude
 in solver
-(initialize[QLOCK-CHECK, init9, halt, OComp, Soup{OComp}])
+(initialize[QLOCK-CHECK, init10, cstable, OComp, Soup{OComp}])
 (layerCheck 2)
 (layerCheck 2)
 (lastCheck)
