@@ -23,6 +23,7 @@ fmod SOLVER-SIGN is
     op timeout_ : @Bubble@ -> @Command@ .
     op threshold_ : @Bubble@ -> @Command@ .
     op analyze : @Token@ @Token@ @Token@ -> @Command@ .
+    op analyzeDepth : -> @Command@ .
     --- command list in analyasis
     sort @CommandList@ .
     subsort @Command@ < @CommandList@ .
