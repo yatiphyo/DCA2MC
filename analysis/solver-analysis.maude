@@ -16,11 +16,11 @@ mod SOLVER-APP-ANALYSIS is
     vars DB DB' : Database .
     var DB-EXT DB-EXT' : DatabaseExt .
     var QIL : QidList .
-    var RES : Tuple{Database,QidList,DatabaseExt} .
+    var RES RES1 RES2 RES3 RES4 : Tuple{Database,QidList,DatabaseExt} .
     vars M M' : Module .
     vars OCs OCs' : OCompExtSet .
     vars Cs Cs' : ConfigExtSet .
-    vars D N N' C C' SEED : Nat .
+    vars D N N' C C' SEED C1 C2 C3 C4 C5 C6 C7 C8 C12 C34 C56 C78 : Nat .
     vars B B' B1 B2 B3 B4 B1' B2' B3' B4' : Bound .
     vars TS TS1 TS2 : TermSet .
     vars R4C : Result4Checking? .
@@ -39,7 +39,7 @@ mod SOLVER-APP-ANALYSIS is
     vars N1' N2' N3' N4' N5' N6' N7' N8' N9' N10' N11' N12' N13' N14' N15' : Nat .
     var TIME1 TIME2 TIME TIME' AVG1 AVG2 TOTAL : Bound .
     vars ND ND' : Node .
-    vars NS : NodeSet .
+    vars NS NS1 NS2 NS3 NS4 : NodeSet .
     vars OUT OUT1 OUT2 OUT3 OUT4 OUT5 OUT6 OUT7 OUT8 : String .
     vars ST : Status .
     vars WS WS' : Set{Worker} .
@@ -350,6 +350,76 @@ mod SOLVER-APP-ANALYSIS is
             --- "\n\t#pickStates = " B1 "\n\t#pickCxStates = " B2
             "\n\t#procs = " N ", Workers = " WS
             "\n\tLayerLog = " LL "\n\tRunLogger = " RL "\n\tProcLogger = " PL] .
+
+    --- handle analyzeDepth command
+    crl [AnalyzeDepth] :
+        < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : working,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            handle(O, 'analyzeDepth.@Command@)
+        => < O : X@DatabaseClass |
+            server : O',
+            db : DB,
+            db-ext : DB-EXT,
+            status : waiting,
+            input : nilTermList,
+            output : nil,
+            default : ME, Atts >
+            resumeReq(O', O)
+        if N1 := getTimeSinceEpochAt(1)
+        /\ RES1 := procLayerCheckCommand('layerCheck_['bubble[''1.Qid]], ME, DB, DB-EXT)
+        /\ NS1 := nodeSet(getOCompExtSet(getDatabaseExt(RES1)))
+        /\ C1 := getNumberOfStates(NS1)
+        /\ C2 := getNumberOfCxStates(NS1)
+        /\ C12 := C1 + C2
+        /\ N2 := getTimeSinceEpochAt(2)
+        /\ OUT1 := formatTime(sd(N2, N1))
+        --------------------
+        /\ RES2 := procLayerCheckCommand('layerCheck_['bubble[''2.Qid]], ME, DB, DB-EXT)
+        /\ NS2 := nodeSet(getOCompExtSet(getDatabaseExt(RES2)))
+        /\ C3 := getNumberOfStates(NS2)
+        /\ C4 := getNumberOfCxStates(NS2)
+        /\ C34 := C3 + C4
+        /\ N3 := getTimeSinceEpochAt(3)
+        /\ OUT2 := formatTime(sd(N3, N2))
+        --------------------
+        /\ RES3 := procLayerCheckCommand('layerCheck_['bubble[''3.Qid]], ME, DB, DB-EXT)
+        /\ NS3 := nodeSet(getOCompExtSet(getDatabaseExt(RES3)))
+        /\ C5 := getNumberOfStates(NS3)
+        /\ C6 := getNumberOfCxStates(NS3)
+        /\ C56 := C5 + C6
+        /\ N4 := getTimeSinceEpochAt(4)
+        /\ OUT3 := formatTime(sd(N4, N3))
+        --------------------
+        /\ RES4 := procLayerCheckCommand('layerCheck_['bubble[''4.Qid]], ME, DB, DB-EXT)
+        /\ NS4 := nodeSet(getOCompExtSet(getDatabaseExt(RES4)))
+        /\ C7 := getNumberOfStates(NS4)
+        /\ C8 := getNumberOfCxStates(NS4)
+        /\ C78 := C7 + C8
+        /\ N5 := getTimeSinceEpochAt(5)
+        /\ OUT4 := formatTime(sd(N5, N4))
+        --------------------
+        /\ N := recommendDepth(C12 C34 C56 C78)
+        [print "[AnalyzeDepth]"
+            "\n\t[Layer depth 1] #all-states = " C1 ", #cx-states = " C2 ", time = " OUT1
+            "\n\t[Layer depth 2] #all-states = " C3 ", #cx-states = " C4 ", time = " OUT2
+            "\n\t[Layer depth 3] #all-states = " C5 ", #cx-states = " C6 ", time = " OUT3
+            "\n\t[Layer depth 4] #all-states = " C7 ", #cx-states = " C8 ", time = " OUT4
+            "\n\t-----------------------"
+            "\n\tLayer depth recommendation: " N
+        ] .
+
+    op recommendDepth : NatList -> Nat .
+    op recommendDepth* : NatList Nat -> Nat .
+    eq recommendDepth(nil) = 1 .
+    eq recommendDepth(N NL) = if N < 500 then recommendDepth*(N NL, 0) else 1 fi .
+    eq recommendDepth*(N NL, C) = if N < 500 then recommendDepth*(NL, (C + 1)) else C fi .
+    eq recommendDepth*(nil, C) = C .
 
     --- starting checking states with meta-interpreters
     crl [HandleLastCheck] :
