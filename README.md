@@ -1,4 +1,4 @@
-# L+1 Layers Divide and Conquer Approach to Leads-To and Eventually Model Checking
+# L+1 Layer Divide and Conquer Approach to Model Checking Leads-to, Eventual, Conditional Stable, Until, and Until Stable Properties
 
 The tool has been developed in **Full Maude** powered by **Maude 3.1** version.
 
