@@ -1,12 +1,2 @@
-in debug.maude .
-in specs/qlock.maude
-in full-maude
-in solver
-(initialize[QLOCK-CHECK, init5, lofree, OComp, Soup{OComp}])
---- (initialize[QLOCK-CHECK, init5, halt, OComp, Soup{OComp}])
---- (initialize[QLOCK-CHECK, init5, cstable, OComp, Soup{OComp}])
-(layerCheck 2)
-(layerCheck 2)
---- (lastCheck)
---- quit
-
+in specs/self-stabilization/k-states.maude
+reduce in K-STATES-CHECK : modelCheck(init12, cstable) .
