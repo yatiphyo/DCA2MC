@@ -88,14 +88,14 @@ mod SKDMXA is
   pr LABEL .
   pr NAT+DEC .
   sort OCom Sys .
-  subsort OCom < Sys .
   sort Config .
+  subsort OCom < Sys .
   --- System Configuration
   op none :             -> Sys .
   op __   : Sys Sys -> Sys [ctor assoc comm id: none] .
   op {_} : Sys -> Config [ctor] .
   --- variables
-  op numOfReq[_]:_   : Nat Nat   -> OCom . --- for model-checking
+  --- op numOfReq[_]:_   : Nat Nat   -> OCom . --- for model-checking
   op pc[_]:_         : Nat Label -> OCom .
   op requesting[_]:_ : Nat Bool  -> OCom .
   op havePriv[_]:_   : Nat Bool  -> OCom .
@@ -103,28 +103,27 @@ mod SKDMXA is
   op ln[_]:_         : Nat Array -> OCom .
   op queue[_]:_      : Nat Queue -> OCom .
   op idx[_]:_        : Nat Nat   -> OCom .
+  op cnt[_]:_        : Nat Nat   -> OCom .
   op nw:_            : Network   -> OCom .
   op cnt:_           : Nat       -> OCom .
   --- parameters
   op n : -> NzNat . --- the number of nodes
-  --- op m : -> Nat . --- the number of requests each node makes
+  op m : -> Nat . --- the number of requests each node makes
   --- Maude variables
   vars S OCs : Sys .
-  vars I J : Nat . --- denoting nodes
+  vars I J N : Nat . --- denoting nodes
   vars X Max : Nat .
   vars F F' C : Bool .
   vars RN LN LN' : Array .
   vars Q Q' : Queue .
   var NW : Network .
   var L : Label .
-  var N : Nat .
   --- try
   rl [try] :
-    { (numOfReq[I]: X)
+    {
     (pc[I]: rem) OCs }
-    => { (numOfReq[I]: (X + 1))
-       (pc[I]: l1) OCs } .
-
+    => {
+       (pc[I]: l1) OCs }  .
   --- setReq
   rl [setReq] :
     { (pc[I]: l1)
@@ -234,8 +233,10 @@ mod SKDMXA is
        (nw: (msg(top(Q),priv(get(Q),LN)) NW)) OCs } .
   --- resetReq
   rl [resetReq] :
-    { (pc[I]: l10) (cnt: N) OCs }
-    => { (pc[I]: fs) (cnt: dec(N)) OCs } .
+    { (pc[I]: l10) (cnt: N)
+    (requesting[I]: F) OCs }
+    => { (pc[I]: fs)
+       (requesting[I]: false) (cnt: dec(N)) OCs } .
   --- receiveReq
   crl [receiveReq] :
     { (pc[I]: L)
@@ -245,7 +246,7 @@ mod SKDMXA is
     (ln[I]: LN)
     (queue[I]: Q)
     (nw: (msg(I,req(J,X)) NW)) OCs }
-    =>{  (pc[I]: L)
+    => { (pc[I]: L)
        (requesting[I]: F)
        (havePriv[I]: if C then false else F' fi)
        (rn[I]: RN[J] := Max)
@@ -257,7 +258,8 @@ mod SKDMXA is
        C := F' and not(F) and Max == (LN[J]) + 1 .
 
   rl [fin] :
-    { (cnt: 0) OCs } => { (cnt: 0) OCs } .
+    { (cnt: 0) OCs }
+    => { (cnt: 0) OCs } .
 endm
 
 mod SKDMXA-ISTATE is
@@ -265,7 +267,7 @@ mod SKDMXA-ISTATE is
   op node : Nat -> Sys .
   op init : -> Config .
   vars I N : Nat .
-  eq node(I) = (numOfReq[I]: 0)
+  eq node(I) = --- (numOfReq[I]: 0)
                (pc[I]: rem)
                (requesting[I]: false)
                (havePriv[I]: (I == 1))
@@ -273,13 +275,13 @@ mod SKDMXA-ISTATE is
                (ln[I]: ia)
                (queue[I]: empty)
                (idx[I]: 1) .
-  eq n = 2 .
-  --- eq m = 2 .
 
   op initNodes : Nat -> Sys .
   eq initNodes(N) = if N > 0 then node(N) initNodes(sd(N, 1)) else none fi .
 
-  eq init = { initNodes(n) (nw: void) (cnt: n)} .
+  eq n = 2 .
+  --- eq m = 2 .
+  eq init = { initNodes(2) (nw: void) (cnt: 2) } .
 endm
 
 ---
