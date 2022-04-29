@@ -326,11 +326,11 @@ fmod DATABASE-EXT is
         (midFormula: T1:Term) .
 
     --- for leadsTo model checking
-    eq buildFormulaConfig('_|->_[Prop1:Constant, Prop2:Constant])
+    eq buildFormulaConfig('_|->_[T1:Term, T2:Term])
     =   (type: leadsTo),
-        (ncxFormula: ('_|->_[Prop1:Constant, Prop2:Constant])),
-        (cxFormula: ('<>_[Prop2:Constant])),
-        (eventuallyProp: Prop2:Constant) .
+        (ncxFormula: ('_|->_[T1:Term, T2:Term])),
+        (cxFormula: ('<>_[T2:Term])),
+        (eventuallyProp: T2:Term) .
 
     --- for eventual model checking
     eq buildFormulaConfig('<>_[Prop:Constant])

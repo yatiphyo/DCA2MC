@@ -40,10 +40,10 @@ fmod ARRAY is
   eq (A[I] := Y) = (I : Y) , A [owise] .
 endfm
 
-fmod REQUEST is
+fmod IREQUEST is
   pr NAT .
-  sort Request .
-  op req : Nat Nat -> Request .
+  sort IRequest .
+  op req : Nat Nat -> IRequest .
 endfm
 
 fmod PRIVILEGE is
@@ -54,10 +54,10 @@ fmod PRIVILEGE is
 endfm
 
 fmod MESSAGE is
-  pr REQUEST .
+  pr IREQUEST .
   pr PRIVILEGE .
   sort Message .
-  op msg : Nat Request -> Message .
+  op msg : Nat IRequest -> Message .
   op msg : Nat Privilege -> Message .
 endfm
 
@@ -281,7 +281,7 @@ mod SKDMXA-ISTATE is
 
   eq n = 2 .
   --- eq m = 2 .
-  eq init = { initNodes(2) (nw: void) (cnt: 2) } .
+  eq init = { initNodes(n) (nw: void) (cnt: n) } .
 endm
 
 ---
