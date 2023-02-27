@@ -95,7 +95,7 @@ mod SKDMXA is
   op idx[_]:_        : Nat Nat   -> OCom [ctor] .
   op cnt[_]:_        : Nat Nat   -> OCom [ctor] .
   op nw:_            : Network   -> OCom [ctor] .
-  op #ps:_           : Nat -> OCom [ctor] .
+  op cnt:_           : Nat -> OCom [ctor] .
   --- parameters
   op n : -> NzNat . --- the number of nodes
   --- op m : -> Nat . --- the number of requests each node makes
@@ -230,13 +230,13 @@ mod SKDMXA is
   --- finish
   rl [resetReq] :
     { (pc[I]: l10)
-    (#ps: s(X))
+    (cnt: s(X))
     (requesting[I]: F) OCs }
     => { (pc[I]: fs)
-       (#ps: X)
+       (cnt: X)
        (requesting[I]: false) OCs } .
   --- stutter
-    rl [stutter] : { (#ps: 0) OCs } => { (#ps: 0) OCs } .
+    rl [stutter] : { (cnt: 0) OCs } => { (cnt: 0) OCs } .
   --- receiveReq
   crl [receiveReq] :
     { (pc[I]: L)
@@ -278,12 +278,12 @@ mod SKDMXA is
 
   eq n = 4 .
   --- eq m = 2 .
-  eq init = { initNodes(n) (nw: void) (#ps: n) } .
+  eq init = { initNodes(n) (nw: void) (cnt: n) } .
 endm
 
 ---
 --- search [1] init =>* { (pc[2]: cs) OCs:Sys } .
---- search [1] init =>* { (#ps: 0) OCs:Sys } .
+--- search [1] init =>* { (cnt: 0) OCs:Sys } .
 ---
 
 in model-checker .
