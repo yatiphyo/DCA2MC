@@ -3,6 +3,7 @@ version: "3.7"
 services:
     app:
         image: cstable
+        platform: linux/x86_64
         build:
             context: .
             dockerfile: dockerfile
